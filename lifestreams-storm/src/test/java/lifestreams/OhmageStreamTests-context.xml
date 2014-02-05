@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	<bean id="testuser" class="lifestreams.model.OhmageUser">
+		<constructor-arg value="https://test.ohmage.org"/>
+		<constructor-arg value="changun"/>
+		<constructor-arg value="1qaz@WSX"/>
+	</bean>
+	<bean id="wrong_testuser" class="lifestreams.model.OhmageUser">
+		<constructor-arg value="https://test.ohmage.org"/>
+		<constructor-arg value="changun"/>
+		<constructor-arg value="wrongpassword"/>
+	</bean>
+	<bean id="since" class="org.joda.time.DateTime">
+		<constructor-arg value="2000-1-1"/>
+	</bean>
+
+</beans>
