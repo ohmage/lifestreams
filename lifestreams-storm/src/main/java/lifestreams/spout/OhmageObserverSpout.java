@@ -5,6 +5,8 @@ import java.util.Map;
 
 import org.joda.time.DateTime;
 
+import lifestreams.bolt.ActivitySummaryBolt;
+import lifestreams.bolt.CommandSignal;
 import lifestreams.model.DataPoint;
 import lifestreams.model.OhmageStream;
 import lifestreams.model.OhmageUser;
@@ -28,24 +30,13 @@ public class OhmageObserverSpout extends BaseRichSpout {
 		// start a OhmageStream for each data contributor
 		// TODO: modify this hacky approach....
 		ArrayList<OhmageUser> requestees = new ArrayList<OhmageUser>();
-		for(String dataContributor: new String[]{"changun",
-				"ohmage.cameron", 
-				"marc.ideasphere", 
-				"test.user", 
-				"mwf.vinh", 
-				"josh.test.1", 
-				"ohmage.mor", 
-				"sink.thaw", 
-				"laurenshaw",
-				"kennycarruthers",
-				"ohmage.steve",
-				"ohmage.faisal",
-				"ohmage.josh"}){
+		for(String dataContributor: new String[]{"changun",}){
 			requestees.add(new OhmageUser("https://test.ohmage.org",  dataContributor, null));
 		}
-		_stream = new OhmageStream("edu.ucla.cens.Mobility", "2012061300", "extended", "2012050700", user, requestees, new DateTime(2000-1-1));
+		_stream = new OhmageStream("edu.ucla.cens.Mobility", "2012061300", "extended", "2012050700", 
+				                    user, requestees, new DateTime(2000-1-1));
 		_stream.start();
-		}
+	}
 	
 
 	@Override
@@ -53,6 +44,12 @@ public class OhmageObserverSpout extends BaseRichSpout {
 		try {
 			DataPoint dp = _stream.poll();
 			_collector.emit(new Values(dp, dp.getUser(), dp.getTimestamp()));
+			if(Math.random() < 0.1){
+				CommandSignal signal = new CommandSignal(
+							CommandSignal.Command.SNAPSHOT, 
+							ActivitySummaryBolt.class.toString());
+				_collector.emit(new Values( signal, dp.getUser(), null));
+			}
 			
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block

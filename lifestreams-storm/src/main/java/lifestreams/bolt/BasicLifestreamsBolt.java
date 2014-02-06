@@ -16,7 +16,7 @@ import backtype.storm.tuple.Fields;
 public abstract class BasicLifestreamsBolt extends LifestreamsBolt {
 
 	public BasicLifestreamsBolt(BaseSingleFieldPeriod period) {
-		super(period, 1);
+		super(period);
 	}
 
 	protected void executeBatch(OhmageUser user,

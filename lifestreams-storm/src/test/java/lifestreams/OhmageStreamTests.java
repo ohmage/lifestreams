@@ -8,10 +8,13 @@ import java.util.Arrays;
 import java.util.List;
 
 import junit.framework.Assert;
+import lifestreams.bolt.ActivitySummaryBolt;
+import lifestreams.bolt.CommandSignal;
 import lifestreams.bolt.GeoDistanceBolt;
 import lifestreams.bolt.MobilityEventSmoothingBolt;
 import lifestreams.bolt.MobilityState;
 import lifestreams.model.DataPoint;
+import lifestreams.model.MobilityDataPoint;
 import lifestreams.model.OhmageStream;
 import lifestreams.model.OhmageUser;
 import lifestreams.model.OhmageUser.OhmageAuthenticationError;
@@ -23,6 +26,7 @@ import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.joda.time.Period;
 import org.joda.time.Seconds;
+import org.joda.time.base.BaseSingleFieldPeriod;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -127,17 +131,33 @@ public class OhmageStreamTests {
 	public void testTopology() throws InterruptedException, JsonParseException, IOException {
 
 		 TopologyBuilder builder = new TopologyBuilder();
-		 builder.setSpout("spout", new OhmageObserverSpout(), 1);
-		 Days dur = Days.ONE;
+		 builder.setSpout("MobilityDataStream", new OhmageObserverSpout(), 1);
+		 BaseSingleFieldPeriod period = Days.ONE;
 		 
-		 builder.setBolt("dummy", new GeoDistanceBolt(dur), 10).fieldsGrouping("spout", new Fields("user"));
-		 builder.setBolt(MobilityEventSmoothingBolt.class.getCanonicalName(), new MobilityEventSmoothingBolt(dur), 10).fieldsGrouping("spout", new Fields("user"));
+		 builder.setBolt(GeoDistanceBolt.getDefaultComponentId(), 
+				         new GeoDistanceBolt(period), 
+				         10).fieldsGrouping("MobilityDataStream", new Fields("user"));
+		 
+		 builder.setBolt(MobilityEventSmoothingBolt.getDefaultComponentId(), 
+				         new MobilityEventSmoothingBolt(period), 
+				         10).fieldsGrouping("MobilityDataStream", new Fields("user"));
+		 
+		 builder.setBolt(ActivitySummaryBolt.getDefaultComponentId(), 
+				 		 new ActivitySummaryBolt(period), 
+				 		 10)
+				 		 .fieldsGrouping(MobilityEventSmoothingBolt.getDefaultComponentId(), 
+				 				        new Fields("user"));
+		 
+		 
 		 Config conf = new Config();
 	     conf.setDebug(false);
 	     conf.setMaxTaskParallelism(3);
 	     conf.registerSerialization(DataPoint.class);
+	     conf.registerSerialization(MobilityDataPoint.class);
+	     conf.registerSerialization(CommandSignal.class);
+	     
 	     LocalCluster cluster = new LocalCluster();
-	     cluster.submitTopology("word-count", conf, builder.createTopology());
+	     cluster.submitTopology("Lifestreams-on-storm", conf, builder.createTopology());
 
 	     Thread.sleep(100000000);
 

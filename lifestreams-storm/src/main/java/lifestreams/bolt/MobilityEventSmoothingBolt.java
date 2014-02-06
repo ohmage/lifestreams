@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import lifestreams.model.DataPoint;
+import lifestreams.model.MobilityDataPoint;
 import lifestreams.model.OhmageUser;
 
 import org.joda.time.Duration;
@@ -30,29 +31,25 @@ public class MobilityEventSmoothingBolt extends BasicLifestreamsBolt{
 
 	@Override
 	public void prepare(Map stormConf, TopologyContext context){
+		super.prepare(stormConf, context);
 		hmmModel = createHmmModel();
 		
 	}
 	@Override
 	protected void executeBatch(OhmageUser user, List<DataPoint> data, BasicOutputCollector collector) {
+		// create a list of observations (i.e. mobility states)
 		List<ObservationDiscrete <MobilityState>> observations = new ArrayList<ObservationDiscrete <MobilityState>> ();
 		for(DataPoint dp: data){
-			String mode = dp.getData().get("mode").asText();
-			
-			try{
-				observations.add(new ObservationDiscrete <MobilityState>(MobilityState.valueOf(mode.toUpperCase())));
-			}
-			catch(Exception e){
-				System.out.println(mode);
-			}
+			MobilityDataPoint mdp = (MobilityDataPoint)dp;
+			observations.add(new ObservationDiscrete <MobilityState>(mdp.getState()));
 		}
-		
-		
-		System.out.println(data.get(0).getTimestamp());
+		// compute the most likely state given the hmm model
 		int[] inferredStates= hmmModel.mostLikelyStateSequence(observations);
+		
+		// emit the data with the new states
 		for(int i=0; i<inferredStates.length; i++){
 			MobilityState state = MobilityState.values()[inferredStates[i]];
-			data.get(i).getData().put("mode", state.toString());
+			((MobilityDataPoint)data.get(i)).setState(state);
 			this.emit(data.get(i), collector);
 			/*
 			if(state != observations.get(i).value){

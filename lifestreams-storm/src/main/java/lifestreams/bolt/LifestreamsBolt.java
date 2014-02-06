@@ -2,9 +2,11 @@ package lifestreams.bolt;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.joda.time.DateTime;
@@ -23,22 +25,26 @@ import org.joda.time.base.BaseSingleFieldPeriod;
 import lifestreams.model.DataPoint;
 import lifestreams.model.OhmageUser;
 import backtype.storm.generated.GlobalStreamId;
+import backtype.storm.generated.Grouping;
 import backtype.storm.task.OutputCollector;
+import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.BasicOutputCollector;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseBasicBolt;
+import backtype.storm.topology.base.BaseComponent;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import backtype.storm.utils.Utils;
 
 public abstract class LifestreamsBolt extends BaseBasicBolt {
 	// we keep a buffer (i.e. a data point list) for each data stream of each user
 	Map<OhmageUser, Map<GlobalStreamId, StreamStore>> data_buffer;
 	BaseSingleFieldPeriod period;
-	int numberOfExpectedStreams;
+	TopologyContext context;
 	class StreamStore{
-		List<DataPoint> curBatch = new LinkedList<DataPoint>();
-		List<DataPoint> pendingBatch = new LinkedList<DataPoint>();
+		private List<DataPoint> curBatch = new LinkedList<DataPoint>();
+		private List<DataPoint> pendingBatch = new LinkedList<DataPoint>();
 		void put(DataPoint dp){
 			if(curBatch.size() == 0 || sameInterval(curBatch.get(0).getTimestamp(), dp.getTimestamp())){
 				curBatch.add(dp);
@@ -81,7 +87,9 @@ public abstract class LifestreamsBolt extends BaseBasicBolt {
 	}
 	
 	boolean checkBatchCompletion(OhmageUser user){
-		if(data_buffer.get(user).keySet().size() < this.numberOfExpectedStreams){
+		
+		int numberOfExpectedStreams = this.inputStreams.size();
+		if(data_buffer.get(user).keySet().size() < numberOfExpectedStreams){
 			return false;
 		}
 		for(StreamStore stream : data_buffer.get(user).values()){
@@ -92,10 +100,21 @@ public abstract class LifestreamsBolt extends BaseBasicBolt {
 	}
 	@Override
 	public void execute(Tuple input, BasicOutputCollector collector) {
-		// get the data point from the tuple
-		DataPoint dp = (DataPoint) input.getValueByField("datapoint");
 		// get the user
 		OhmageUser user = (OhmageUser) input.getValueByField("user");
+		
+		// check if we receive a command instead of data point
+		if( input.getValueByField("datapoint").getClass() == CommandSignal.class){
+			CommandSignal signal = (CommandSignal)input.getValueByField("datapoint");
+			// in case of SNAPSHOT cmd, and the target is a descendant of this bolt
+			if(signal.getCmd()== CommandSignal.Command.SNAPSHOT && 
+					this.descendantComponents.contains(signal.getTarget())){
+				this.snapshot(user, signal, collector);
+			}
+			return;
+		}
+		// get the data point from the tuple
+		DataPoint dp = (DataPoint) input.getValueByField("datapoint");
 		// create the buffer for this user
 		if(!data_buffer.containsKey(user)){
 			data_buffer.put(user, new HashMap<GlobalStreamId,StreamStore>());
@@ -134,21 +153,63 @@ public abstract class LifestreamsBolt extends BaseBasicBolt {
 		data.clear();
 	}
 	
-	// the operation to perform when receive flush signal (this normally happens when the user want the latest result)
-	protected void flush(OhmageUser user, List<DataPoint> data, BasicOutputCollector collector){
-		// process the batch immediately, without performing the post execution operation
-		executeBatch(user, data_buffer.get(user), collector);
+	// the operation to perform when receive snapshot signal 
+	// (normally we execute the current batch and emit the result as in normal situation, 
+	//  but will stay in the current period indead of moving on)
+	protected void snapshot(OhmageUser user, CommandSignal signal, BasicOutputCollector collector){
+		if(!data_buffer.get(user).isEmpty()){
+			// process the batch immediately, without performing the post execution operation
+			executeBatch(user, data_buffer.get(user), collector);
+		}
+		// send SNAPSHOT command to the downstreaming tasks
+		collector.emit(new Values(user, signal));
 	}
 	
+	Set<String> getDscendants(TopologyContext context, String rootId, Set<String> ret){
+		for(Map<String, Grouping> child:context.getTargets(rootId).values()){
+			for(String childComponentId:child.keySet()){
+				ret.add(childComponentId);
+				getDscendants(context, childComponentId, ret);
+			}
+		}
+		return ret;
+	}
+	public String getComponentId(){
+		return this.getClass().getCanonicalName();
+	}
 	@Override
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
 		declarer.declare(new Fields("user", "datapoint"));
 	}
-
-	public LifestreamsBolt(BaseSingleFieldPeriod period, int numberOfExpectedStreams){
+	Set<String> descendantComponents;
+	Set<GlobalStreamId> inputStreams;
+    @Override
+    public void prepare(Map stormConf, TopologyContext context) {
+    	// get the descendant of this bolt
+    	descendantComponents = new HashSet<String>();
+		getDscendants(context, this.getComponentId(), descendantComponents);
+		// get the expected input streams of this bolt
+		inputStreams = new HashSet<GlobalStreamId>();
+		for(GlobalStreamId streamId:context.getSources(this.getComponentId()).keySet()){
+			inputStreams.add(streamId);
+		}
+    	
+    }
+    
+    public static GlobalStreamId getDefaultStreamId(){
+    	// TODO: this is a terrible way to do so
+    	String className = new Object(){}.getClass().getEnclosingClass().getCanonicalName();
+    	return new GlobalStreamId(
+    			className, Utils.DEFAULT_STREAM_ID);
+    }
+    public static String getDefaultComponentId(){
+    	// TODO: this is a terrible way to do so
+    	String className = new Object(){}.getClass().getEnclosingClass().getCanonicalName();
+    	return className;
+    }
+	public LifestreamsBolt(BaseSingleFieldPeriod period){
 		this.period = period;
 		this.data_buffer = new HashMap<OhmageUser,Map<GlobalStreamId,StreamStore>>();
-		this.numberOfExpectedStreams = numberOfExpectedStreams;
 	}
 
 }

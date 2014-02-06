@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import lifestreams.model.DataPoint;
+import lifestreams.model.MobilityDataPoint;
 import lifestreams.model.OhmageUser;
 
 import org.joda.time.Duration;
@@ -33,13 +34,10 @@ public class GeoDistanceBolt extends BasicLifestreamsBolt {
 		// an array of Geo points
 		List<Geo> GeoPoints = new ArrayList<Geo>(data.size()); 
 		for(int i=0; i<data.size(); i++){
+			MobilityDataPoint dp = (MobilityDataPoint)data.get(i);
 			// add the geo location to the geo points set when available
-			if( data.get(i).getMetadata().get("location")!=null){
-				Double lat = data.get(i).getMetadata().get("location").get("latitude").asDouble();
-				Double lng = data.get(i).getMetadata().get("location").get("longitude").asDouble();
-				// covert data to Geo point objects
-				Geo g = new Geo(lat,lng, true);
-				GeoPoints.add(g);
+			if(dp.hasLocation()){
+				GeoPoints.add(dp.getLocation());
 			}
 		}
 		if(GeoPoints.size() > 0){
@@ -59,7 +57,7 @@ public class GeoDistanceBolt extends BasicLifestreamsBolt {
 			ObjectMapper mapper = new ObjectMapper();
 			ObjectNode dataTable = mapper.createObjectNode();
 			dataTable.put("daily_geodistance", longestDistanceInHull);
-			DataPoint dp = new DataPoint(user,data.get(0).getTimestamp(), dataTable, dataTable);
+			DataPoint dp = new DataPoint(user,data.get(0).getTimestamp(), dataTable);
 			// print debug message
 			System.out.printf("Thread %d GeoDiameter %s(%s) %f\n", Thread.currentThread().getId(), 
 					user.getUsername(), dp.getTimestamp(), longestDistanceInHull);

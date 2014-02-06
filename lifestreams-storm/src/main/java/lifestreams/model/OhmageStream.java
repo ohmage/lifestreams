@@ -142,7 +142,7 @@ public class OhmageStream {
 							.get("timestamp").asText());
 					 ObjectNode data_metadata = (ObjectNode)entry.get("metadata");
 					 ObjectNode data = (ObjectNode)entry.get("data");
-					 DataPoint dp = new DataPoint(_requestee, timestamp, data, data_metadata);
+					 MobilityDataPoint dp = new MobilityDataPoint(_requestee, timestamp, data, data_metadata);
 					_queue.put(dp);
 					_pointer = DateTime.parse(entry.get("metadata")
 							.get("timestamp").asText());

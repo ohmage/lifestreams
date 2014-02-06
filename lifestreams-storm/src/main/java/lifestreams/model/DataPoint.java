@@ -17,13 +17,22 @@ public class DataPoint {
 	DateTime _timestamp;
 	ObjectNode _data;
 	ObjectNode _metadata;
+	static ObjectMapper objectMapper = new ObjectMapper();
 	public DataPoint(OhmageUser user, DateTime timestamp, ObjectNode data, ObjectNode metadata){
 		this._user = user;
 		this._timestamp = timestamp;
 		this._data = data;
 		this._metadata = metadata;
 	}
-	
+	public DataPoint(OhmageUser user, DateTime timestamp, ObjectNode data){
+		ObjectNode metadataNode = objectMapper.createObjectNode();
+		metadataNode.put("timestamp", timestamp.toString());
+		
+		this._user = user;
+		this._timestamp = timestamp;
+		this._data = data;
+		this._metadata = metadataNode;
+	}
 	public DateTime getTimestamp(){
 		return _timestamp;
 	}
