@@ -1,37 +1,38 @@
 package lifestreams.model;
 
-import lifestreams.bolt.MobilityState;
+import java.io.IOException;
 
-import org.joda.time.DateTime;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 
-import com.bbn.openmap.geo.Geo;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-// TODO: implement getter methods for the other fields
-public class MobilityDataPoint extends DataPoint {
+
+public class MobilityDataPoint extends StreamRecord implements IMobilityDataPoint{
+	private MobilityState mode;
+
 	
-	public MobilityDataPoint(OhmageUser user, DateTime timestamp,
-			ObjectNode data, ObjectNode metadata) {
-		super(user, timestamp, data, metadata);
+	public MobilityDataPoint() {
+
 	}
-	public MobilityState getState(){
-		return MobilityState.valueOf(this.getData().get("mode").asText().toUpperCase());
+	public MobilityState getMode(){
+		return mode;
+	}
+	@JsonDeserialize(using = MobilityStateDeserializer.class)
+	public void setMode(MobilityState state){
+		this.mode = state;
 	}
 	
-	public void setState(MobilityState state){
-		this.getData().put("mode", state.toString());
-	}
-	public Geo getLocation(){
-		if(this.getMetadata().get("location")!=null){
-			Double lat = this.getMetadata().get("location").get("latitude").asDouble();
-			Double lng = this.getMetadata().get("location").get("longitude").asDouble();
-			// covert data to Geo point objects
-			return new Geo(lat,lng, true);
+	public static class MobilityStateDeserializer extends JsonDeserializer<MobilityState> {
+		@Override
+		public MobilityState deserialize(JsonParser jp,
+				DeserializationContext ctxt) throws IOException,
+				JsonProcessingException {
+			String mode = jp.getText();
+			return MobilityState.valueOf(mode.toUpperCase());
+			
 		}
-		return null;
-	}
-	
-	public boolean hasLocation(){
-		return this.getMetadata().get("location")!=null;
 	}
 
 }

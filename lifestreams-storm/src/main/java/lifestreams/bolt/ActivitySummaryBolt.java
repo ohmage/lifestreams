@@ -1,62 +1,185 @@
 package lifestreams.bolt;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
 
-import lifestreams.model.DataPoint;
+import lifestreams.model.ActivityInstance;
+import lifestreams.model.ActivitySummaryDataPoint;
+import lifestreams.model.IDataPoint;
+import lifestreams.model.IMobilityDataPoint;
 import lifestreams.model.MobilityDataPoint;
-import lifestreams.model.OhmageUser;
+import lifestreams.model.MobilityState;
+
+import org.ohmage.models.OhmageStream;
+import org.ohmage.models.OhmageUser;
+
+import lifestreams.utils.ActivityInstanceAccumulator;
+import lifestreams.utils.TimeWindow;
 
 import org.joda.time.DateTime;
 import org.joda.time.base.BaseSingleFieldPeriod;
 
-import backtype.storm.generated.GlobalStreamId;
+import state.UserState;
 import backtype.storm.topology.BasicOutputCollector;
-import backtype.storm.utils.Utils;
-import be.ac.ulg.montefiore.run.jahmm.ObservationDiscrete;
 
-public class ActivitySummaryBolt extends BasicLifestreamsBolt{
+public class ActivitySummaryBolt extends LifestreamsBolt{
 
+	private static final String CURRENT_ACTIVITY_INSTANCE_ACCUMULATOR = "CURRENT_ACTIVITY_INSTANCE_ACCUMULATOR";
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private static final String LAST_DATA_POINT = "LAST_DATA_POINT";
+	private static final String ACCUMULATED_TIME = "ACCUMULATED_TIME";
+	private static final String ACTIVITY_INSTANCES = "ACTIVITY_INSTANCES";
+	
+	private static final  Double LONGEST_SAMPLING_PERIOD = 5.5 * 60 * 1000;  // in millisec
+	
+	
 	public ActivitySummaryBolt(BaseSingleFieldPeriod period) {
 		super(period);
 	}
-	final static Double LONGEST_SAMPLING_PERIOD = 5.5 * 60 * 1000;  // in millisec
+	public ActivitySummaryBolt(BaseSingleFieldPeriod period, OhmageStream target) {
+		super(period, target);
+	}
+	@Override
+	protected void newUser(OhmageUser user, UserState state){
+		super.newUser(user, state);
+		EnumMap<MobilityState, Double> accumulatedTime = new EnumMap<MobilityState, Double>(MobilityState.class);
+		for(MobilityState mState:MobilityState.values()){
+			accumulatedTime.put(mState, 0.0);
+		}
+		state.put(ACCUMULATED_TIME, accumulatedTime);
+		state.put(ACTIVITY_INSTANCES, new ArrayList<ActivityInstance>());
+	}
+	@SuppressWarnings("unchecked")
+	public EnumMap<MobilityState, Double> getAccumulatedTime(UserState state){
+		return (EnumMap<MobilityState, Double>) state.get(ACCUMULATED_TIME);
+	}
+	@SuppressWarnings("unchecked")
+	public ArrayList<ActivityInstance> getActivityInstances(UserState state){
+		return (ArrayList<ActivityInstance>) state.get(ACTIVITY_INSTANCES);
+	}
+	public ActivityInstanceAccumulator getCurrentActivityInstanceAccumulator(UserState state){
+		return (ActivityInstanceAccumulator) state.get(CURRENT_ACTIVITY_INSTANCE_ACCUMULATOR);
+	}
+	public void setCurrentActivityInstanceAccumulator(UserState state, ActivityInstanceAccumulator gen){
+		state.put(CURRENT_ACTIVITY_INSTANCE_ACCUMULATOR, gen);
+	}
+	public IMobilityDataPoint getLastDataPoint(UserState state){
+		return (IMobilityDataPoint) state.get(LAST_DATA_POINT);
+	}
 	
-	// global stream ids of the source bolts
-	final static GlobalStreamId MobilityStateStreamId = 
-			MobilityEventSmoothingBolt.getDefaultStreamId();
-			
-	final static GlobalStreamId GeoDiameterStreamId = 
-			GeoDistanceBolt.getDefaultStreamId();
+	private void accumulateActivityTimes(UserState state, IMobilityDataPoint cur_dp){
+		IMobilityDataPoint last_dp = getLastDataPoint(state);
+		if(last_dp != null){
+			MobilityState curState = cur_dp.getMode();
+			MobilityState prevState = last_dp.getMode();
+			DateTime dt = cur_dp.getTimestamp();
+			// get duration in seconds
+			long duration = (dt.getMillis() - last_dp.getTimestamp().getMillis()) / 1000;
+			// only accumulate the samples that with sufficient frequency
+			if(duration  < LONGEST_SAMPLING_PERIOD ){
+				Double halfPeriod = duration / 2.0;
+				EnumMap<MobilityState, Double> accumulatedTime = getAccumulatedTime(state);
+				// both state the sandwiches this duration get a half of the duration
+				accumulatedTime.put(prevState, accumulatedTime.get(prevState) + halfPeriod);
+				accumulatedTime.put(curState, accumulatedTime.get(curState) + halfPeriod);
+			}
+		}
+	}
+	private void accumulateActivityInstance(UserState state, IMobilityDataPoint cur_dp){
+		IMobilityDataPoint last_dp =  getLastDataPoint(state);
+		if(cur_dp.getMode().isActive()){ // if the current state is active
+			// add this point to the accumulator
+			if(getCurrentActivityInstanceAccumulator(state) == null)
+				setCurrentActivityInstanceAccumulator(state, new ActivityInstanceAccumulator());
+			getCurrentActivityInstanceAccumulator(state).addDataPoint(cur_dp);
+		}
+		else if(last_dp != null && last_dp.getMode().isActive()){ // if the last state is active
+			// get the accumulated activity instance til the last data point
+			ActivityInstance instance = getCurrentActivityInstanceAccumulator(state).getInstance();
+			if(instance.getDistance() != 0.0){
+				// add that to the activity instances array
+				getActivityInstances(state).add(instance);
+			}
+			// clear the current accumulator
+			setCurrentActivityInstanceAccumulator(state, null);
+		}
+
+		
+	}
+	private void updateSummary(UserState state, IMobilityDataPoint cur_dp){
+		/*  Task 1. accumulate total time for each type of activity */
+		accumulateActivityTimes(state, cur_dp);
+		
+		/* Task 2. accumulate the activity instances*/
+		
+		// an activity instance is composed of a series of consecutive active state
+		// an activity instance accumulator will compute the statisitcs (e.g. duration, distance) for that instance
+		accumulateActivityInstance(state, cur_dp);
+	}
+	@Override
+	protected boolean executeDataPoint(OhmageUser user, IDataPoint dp,
+			UserState state, TimeWindow window, BasicOutputCollector collector) {
+		// check if we go back in time
+		IMobilityDataPoint cur_dp = (IMobilityDataPoint)dp;
+		IMobilityDataPoint prev_dp =  getLastDataPoint(state);
+		if(prev_dp == null || cur_dp.getTimestamp().isAfter(prev_dp.getTimestamp()))
+			updateSummary(state, cur_dp);
+		
+		state.put(LAST_DATA_POINT, cur_dp);
+		return false;
+	}
+	
+	private ActivitySummaryDataPoint computeSummaryDataPoint(OhmageUser user, UserState state, TimeWindow window){
+		// check if there is an activity instance still being accumulated
+		if(getCurrentActivityInstanceAccumulator(state) != null){
+			// get the accumulated activity instance
+			ActivityInstance instance = getCurrentActivityInstanceAccumulator(state).getInstance();
+			// add that to the instance array
+			getActivityInstances(state).add(instance);
+		}
+		double totalActiveTime = getAccumulatedTime(state).get(MobilityState.WALK) 
+				                 + getAccumulatedTime(state).get(MobilityState.RUN)
+				                 + getAccumulatedTime(state).get(MobilityState.CYCLING);
+		
+		double totalSedentaryTime = getAccumulatedTime(state).get(MobilityState.DRIVE) 
+				                    + getAccumulatedTime(state).get(MobilityState.STILL);
+		
+		double totalTime = totalActiveTime + totalSedentaryTime;
+		double totalTransportationTime = getAccumulatedTime(state).get(MobilityState.DRIVE);
+		
+		return new ActivitySummaryDataPoint(user, window, this)
+						.setTotalActiveTime(totalActiveTime)
+						.setTotalSedentaryTime(totalSedentaryTime)
+						.setTotalTime(totalTime)
+						.setTotalTransportationTime(totalTransportationTime)
+						.setActivityInstances(getActivityInstances(state));
+	}
+
+	private void cleanUp(UserState state){
+		state.remove(LAST_DATA_POINT);
+		state.remove(CURRENT_ACTIVITY_INSTANCE_ACCUMULATOR);
+		EnumMap<MobilityState, Double> accumulatedTime = getAccumulatedTime(state);
+		for(MobilityState mState:MobilityState.values()){
+			accumulatedTime.put(mState, 0.0);
+		}
+		getActivityInstances(state).clear();
+	}
+	@Override
+	protected void finishWindow(OhmageUser user, UserState state,
+			TimeWindow window, BasicOutputCollector collector) {
+		
+		this.emit(computeSummaryDataPoint(user, state, window), collector);
+		cleanUp(state);
+	}
 
 	@Override
-	protected void executeBatch(OhmageUser user, List<DataPoint> data,
+	protected void snapshotWindow(OhmageUser user, UserState state, TimeWindow window, 
 			BasicOutputCollector collector) {
-		// accumulate time for each mobility state (in millis)
-		EnumMap<MobilityState, Double> accumulatedTime = new EnumMap<MobilityState, Double>(MobilityState.class);
-		for(MobilityState state:MobilityState.values()){
-			accumulatedTime.put(state, 0.0);
-		}
-		DateTime prevDt = data.get(0).getTimestamp();
-		MobilityState prevState = ((MobilityDataPoint)data.get(0)).getState();
-		for(DataPoint dp: data){
-			MobilityDataPoint mdp = (MobilityDataPoint)dp;
-			MobilityState state = mdp.getState();
-			DateTime dt = mdp.getTimestamp();
-			long duration = dt.getMillis() - prevDt.getMillis();
-			// check if the duration is shorter than the longest sampling period
-			// (if not so, we assume there is missing data point)
-			if( duration  < LONGEST_SAMPLING_PERIOD ){
-				Double halfPeriod = duration / 2.0;
-				// either state the sandwiches this duration get a half of the time
-				accumulatedTime.put(prevState, accumulatedTime.get(prevState) + halfPeriod);
-				accumulatedTime.put(state, accumulatedTime.get(state) + halfPeriod);
-			}
-			prevState = state;
-			prevDt = dt;
-		}
-		System.out.println(accumulatedTime);
+		this.emitSnapshot(computeSummaryDataPoint(user, state, window), collector);
+		
 	}
 
 }

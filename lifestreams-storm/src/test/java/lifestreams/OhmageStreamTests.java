@@ -4,28 +4,23 @@ import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import junit.framework.Assert;
+import javax.annotation.Resource;
+
 import lifestreams.bolt.ActivitySummaryBolt;
-import lifestreams.bolt.CommandSignal;
 import lifestreams.bolt.GeoDistanceBolt;
 import lifestreams.bolt.MobilityEventSmoothingBolt;
-import lifestreams.bolt.MobilityState;
-import lifestreams.model.DataPoint;
 import lifestreams.model.MobilityDataPoint;
-import lifestreams.model.OhmageStream;
-import lifestreams.model.OhmageUser;
-import lifestreams.model.OhmageUser.OhmageAuthenticationError;
-import lifestreams.spout.OhmageObserverSpout;
+
+import org.ohmage.models.OhmageStream;
+import org.ohmage.models.OhmageUser;
+import org.ohmage.models.OhmageUser.OhmageAuthenticationError;
+
+import lifestreams.spout.OhmageStreamSpout;
 
 import org.joda.time.DateTime;
 import org.joda.time.Days;
-import org.joda.time.Duration;
-import org.joda.time.Hours;
-import org.joda.time.Period;
-import org.joda.time.Seconds;
 import org.joda.time.base.BaseSingleFieldPeriod;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,136 +30,61 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import redis.clients.jedis.Jedis;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
-import be.ac.ulg.montefiore.run.jahmm.Hmm;
-import be.ac.ulg.montefiore.run.jahmm.ObservationDiscrete;
-import be.ac.ulg.montefiore.run.jahmm.learn.BaumWelchLearner;
 
-import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.ObjectCodec;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.MappingJsonFactory;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import de.javakaffee.kryoserializers.jodatime.JodaDateTimeSerializer;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = Application.class, loader=SpringApplicationContextLoader.class)
+@ContextConfiguration(locations={"classpath*:/mainContext.xml","classpath*:/users.xml"})
 public class OhmageStreamTests {
 
-	@Autowired 
-	ApplicationContext context;
+	@Resource
+    List<OhmageUser> users;
 	@Autowired
-    OhmageUser testuser;
+    DateTime since;
 	@Autowired
-    OhmageUser wrong_testuser;
-	@Test
-	public void autentication() throws OhmageAuthenticationError {
-		assertNotNull(testuser.getToken());
-		try{
-			wrong_testuser.getToken();
-			fail("Authentication exception was not thrown");
-		}
-		catch(OhmageAuthenticationError e){
+	OhmageStream mobilityStream;
+	@Autowired
+	OhmageStream activitySummaryStream;
 
-		}
-		
-	}
-	@Test
-	public void testJoda() {
-		assertEquals(1, new Duration(Seconds.seconds(60).toStandardDuration()).getStandardMinutes());
-	}
-	@Test
-	public void testHmm(){
-		Hmm <ObservationDiscrete<MobilityState>> hmm = MobilityEventSmoothingBolt.createHmmModel();
-		
-		BaumWelchLearner bwl = new BaumWelchLearner();
-		List<List<ObservationDiscrete <MobilityState> >> sequences = new ArrayList<List<ObservationDiscrete <MobilityState> >> ();
-		MobilityState[] data = new MobilityState[]{MobilityState.STILL,
-			MobilityState.STILL,
-			MobilityState.STILL,
-			MobilityState.STILL,
-			MobilityState.STILL,
-			MobilityState.STILL,
-			MobilityState.DRIVE,
-			MobilityState.DRIVE,
-			MobilityState.DRIVE,
-			MobilityState.DRIVE,
-			MobilityState.DRIVE,
-			MobilityState.STILL,
-			MobilityState.STILL,
-			MobilityState.STILL,
-			MobilityState.DRIVE,
-			MobilityState.DRIVE,
-			MobilityState.DRIVE,
-			MobilityState.STILL,
-			MobilityState.STILL,
-			MobilityState.STILL,
-			MobilityState.STILL,
-			MobilityState.DRIVE,
-			MobilityState.STILL,
-			MobilityState.STILL,
-			MobilityState.STILL,
-			MobilityState.STILL,
-			
-			MobilityState.RUN,
-			MobilityState.WALK,
-			MobilityState.RUN,
-			MobilityState.STILL};
-		
-		ObservationDiscrete <MobilityState> obs[] = new ObservationDiscrete[data.length];
-		for(int i=0; i<data.length; i++){
-			obs[i] = new ObservationDiscrete <MobilityState> (data[i]);
-		}
-		
-		int[] ret = (hmm.mostLikelyStateSequence(Arrays.asList(obs)));
-		for(int state: ret){
-			System.out.println(MobilityState.values()[state].toString());
-		}
-		
-	}
 	@Test
 	public void testTopology() throws InterruptedException, JsonParseException, IOException {
-
+		Jedis jedis = new Jedis("localhost");
+		jedis.flushDB();
 		 TopologyBuilder builder = new TopologyBuilder();
-		 builder.setSpout("MobilityDataStream", new OhmageObserverSpout(), 1);
+		 OhmageStreamSpout<MobilityDataPoint> mobilitySpout = new OhmageStreamSpout<MobilityDataPoint>(mobilityStream, users, since, MobilityDataPoint.class);
+			
+		 builder.setSpout("MobilityDataStream", mobilitySpout , 1);
 		 BaseSingleFieldPeriod period = Days.ONE;
 		 
-		 builder.setBolt(GeoDistanceBolt.getDefaultComponentId(), 
-				         new GeoDistanceBolt(period), 
-				         10).fieldsGrouping("MobilityDataStream", new Fields("user"));
+		 // setup the topology
+		 builder.setBolt("GeoDistanceBolt", new GeoDistanceBolt(period), 1).fieldsGrouping("MobilityDataStream", new Fields("user"));
 		 
-		 builder.setBolt(MobilityEventSmoothingBolt.getDefaultComponentId(), 
-				         new MobilityEventSmoothingBolt(period), 
-				         10).fieldsGrouping("MobilityDataStream", new Fields("user"));
+		 builder.setBolt("HMMMobilityStateRectifier", new MobilityEventSmoothingBolt(period), 1)
+		 	.fieldsGrouping("MobilityDataStream", new Fields("user"));
 		 
-		 builder.setBolt(ActivitySummaryBolt.getDefaultComponentId(), 
-				 		 new ActivitySummaryBolt(period), 
-				 		 10)
-				 		 .fieldsGrouping(MobilityEventSmoothingBolt.getDefaultComponentId(), 
-				 				        new Fields("user"));
-		 
+		 builder.setBolt("MobilityActivitySummarier", new ActivitySummaryBolt(period, activitySummaryStream), 1) //
+		 	.fieldsGrouping("HMMMobilityStateRectifier",new Fields("user"));
 		 
 		 Config conf = new Config();
 	     conf.setDebug(false);
 	     conf.setMaxTaskParallelism(3);
-	     conf.registerSerialization(DataPoint.class);
-	     conf.registerSerialization(MobilityDataPoint.class);
-	     conf.registerSerialization(CommandSignal.class);
-	     
+	     conf.registerSerialization( DateTime.class, JodaDateTimeSerializer.class );
+
 	     LocalCluster cluster = new LocalCluster();
 	     cluster.submitTopology("Lifestreams-on-storm", conf, builder.createTopology());
-
-	     Thread.sleep(100000000);
+	     while(true)
+	    	 Thread.sleep(100000000);
 
 	     //cluster.shutdown();
-		    
-		  
 
 	}
+
 
 }

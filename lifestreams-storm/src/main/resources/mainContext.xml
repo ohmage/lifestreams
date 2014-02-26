@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd    
+	                    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd" >
+	<!-- Properties -->
+	<context:property-placeholder location="classpath:application.properties" />
+
+	<bean id="since" class="org.joda.time.DateTime">
+		<constructor-arg value="2000-1-1"/>
+	</bean>
+	
+	<bean id="movesSegmentStream" class="org.ohmage.models.OhmageStream">
+		<constructor-arg value="org.ohmage.Moves"/>
+		<constructor-arg value="segments"/>
+		<constructor-arg value="20140224"/>
+		<constructor-arg value="20140224"/>
+	</bean>	
+	<bean id="mobilityStream" class="org.ohmage.models.OhmageStream">  
+			<constructor-arg value="edu.ucla.cens.Mobility"/>
+			<constructor-arg value="extended"/>
+			<constructor-arg value="2012061300"/>
+			<constructor-arg value="2012050700"/>   
+	</bean> 
+	
+		<bean id="activitySummaryStream" class="org.ohmage.models.OhmageStream">  
+			<constructor-arg value="org.ohmage.lifestreams.activities"/>
+			<constructor-arg value="activity_summaries"/>
+			<constructor-arg value="20140224"/>
+			<constructor-arg value="20140224"/>   
+	</bean> 
+</beans>

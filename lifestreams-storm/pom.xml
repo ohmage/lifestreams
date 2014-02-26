@@ -1,153 +1,169 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-
-	<groupId>org.ohmage</groupId>
-	<artifactId>lifstreams</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-
-	<name>lifestreams-storm</name>
-	<description>lifestreams</description>
-
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>0.5.0.BUILD-SNAPSHOT</version>
-	</parent>
-
-	<dependencies>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-		</dependency>
-		<!-- Jackson -->
-		 <!-- the core, which includes Streaming API, shared low-level abstractions (but NOT data-binding) -->
-		 <dependency>
-		   <groupId>com.fasterxml.jackson.core</groupId>
-		   <artifactId>jackson-core</artifactId>
-		   <version>2.3.1</version>
-		 </dependency>
-		 <!-- Just the annotations; use this dependency if you want to attach annotations
-		      to classes without connecting them to the code. -->
-		 <dependency>
-		   <groupId>com.fasterxml.jackson.core</groupId>
-		   <artifactId>jackson-annotations</artifactId>
-		   <version>2.2.0</version>
-		</dependency>
-		<!-- databinding; ObjectMapper, JsonNode and related classes are here -->
-		<dependency>
-		  <groupId>com.fasterxml.jackson.core</groupId>
-		  <artifactId>jackson-databind</artifactId>
-		  <version>2.3.1</version>
-		</dependency>
-		<dependency>
-		  <groupId>com.fasterxml.jackson.dataformat</groupId>
-		  <artifactId>jackson-dataformat-smile</artifactId>
-		  <version>2.3.1</version>
-		</dependency>
-
-		<!-- Joda Time -->
-		<dependency>
-		<groupId>joda-time</groupId>
-		<artifactId>joda-time</artifactId>
-	</dependency>
-        		<!-- Storm -->
-		<dependency>
-  			<groupId>storm</groupId>
-  			<artifactId>storm</artifactId>
-  			<version>0.7.2</version>
-  			<exclusions>
-  				<exclusion>
-  					<artifactId>slf4j-log4j12</artifactId>
-  					<groupId>org.slf4j</groupId>
-  				</exclusion>
-  			</exclusions>
-		</dependency>
-		<dependency>
-  			<groupId>com.github.kevinsawicki</groupId>
-  			<artifactId>http-request</artifactId>
-  			<version>5.5</version>
-		</dependency>
-		<!-- HMM -->
-		  <dependency>
-        <groupId>be.ac.ulg.montefiore.run.jahmm</groupId>
-        <artifactId>jahmm</artifactId>
-        <version>0.6.2</version>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+   <modelVersion>4.0.0</modelVersion>
+   <groupId>org.ohmage</groupId>
+   <artifactId>lifstreams</artifactId>
+   <version>0.0.1-SNAPSHOT</version>
+   <name>lifestreams-storm</name>
+   <description>lifestreams</description>
+   <parent>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-parent</artifactId>
+      <version>0.5.0.BUILD-SNAPSHOT</version>
+   </parent>
+   <dependencies>
+      <!-- Kryo and Kryo extensions -->
+      <dependency>
+         <groupId>com.esotericsoftware.kryo</groupId>
+         <artifactId>kryo</artifactId>
+         <version>2.22</version>
       </dependency>
-	</dependencies>
-
-	<properties>
-		<start-class>lifestreams.Application</start-class>
-	</properties>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-					<plugin>
-			<groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-eclipse-plugin</artifactId>
-        <configuration>
-          <downloadSources>true</downloadSources>
-          <downloadJavadocs>true</downloadJavadocs>
-        </configuration>
-      </plugin>
-		</plugins>
-
-	</build>
-
-	<repositories>
-		<repository>
-			<id>spring-snapshots</id>
-			<name>Spring Snapshots</name>
-			<url>http://repo.springsource.org/snapshot</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-			<id>spring-milestones</id>
-			<name>Spring Milestones</name>
-			<url>http://repo.springsource.org/milestone</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
-		<repository>
-  			<id>clojars.org</id>
-  			<url>http://clojars.org/repo</url>
-		</repository>
-		<repository>
-          <id>Jahmm</id>
-          <name>Jahmm HMM library repository</name>
-          <url>http://jahmm.googlecode.com/svn/repo</url>
-        </repository>
-	</repositories>
-	<pluginRepositories>
-		<pluginRepository>
-			<id>spring-snapshots</id>
-			<name>Spring Snapshots</name>
-			<url>http://repo.springsource.org/snapshot</url>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</pluginRepository>
-		<pluginRepository>
-			<id>spring-milestones</id>
-			<name>Spring Milestones</name>
-			<url>http://repo.springsource.org/milestone</url>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-	</pluginRepositories>
-
+      <dependency>
+         <groupId>de.javakaffee</groupId>
+         <artifactId>kryo-serializers</artifactId>
+         <version>0.26</version>
+      </dependency>
+      <dependency>
+         <groupId>org.springframework.boot</groupId>
+         <artifactId>spring-boot-starter</artifactId>
+         <exclusions>
+         	<exclusion>
+         		<artifactId>log4j-over-slf4j</artifactId>
+         		<groupId>org.slf4j</groupId>
+         	</exclusion>
+         	<exclusion>
+         		<artifactId>logback-classic</artifactId>
+         		<groupId>ch.qos.logback</groupId>
+         	</exclusion>
+         	<exclusion>
+         		<artifactId>logback-core</artifactId>
+         		<groupId>ch.qos.logback</groupId>
+         	</exclusion>
+         </exclusions>
+      </dependency>
+      <dependency>
+         <groupId>org.springframework.boot</groupId>
+         <artifactId>spring-boot-starter-test</artifactId>
+         <scope>test</scope>
+      </dependency>
+      <!-- Jackson -->
+      <!-- the core, which includes Streaming API, shared low-level abstractions (but NOT data-binding) -->
+      <dependency>
+         <groupId>com.fasterxml.jackson.core</groupId>
+         <artifactId>jackson-core</artifactId>
+      </dependency>
+      <!-- Joda Time -->
+      <dependency>
+         <groupId>joda-time</groupId>
+         <artifactId>joda-time</artifactId>
+      </dependency>
+      <!-- Storm -->
+      <dependency>
+         <groupId>storm</groupId>
+         <artifactId>storm</artifactId>
+         <version>0.7.2</version>
+         <exclusions>
+            <exclusion>
+               <artifactId>kryo</artifactId>
+               <groupId>com.googlecode</groupId>
+            </exclusion>
+         </exclusions>
+      </dependency>
+      <!-- for easy HTTP request -->
+      <dependency>
+         <groupId>com.github.kevinsawicki</groupId>
+         <artifactId>http-request</artifactId>
+         <version>5.5</version>
+      </dependency>
+      <!-- HMM -->
+      <dependency>
+         <groupId>be.ac.ulg.montefiore.run.jahmm</groupId>
+         <artifactId>jahmm</artifactId>
+         <version>0.6.2</version>
+      </dependency>
+      <!-- Redis -->
+      <dependency>
+         <groupId>redis.clients</groupId>
+         <artifactId>jedis</artifactId>
+         <version>2.1.0</version>
+         <type>jar</type>
+         <scope>compile</scope>
+      </dependency>
+      <!-- Moves DTO -->
+      <dependency>
+         <artifactId>moves-api</artifactId>
+         <groupId>com.moves</groupId>
+         <version>0.1</version>
+      </dependency>
+      <!-- Ohmage models -->
+      <dependency>
+         <groupId>org.ohmage</groupId>
+         <artifactId>streamSDK</artifactId>
+         <version>0.0.1-SNAPSHOT</version>
+      </dependency>
+   </dependencies>
+   <properties>
+      <start-class>lifestreams.Application</start-class>
+   </properties>
+   <build>
+      <plugins>
+         <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+         </plugin>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-eclipse-plugin</artifactId>
+            <configuration>
+               <downloadSources>true</downloadSources>
+               <downloadJavadocs>true</downloadJavadocs>
+            </configuration>
+         </plugin>
+      </plugins>
+   </build>
+   <repositories>
+      <repository>
+         <id>spring-snapshots</id>
+         <name>Spring Snapshots</name>
+         <url>http://repo.springsource.org/snapshot</url>
+         <snapshots>
+            <enabled>true</enabled>
+         </snapshots>
+      </repository>
+      <repository>
+         <id>spring-milestones</id>
+         <name>Spring Milestones</name>
+         <url>http://repo.springsource.org/milestone</url>
+         <snapshots>
+            <enabled>false</enabled>
+         </snapshots>
+      </repository>
+      <repository>
+         <id>clojars.org</id>
+         <url>http://clojars.org/repo</url>
+      </repository>
+      <repository>
+         <id>Jahmm</id>
+         <name>Jahmm HMM library repository</name>
+         <url>http://jahmm.googlecode.com/svn/repo</url>
+      </repository>
+   </repositories>
+   <pluginRepositories>
+      <pluginRepository>
+         <id>spring-snapshots</id>
+         <name>Spring Snapshots</name>
+         <url>http://repo.springsource.org/snapshot</url>
+         <snapshots>
+            <enabled>true</enabled>
+         </snapshots>
+      </pluginRepository>
+      <pluginRepository>
+         <id>spring-milestones</id>
+         <name>Spring Milestones</name>
+         <url>http://repo.springsource.org/milestone</url>
+         <snapshots>
+            <enabled>false</enabled>
+         </snapshots>
+      </pluginRepository>
+   </pluginRepositories>
 </project>

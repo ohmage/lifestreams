@@ -1,16 +1,16 @@
 package lifestreams.bolt;
 
-public class CommandSignal {
-	public enum Command{
+public class Command {
+	public enum CommandType{
 		SNAPSHOT
 	}
-	private Command cmd;
+	private CommandType cmd;
 	private String target;
-	public CommandSignal(Command cmd, String target){
+	public Command(CommandType cmd, String target){
 		this.cmd = cmd;
 		this.target = target;
 	}
-	public Command getCmd() {
+	public CommandType getCmd() {
 		return cmd;
 	}
 	public String getTarget() {
