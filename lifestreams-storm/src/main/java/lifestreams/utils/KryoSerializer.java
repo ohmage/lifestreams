@@ -11,15 +11,11 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.regex.Pattern;
 
-import javax.annotation.RegEx;
+import lifestreams.model.data.GeoDiameterData;
+import lifestreams.model.data.MobilityData;
 
-import lifestreams.bolt.LifestreamsBolt;
-import lifestreams.model.IDataPoint;
-import lifestreams.model.GeoDiameterDataPoint;
-import lifestreams.model.MobilityDataPoint;
 import org.ohmage.models.OhmageServer;
 import org.ohmage.models.OhmageUser;
-
 import org.joda.time.DateTime;
 
 import com.esotericsoftware.kryo.Kryo;
@@ -42,46 +38,51 @@ import de.javakaffee.kryoserializers.jodatime.JodaDateTimeSerializer;
 
 public class KryoSerializer {
 
-	public static Kryo getInstance(){
+	public static Kryo getInstance() {
 		Kryo kryo = new Kryo();
-		kryo.register( Arrays.asList( "" ).getClass(), new ArraysAsListSerializer() );
-		kryo.register( Collections.EMPTY_LIST.getClass(), new CollectionsEmptyListSerializer() );
-		kryo.register( Collections.EMPTY_MAP.getClass(), new CollectionsEmptyMapSerializer() );
-		kryo.register( Collections.EMPTY_SET.getClass(), new CollectionsEmptySetSerializer() );
-		kryo.register( Collections.singletonList( "" ).getClass(), new CollectionsSingletonListSerializer(  ) );
-		kryo.register( Collections.singleton( "" ).getClass(), new CollectionsSingletonSetSerializer(  ) );
-		kryo.register( Collections.singletonMap( "", "" ).getClass(), new CollectionsSingletonMapSerializer(  ) );
-		kryo.register( GregorianCalendar.class, new GregorianCalendarSerializer() );
+		kryo.register(Arrays.asList("").getClass(),
+				new ArraysAsListSerializer());
+		kryo.register(Collections.EMPTY_LIST.getClass(),
+				new CollectionsEmptyListSerializer());
+		kryo.register(Collections.EMPTY_MAP.getClass(),
+				new CollectionsEmptyMapSerializer());
+		kryo.register(Collections.EMPTY_SET.getClass(),
+				new CollectionsEmptySetSerializer());
+		kryo.register(Collections.singletonList("").getClass(),
+				new CollectionsSingletonListSerializer());
+		kryo.register(Collections.singleton("").getClass(),
+				new CollectionsSingletonSetSerializer());
+		kryo.register(Collections.singletonMap("", "").getClass(),
+				new CollectionsSingletonMapSerializer());
+		kryo.register(GregorianCalendar.class,
+				new GregorianCalendarSerializer());
 		kryo.register(EnumMap.class, new EnumMapSerializer());
 		kryo.register(BitSet.class, new BitSetSerializer());
 		kryo.register(Pattern.class, new RegexSerializer());
-		UnmodifiableCollectionsSerializer.registerSerializers( kryo );
-		SynchronizedCollectionsSerializer.registerSerializers( kryo );
+		UnmodifiableCollectionsSerializer.registerSerializers(kryo);
+		SynchronizedCollectionsSerializer.registerSerializers(kryo);
 
 		// custom serializers for non-jdk libs
 
 		// joda datetime
-		kryo.register( DateTime.class, new JodaDateTimeSerializer() );
-		
-		//kryo.setRegistrationRequired(false);
+		kryo.register(DateTime.class, new JodaDateTimeSerializer());
+
+		// kryo.setRegistrationRequired(false);
 		kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());
-		
+
 		kryo.register(ArrayList.class);
 		kryo.register(LinkedList.class);
 		kryo.register(HashMap.class);
 		kryo.register(HashSet.class);
-		
-		
-		
+
 		kryo.register(OhmageUser.class);
 		kryo.register(OhmageServer.class);
-		
+
 		kryo.register(TimeWindow.class);
 		kryo.register(PendingBuffer.class);
-		
-		kryo.register(IDataPoint.class);
-		kryo.register(MobilityDataPoint.class);
-		kryo.register(GeoDiameterDataPoint.class);
+
+		kryo.register(MobilityData.class);
+		kryo.register(GeoDiameterData.class);
 		return kryo;
 	}
 }

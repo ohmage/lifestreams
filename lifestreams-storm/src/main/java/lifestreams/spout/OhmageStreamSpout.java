@@ -9,9 +9,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import lifestreams.model.IDataPoint;
 import lifestreams.model.StreamRecord;
-import lifestreams.model.StreamRecord.OhmageStreamDataPointFactory;
+import lifestreams.model.StreamRecord.StreamRecordFactory;
 
 import org.joda.time.DateTime;
 import org.ohmage.models.OhmageStream;
@@ -27,12 +26,9 @@ import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Values;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class OhmageStreamSpout<T extends StreamRecord> extends
-		BaseRichSpout {
+public class OhmageStreamSpout<T> extends BaseRichSpout {
 	// stream to query
 	OhmageStream stream;
 	// requester should have permission to query all the requestees' data
@@ -45,20 +41,21 @@ public class OhmageStreamSpout<T extends StreamRecord> extends
 	// thread pool. Each requestee should have it own thread
 	private ScheduledExecutorService _scheduler;
 	// the queue stores the data points fetched from the ohmage
-	private LinkedBlockingQueue<T> _queue = new LinkedBlockingQueue<T>();
+	private LinkedBlockingQueue<StreamRecord<T>> _queue = new LinkedBlockingQueue<StreamRecord<T>>();
 	// Storm collector
 	private SpoutOutputCollector _collector;
 	// data point factory
-	private OhmageStreamDataPointFactory<T> factory;
-	
-	private  Class<T> dataPointClass;
-	
+	private StreamRecordFactory<T> factory;
+
+	private Class<T> dataPointClass;
+
 	private class Fetcher implements Runnable {
 		OhmageUser requestee;
 
 		Fetcher(OhmageUser requestee) {
 			this.requestee = requestee;
 		}
+
 		@Override
 		public void run() {
 
@@ -71,7 +68,7 @@ public class OhmageStreamSpout<T extends StreamRecord> extends
 				while (iter.hasNext()) {
 					// create data point from the factory
 					ObjectNode json = iter.next();
-					T dp = factory.createDataPoint(json, requestee);
+					StreamRecord<T> dp = factory.createRecord(json, requestee);
 					// add the dp to the queue
 					_queue.put(dp);
 					// update the time
@@ -82,9 +79,10 @@ public class OhmageStreamSpout<T extends StreamRecord> extends
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			} catch (InterruptedException e) {
-				return;				
+				return;
 			} catch (Exception e) {
-				e.printStackTrace();;
+				e.printStackTrace();
+				;
 			}
 
 		}
@@ -103,18 +101,17 @@ public class OhmageStreamSpout<T extends StreamRecord> extends
 					TimeUnit.SECONDS);
 		}
 		// create datapoint factory
-		this.factory = new OhmageStreamDataPointFactory<T>(dataPointClass);
+		this.factory = new StreamRecordFactory<T>(dataPointClass);
 	}
 
 	@Override
 	public void nextTuple() {
 		try {
-			while(true){
-				if(_queue.peek() != null){
-					IDataPoint dp = _queue.take();
+			while (true) {
+				if (_queue.peek() != null) {
+					StreamRecord<T> dp = _queue.take();
 					_collector.emit(new Values(dp.getUser(), dp));
-				}
-				else{
+				} else {
 					// sleep to let storm execute ack() and fail() methods
 					Thread.sleep(100);
 				}
@@ -130,8 +127,8 @@ public class OhmageStreamSpout<T extends StreamRecord> extends
 
 	}
 
-	public OhmageStreamSpout(OhmageStream stream, List<OhmageUser> requestees, DateTime startDate, Class<T> dataPointClass)
-	 {
+	public OhmageStreamSpout(OhmageStream stream, List<OhmageUser> requestees,
+			DateTime startDate, Class<T> dataPointClass) {
 		super();
 		this.stream = stream;
 		this.requestees = requestees;
