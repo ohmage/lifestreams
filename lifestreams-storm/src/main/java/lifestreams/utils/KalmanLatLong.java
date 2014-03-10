@@ -1,6 +1,13 @@
 package lifestreams.utils;
 
-// the code is from http://stackoverflow.com/questions/1134579/smooth-gps-data
+import lifestreams.models.GeoLocation;
+
+
+/**
+ *  A implementatino of Kalman filter that, given the average speed, smooth a series of GPS data points.
+ *  This class is from http://stackoverflow.com/questions/1134579/smooth-gps-data 
+ *  
+ */
 public class KalmanLatLong {
 	private final float MinAccuracy = 1;
 
@@ -40,7 +47,11 @@ public class KalmanLatLong {
 		variance = accuracy * accuracy;
 		this.TimeStamp_milliseconds = TimeStamp_milliseconds;
 	}
-
+	public void Process(GeoLocation location) {
+		Process(location.getCoordinates().getLatitude(), 
+				location.getCoordinates().getLongitude(), 
+				(float) location.getAccuracy(), location.getTimestamp().getMillis());
+	}
 	// / <summary>
 	// / Kalman filter processing for lattitude and longitude
 	// / </summary>

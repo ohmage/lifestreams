@@ -11,14 +11,27 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.regex.Pattern;
 
-import lifestreams.model.data.GeoDiameterData;
-import lifestreams.model.data.MobilityData;
+import lifestreams.bolts.TimeWindow;
+import lifestreams.models.GeoLocation;
+import lifestreams.models.MobilityState;
+import lifestreams.models.StreamMetadata;
+import lifestreams.models.StreamRecord;
+import lifestreams.models.data.ActivityInstance;
+import lifestreams.models.data.ActivitySummaryData;
+import lifestreams.models.data.GeoDiameterData;
+import lifestreams.models.data.LifestreamsData;
+import lifestreams.models.data.MobilityData;
+import lifestreams.models.data.RectifiedMobilityData;
 
+import org.joda.time.DateTime;
 import org.ohmage.models.OhmageServer;
 import org.ohmage.models.OhmageUser;
-import org.joda.time.DateTime;
+
+import backtype.storm.Config;
+import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.Registration;
 import com.esotericsoftware.shaded.org.objenesis.strategy.StdInstantiatorStrategy;
 
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;
@@ -40,6 +53,12 @@ public class KryoSerializer {
 
 	public static Kryo getInstance() {
 		Kryo kryo = new Kryo();
+
+		// 
+		// kryo.setRegistrationRequired(false);
+		kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());
+
+		// some common classes and their corresponding serializer
 		kryo.register(Arrays.asList("").getClass(),
 				new ArraysAsListSerializer());
 		kryo.register(Collections.EMPTY_LIST.getClass(),
@@ -62,13 +81,10 @@ public class KryoSerializer {
 		UnmodifiableCollectionsSerializer.registerSerializers(kryo);
 		SynchronizedCollectionsSerializer.registerSerializers(kryo);
 
-		// custom serializers for non-jdk libs
 
+		
 		// joda datetime
 		kryo.register(DateTime.class, new JodaDateTimeSerializer());
-
-		// kryo.setRegistrationRequired(false);
-		kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());
 
 		kryo.register(ArrayList.class);
 		kryo.register(LinkedList.class);
@@ -81,8 +97,36 @@ public class KryoSerializer {
 		kryo.register(TimeWindow.class);
 		kryo.register(PendingBuffer.class);
 
+		/* base stream record models */
+		kryo.register(GeoLocation.class);
+		kryo.register(MobilityState.class);
+		kryo.register(StreamMetadata.class);
+		kryo.register(StreamRecord.class);
+		
+		/* stream data models */
 		kryo.register(MobilityData.class);
 		kryo.register(GeoDiameterData.class);
+		kryo.register(ActivityInstance.class);
+		kryo.register(ActivitySummaryData.class);
+		kryo.register(LifestreamsData.class);
+		kryo.register(MobilityData.class);
+		kryo.register(RectifiedMobilityData.class);
+		kryo.register(MovesSegment.class);
 		return kryo;
+	}
+	public static void setRegistrationsForStormConfig(Config config){
+		Kryo kryo = getInstance();
+		// merge all the registered classes and serializers to the Storm Config.
+		for(int i=0; i<kryo.getNextRegistrationId(); i++){
+			if(kryo.getRegistration(i) != null){
+				Registration reg = kryo.getRegistration(i);
+				if(reg.getSerializer() != null){
+					config.registerSerialization(reg.getType(), reg.getSerializer().getClass());
+				}
+				else{
+					config.registerSerialization(reg.getType());
+				}
+			}
+		}
 	}
 }

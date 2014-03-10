@@ -2,21 +2,23 @@ package lifestreams.utils;
 
 import java.util.List;
 
-import com.bbn.openmap.geo.Geo;
+import lifestreams.models.StreamRecord;
+import lifestreams.models.data.ActivityInstance;
+import lifestreams.models.data.IMobilityData;
+import lifestreams.models.data.ActivityInstance.TrackPoint;
 
-import lifestreams.model.data.ActivityInstance;
-import lifestreams.model.data.IMobilityData;
-import lifestreams.model.data.ActivityInstance.TrackPoint;
-import lifestreams.model.StreamRecord;
+import com.bbn.openmap.geo.Geo;
 
 public class ActivityInstanceAccumulator {
 	ActivityInstance instance = new ActivityInstance();
 	KalmanLatLong filter = new KalmanLatLong(2); // Q meter per second = 2
-
+	// return if this accumulator has been init (i.e. contains any data points)
+	public boolean isInitialized(){
+		return instance.getStartTime() != null;
+	}
 	public void addDataPoint(StreamRecord<IMobilityData> point) {
 		if (!point.d().getMode().isActive())
-			throw new RuntimeException(
-					"The given mobility state is not a active state");
+			throw new RuntimeException(	"The given mobility state is not a active state");
 		if (instance.getStartTime() == null) {
 			instance.setStartTime(point.getTimestamp());
 		}
@@ -29,26 +31,27 @@ public class ActivityInstanceAccumulator {
 		if (point.getLocation() != null) {
 			Geo geo = point.getLocation().getCoordinates();
 			// apply kalman latlng filter to the location point
-			filter.SetState(geo.getLatitude(), geo.getLongitude(),
-					(float) point.getLocation().getAccuracy(), point
-							.getTimestamp().getMillis());
+			filter.Process(geo.getLatitude(), geo.getLongitude(), 
+							(float) point.getLocation().getAccuracy(), 
+							point.getTimestamp().getMillis());
 			// get the smoothed location fromthe filter
 			instance.getTrackPoints().add(
-					new ActivityInstance.TrackPoint(filter.get_lat(), filter
-							.get_lng(), point.getTimestamp()));
+					new ActivityInstance.TrackPoint(filter.get_lat(), filter.get_lng(), point.getTimestamp())
+			);
 		}
 
 	}
 
 	public ActivityInstance getInstance() {
 		List<TrackPoint> points = instance.getTrackPoints();
-		// compute the distance in mile
-		Geo curLocation = new Geo(points.get(0).getLat(), points.get(0)
-				.getLng(), true);
 		double distance = 0;
-		for (TrackPoint point : points) {
-			Geo nextLocation = new Geo(point.getLat(), point.getLng(), true);
-			distance += Geo.distanceNM(curLocation, nextLocation);
+		// compute the distance in mile
+		if(points.size() > 0){
+			Geo curLocation = new Geo(points.get(0).getLat(), points.get(0).getLng(), true);
+			for (TrackPoint point : points) {
+				Geo nextLocation = new Geo(point.getLat(), point.getLng(), true);
+				distance += (Geo.distanceNM(curLocation, nextLocation) * 1.15078);
+			}
 		}
 		instance.setDistance(distance);
 		return instance;

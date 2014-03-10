@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import lifestreams.bolt.mobility.MobilityEventSmoothingBolt;
-import lifestreams.model.MobilityState;
+import lifestreams.models.MobilityState;
+import lifestreams.tasks.mobility.HMMMobilityRectifier;
 
 import org.joda.time.Duration;
 import org.joda.time.Seconds;
@@ -31,7 +31,7 @@ public class MiscTests {
 
 	@Test
 	public void testHmm() {
-		Hmm<ObservationDiscrete<MobilityState>> hmm = MobilityEventSmoothingBolt
+		Hmm<ObservationDiscrete<MobilityState>> hmm = HMMMobilityRectifier
 				.createHmmModel();
 
 		BaumWelchLearner bwl = new BaumWelchLearner();

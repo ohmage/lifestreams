@@ -5,7 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import lifestreams.model.StreamRecord;
+import lifestreams.models.StreamRecord;
 
 import org.joda.time.DateTime;
 

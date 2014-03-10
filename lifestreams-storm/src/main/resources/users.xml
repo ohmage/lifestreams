@@ -4,11 +4,28 @@
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 	<bean class="org.ohmage.models.OhmageUser">
 		<constructor-arg value="${ohmage.server}"/>
+		<constructor-arg value="LifestreamsTest1"/>
+		<constructor-arg value="1qaz@WSX"/>
+	</bean>
+	<bean class="org.ohmage.models.OhmageUser">
+		<constructor-arg value="${ohmage.server}"/>
 		<constructor-arg value="LifestreamsTest2"/>
 		<constructor-arg value="1qaz@WSX"/>
 	</bean>
-
-
+	<bean class="org.ohmage.models.OhmageUser">
+		<constructor-arg value="${ohmage.server}"/>
+		<constructor-arg value="LifestreamsTest3"/>
+		<constructor-arg value="1qaz@WSX"/>
+	</bean>
+	<bean class="org.ohmage.models.OhmageUser">
+		<constructor-arg value="${ohmage.server}"/>
+		<constructor-arg value="LifestreamsTest4"/>
+		<constructor-arg value="1qaz@WSX"/>
+	</bean>
+	<bean class="org.ohmage.models.OhmageUser">
+		<constructor-arg value="${ohmage.server}"/>
+		<constructor-arg value="LifestreamsTest5"/>
+		<constructor-arg value="1qaz@WSX"/>
+	</bean>
 	
-
 </beans>

@@ -26,13 +26,13 @@
 	<bean id="activitySummaryStream" class="org.ohmage.models.OhmageStream">  
 			<constructor-arg value="org.ohmage.lifestreams.activities"/>
 			<constructor-arg value="activity_summaries"/>
-			<constructor-arg value="201402262"/>
-			<constructor-arg value="20140227"/>   
+			<constructor-arg value="201403031"/>
+			<constructor-arg value="20140303"/>   
 	</bean> 
 		<bean id="geodiameterStream" class="org.ohmage.models.OhmageStream">  
 			<constructor-arg value="org.ohmage.lifestreams.activities"/>
 			<constructor-arg value="geodiameter"/>
-			<constructor-arg value="201402262"/>
-			<constructor-arg value="20140226"/>   
+			<constructor-arg value="201403031"/>
+			<constructor-arg value="20140303"/>   
 	</bean> 
 </beans>

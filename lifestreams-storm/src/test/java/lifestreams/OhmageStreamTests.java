@@ -5,20 +5,24 @@ import java.util.List;
 
 import javax.annotation.Resource;
 
-import lifestreams.bolt.GeoDiameterTask;
-import lifestreams.bolt.SimpleLifestreamsBolt;
-import lifestreams.bolt.mobility.ActivitySummaryBolt;
-import lifestreams.bolt.mobility.MobilityEventSmoothingBolt;
-import lifestreams.bolt.moves.ActivitySummarizer;
-import lifestreams.bolt.moves.TrackPointExtractor;
-import lifestreams.model.data.MobilityData;
+import lifestreams.bolts.BasicLifestreamsBolt;
+import lifestreams.models.data.MobilityData;
 
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
-import lifestreams.spout.OhmageStreamSpout;
+
+import lifestreams.spouts.OhmageStreamSpout;
+import lifestreams.tasks.GeoDiameterTask;
+import lifestreams.tasks.mobility.HMMMobilityRectifier;
+import lifestreams.tasks.mobility.MobilityActivitySummarizer;
+import lifestreams.tasks.moves.ActivitySummarizer;
+import lifestreams.tasks.moves.TrackPointExtractor;
+import lifestreams.utils.KryoSerializer;
+import lifestreams.utils.SimpleTopologyBuilder;
 
 import org.joda.time.DateTime;
 import org.joda.time.Days;
+import org.joda.time.Seconds;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,64 +61,71 @@ public class OhmageStreamTests {
 	@Test
 	public void testTopology() throws InterruptedException, JsonParseException,
 			IOException {
-		Jedis jedis = new Jedis("localhost");
-		jedis.flushDB();
-		TopologyBuilder builder = new TopologyBuilder();
+
+		
 		OhmageStreamSpout<MobilityData> mobilitySpout = new OhmageStreamSpout<MobilityData>(
 				mobilityStream, users, since, MobilityData.class);
 		OhmageStreamSpout<MovesSegment> movesSpout = new OhmageStreamSpout<MovesSegment>(
 				movesSegmentStream, users, since, MovesSegment.class);
 
-		builder.setSpout("MobilityDataStream", mobilitySpout, 1);
-		// setup the topology
-		// builder.setBolt("GeoDistanceBolt", new GeoDistanceBolt(Days.ONE),
-		// 1).fieldsGrouping("MobilityDataStream", new Fields("user"));
+		/** setup the topology **/
+		SimpleTopologyBuilder builder = new SimpleTopologyBuilder();
+		// set the number of parallelism per task as the number of users
+		int parallelismPerTask = users.size();
+		
+		/** Topology part 1. create a spout that gets mobility data and the tasks that consume the data **/
+	
+		builder.setSpout("MobilityDataStream", mobilitySpout);
 
-		builder.setBolt(
-				"GeoDistanceBolt",
-				new SimpleLifestreamsBolt(new GeoDiameterTask(), Days.ONE,
-						geodiameterStream), 1).fieldsGrouping(
-				"MobilityDataStream", new Fields("user"));
+		builder.setTask("GeoDistanceBolt", new GeoDiameterTask(), "MobilityDataStream", parallelismPerTask)
+					.setTargetStream(geodiameterStream)
+					.setTimeWindowSize(Days.ONE);
 
-		builder.setBolt("HMMMobilityStateRectifier",
-				new MobilityEventSmoothingBolt(Days.ONE), 1).fieldsGrouping(
-				"MobilityDataStream", new Fields("user"));
+		builder.setTask("HMMMobilityStateRectifier", new HMMMobilityRectifier(), "MobilityDataStream", parallelismPerTask)
+					.setTimeWindowSize(Days.ONE);
+		
+		builder.setTask("MobilityActivitySummarier", new MobilityActivitySummarizer(), "HMMMobilityStateRectifier", parallelismPerTask)
+					.setTargetStream(activitySummaryStream)
+					.setTimeWindowSize(Days.ONE);
 
-		builder.setBolt("MobilityActivitySummarier",
-				new ActivitySummaryBolt(Days.ONE, activitySummaryStream), 1)
-				//
-				.fieldsGrouping("HMMMobilityStateRectifier", new Fields("user"));
 
-		/* The following is the bolt for Moves */
-		builder.setSpout("MovesDataStream", movesSpout, 1);
+		/** Topology part 2. create a spout that gets Moves data and the tasks that consume the data **/
+		
+		builder.setSpout("MovesDataStream", movesSpout);
 
 		// extract track points from moves segments
-		builder.setBolt("MovesTrackPointExtractor",
-				new SimpleLifestreamsBolt(new TrackPointExtractor(), Days.ONE),
-				1).fieldsGrouping("MovesDataStream", new Fields("user"));
+		builder.setTask("MovesTrackPointExtractor", new TrackPointExtractor(), "MovesDataStream")
+				.setTimeWindowSize(Seconds.ONE);
+		
 		// compute geo diameter based on the track points
-		builder.setBolt("MovesGeoDistance",
-				new SimpleLifestreamsBolt(new GeoDiameterTask(), Days.ONE), 1)
-				.fieldsGrouping("MovesTrackPointExtractor", new Fields("user"));
+		builder.setTask("MovesGeoDistance", new GeoDiameterTask(), "MovesTrackPointExtractor")
+				.setTargetStream(geodiameterStream)
+				.setTimeWindowSize(Days.ONE);
+		
 		// generate daily activity summary
-		builder.setBolt(
-				"MovesActivitySummarier",
-				new SimpleLifestreamsBolt(new ActivitySummarizer(), Days.ONE,
-						activitySummaryStream), 1) //
-				.fieldsGrouping("MovesDataStream", new Fields("user"));
+		builder.setTask("MovesActivitySummarier", new ActivitySummarizer(), "MovesDataStream")
+				.setTimeWindowSize(Days.ONE);
 
+		
 		Config conf = new Config();
 		conf.setDebug(false);
-		conf.setMaxTaskParallelism(3);
-		conf.registerSerialization(DateTime.class, JodaDateTimeSerializer.class);
+		
+		// if it is a dryrun? if so, no data will be writeback to ohmage
+		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, true);
+		// keep the computation states in a local database or not.
+		conf.put(LifestreamsConfig.ENABLE_STATEFUL_FUNCTION, false);
+		
+		// register all the classes used in Lifestreams framework to the kryo serializer
+		KryoSerializer.setRegistrationsForStormConfig(conf);
+
 
 		LocalCluster cluster = new LocalCluster();
-		cluster.submitTopology("Lifestreams-on-storm", conf,
-				builder.createTopology());
-		while (true)
+		cluster.submitTopology("Lifestreams-on-storm", conf, builder.createTopology());
+		
+		while (true){
 			Thread.sleep(100000000);
+		}
 
-		// cluster.shutdown();
 
 	}
 
