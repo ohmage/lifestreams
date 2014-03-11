@@ -8,6 +8,8 @@ import lifestreams.bolts.TimeWindowBolt;
 import lifestreams.models.StreamRecord;
 
 import org.ohmage.models.OhmageUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author changun
@@ -52,7 +54,7 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 
 	private OhmageUser user;
 	private transient TimeWindowBolt bolt;
-
+	protected Logger logger;
 	public OhmageUser getUser() {
 		return user;
 	}
@@ -64,6 +66,7 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 	public void init(OhmageUser user, TimeWindowBolt bolt) {
 		this.user = user;
 		this.bolt = bolt;
+		logger = LoggerFactory.getLogger(this.getClass());
 	}
 
 	public abstract void executeDataPoint(StreamRecord<INPUT> dp,

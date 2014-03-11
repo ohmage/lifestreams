@@ -11,7 +11,7 @@ import com.bbn.openmap.geo.Geo;
 
 public class ActivityInstanceAccumulator {
 	ActivityInstance instance = new ActivityInstance();
-	KalmanLatLong filter = new KalmanLatLong(2); // Q meter per second = 2
+	KalmanLatLong filter = new KalmanLatLong((float) 1); // Q meter per second = 2
 	// return if this accumulator has been init (i.e. contains any data points)
 	public boolean isInitialized(){
 		return instance.getStartTime() != null;
@@ -28,7 +28,7 @@ public class ActivityInstanceAccumulator {
 		// add the type of activity
 		instance.getTypes().add(point.d().getMode());
 
-		if (point.getLocation() != null) {
+		if (point.getLocation() != null && point.getLocation().getAccuracy() < 100) {
 			Geo geo = point.getLocation().getCoordinates();
 			// apply kalman latlng filter to the location point
 			filter.Process(geo.getLatitude(), geo.getLongitude(), 
@@ -50,7 +50,8 @@ public class ActivityInstanceAccumulator {
 			Geo curLocation = new Geo(points.get(0).getLat(), points.get(0).getLng(), true);
 			for (TrackPoint point : points) {
 				Geo nextLocation = new Geo(point.getLat(), point.getLng(), true);
-				distance += (Geo.distanceNM(curLocation, nextLocation) * 1.15078);
+				distance += UnitConversion.NMToMile(Geo.distanceNM(curLocation, nextLocation));
+				curLocation = nextLocation;
 			}
 		}
 		instance.setDistance(distance);

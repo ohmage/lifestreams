@@ -14,6 +14,7 @@ import org.joda.time.Interval;
 import org.joda.time.Minutes;
 import org.joda.time.Months;
 import org.joda.time.MutableDateTime;
+import org.joda.time.Period;
 import org.joda.time.Seconds;
 import org.joda.time.Weeks;
 import org.joda.time.Years;
@@ -70,6 +71,9 @@ public class TimeWindow {
 	}
 	public DateTime getTimeWindowEndTime(){
 		return this.getTimeWindowBeginTime().plus(this.windowDuration);
+	}
+	public int getLengthInSecond(){
+		return this.windowDuration.toPeriod().toStandardSeconds().getSeconds();
 	}
 	public DateTime getFirstInstant() {
 		return firstInstant;

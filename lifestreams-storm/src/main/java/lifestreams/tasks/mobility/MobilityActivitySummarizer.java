@@ -63,20 +63,33 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 			}
 		}
 	}
+	
+	private void createActivityInstanceAndRestartAccumlator(){
+		// get the accumulated activity instance til the last data point
+		ActivityInstance instance = activityInstanceAccumulator.getInstance();
+		// add that to the activity instances array
+		activityInstances.add(instance);
+		// restart the accumulator
+		activityInstanceAccumulator = new ActivityInstanceAccumulator();
+	}
 	private void accumulateActivityInstance(StreamRecord<IMobilityData> cur_dp) {
+		if (last_dp != null) {
+			// check the sampling interval
+			long duration = (cur_dp.getTimestamp().getMillis() - last_dp.getTimestamp().getMillis()) / 1000;
+			// if the sampling interval is too large, assume the previous activity (if any) has ended
+			if (duration > LONGEST_SAMPLING_PERIOD && activityInstanceAccumulator.isInitialized()) {
+				// assume the previous activity instance has ended
+				createActivityInstanceAndRestartAccumlator();
+				
+			}
+		}
 		if (cur_dp.d().getMode().isActive()) { // if the current state is active
 			// add this point to the accumulator
 			activityInstanceAccumulator.addDataPoint(cur_dp);
 		} else if (last_dp != null && last_dp.d().getMode().isActive()) { 
 			// if the current state is not active, but the last state is active
-			// then this is the end of a activity instance
-			
-			// get the accumulated activity instance til the last data point
-			ActivityInstance instance = activityInstanceAccumulator.getInstance();
-			// add that to the activity instances array
-			activityInstances.add(instance);
-			// restart the accumulator
-			activityInstanceAccumulator = new ActivityInstanceAccumulator();
+			// then this is the end of a activity instance			
+			createActivityInstanceAndRestartAccumlator();
 		}
 
 	}

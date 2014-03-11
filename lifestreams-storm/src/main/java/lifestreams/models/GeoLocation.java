@@ -50,7 +50,9 @@ public class GeoLocation {
 	public String getProvider() {
 		return provider;
 	}
-
+	public String toString(){
+		return String.format("%s accuracy:%s", this.getCoordinates().toString(), this.getAccuracy());
+	}
 	public static class GeoLocationDeserializer extends
 			JsonDeserializer<GeoLocation> {
 		@Override

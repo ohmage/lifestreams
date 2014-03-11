@@ -19,6 +19,10 @@ import org.ohmage.sdk.OhmageStreamClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.task.OutputCollector;
@@ -155,6 +159,16 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 		if(!isDryrun && targetStream != null){
 			// upload the processed record back to ohmage
 			upload(dp);
+		}else if(targetStream != null){
+			// if it is a dryrun, pretty print the emit data for debug
+			ObjectMapper mapper = new ObjectMapper();
+			mapper.enable(SerializationFeature.INDENT_OUTPUT);
+			try {
+				logger.info(mapper.writeValueAsString(dp.toObserverDataPoint()));
+			} catch (JsonProcessingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		// emit the processed record into topology
 		return collector.emit(new Values(dp.getUser(), dp));

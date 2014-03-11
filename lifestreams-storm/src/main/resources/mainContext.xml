@@ -7,7 +7,7 @@
 	<context:property-placeholder location="classpath:application.properties" />
 
 	<bean id="since" class="org.joda.time.DateTime">
-		<constructor-arg value="2000-1-1"/>
+		<constructor-arg value="2012-12-31"/>
 	</bean>
 	
 	<bean id="movesSegmentStream" class="org.ohmage.models.OhmageStream">
@@ -26,13 +26,19 @@
 	<bean id="activitySummaryStream" class="org.ohmage.models.OhmageStream">  
 			<constructor-arg value="org.ohmage.lifestreams.activities"/>
 			<constructor-arg value="activity_summaries"/>
-			<constructor-arg value="201403031"/>
-			<constructor-arg value="20140303"/>   
+			<constructor-arg value="201403111"/>
+			<constructor-arg value="20140311"/>   
 	</bean> 
 		<bean id="geodiameterStream" class="org.ohmage.models.OhmageStream">  
 			<constructor-arg value="org.ohmage.lifestreams.activities"/>
 			<constructor-arg value="geodiameter"/>
-			<constructor-arg value="201403031"/>
-			<constructor-arg value="20140303"/>   
-	</bean> 
+			<constructor-arg value="201403111"/>
+			<constructor-arg value="20140311"/>   
+	</bean>
+	<bean id="leaveArriveHomeStream" class="org.ohmage.models.OhmageStream">  
+			<constructor-arg value="org.ohmage.lifestreams.activities"/>
+			<constructor-arg value="leave_arrive_home_time"/>
+			<constructor-arg value="201403111"/>
+			<constructor-arg value="20140311"/>   
+	</bean>  
 </beans>

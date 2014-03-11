@@ -7,6 +7,7 @@ import java.util.List;
 import lifestreams.bolts.TimeWindow;
 import lifestreams.models.StreamRecord;
 import lifestreams.models.data.GeoDiameterData;
+import lifestreams.utils.UnitConversion;
 
 import com.bbn.openmap.geo.ConvexHull;
 import com.bbn.openmap.geo.Geo;
@@ -65,7 +66,7 @@ public class GeoDiameterTask extends SimpleTask {
 
 	@Override
 	public void executeDataPoint(StreamRecord dp, TimeWindow window) {
-		if (dp.getLocation() == null)
+		if (dp.getLocation() == null || dp.getLocation().getAccuracy() > 100)
 			return;
 		// compute the current convex hull every 10 data points
 		if (unprocessedPoints.size() >= UNPROCESSED_POINTS_BUFFER_SIZE) {
@@ -100,7 +101,7 @@ public class GeoDiameterTask extends SimpleTask {
 				Geo x = hull_points.get(i).getLocation().getCoordinates();
 				Geo y = hull_points.get(j).getLocation().getCoordinates();
 				// compute the diameter in miles
-				double distance = x.distanceNM(y) * 1.15078;
+				double distance = UnitConversion.NMToMile(x.distanceNM(y));
 				if (longestDistanceInHull < distance) {
 					// record the points that have the longest distance so far
 					longestDistanceInHull = distance;

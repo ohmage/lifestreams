@@ -15,6 +15,7 @@ import lifestreams.spouts.OhmageStreamSpout;
 import lifestreams.tasks.GeoDiameterTask;
 import lifestreams.tasks.mobility.HMMMobilityRectifier;
 import lifestreams.tasks.mobility.MobilityActivitySummarizer;
+import lifestreams.tasks.mobility.PlaceDetection;
 import lifestreams.tasks.moves.ActivitySummarizer;
 import lifestreams.tasks.moves.TrackPointExtractor;
 import lifestreams.utils.KryoSerializer;
@@ -57,7 +58,8 @@ public class OhmageStreamTests {
 	OhmageStream movesSegmentStream;
 	@Autowired
 	OhmageStream geodiameterStream;
-
+	@Autowired
+	OhmageStream leaveArriveHomeStream;
 	@Test
 	public void testTopology() throws InterruptedException, JsonParseException,
 			IOException {
@@ -76,15 +78,24 @@ public class OhmageStreamTests {
 		/** Topology part 1. create a spout that gets mobility data and the tasks that consume the data **/
 	
 		builder.setSpout("MobilityDataStream", mobilitySpout);
-
-		builder.setTask("GeoDistanceBolt", new GeoDiameterTask(), "MobilityDataStream", parallelismPerTask)
-					.setTargetStream(geodiameterStream)
-					.setTimeWindowSize(Days.ONE);
-
-		builder.setTask("HMMMobilityStateRectifier", new HMMMobilityRectifier(), "MobilityDataStream", parallelismPerTask)
-					.setTimeWindowSize(Days.ONE);
 		
-		builder.setTask("MobilityActivitySummarier", new MobilityActivitySummarizer(), "HMMMobilityStateRectifier", parallelismPerTask)
+		builder.setTask("PlaceDetection", new PlaceDetection(), "MobilityDataStream")
+					.setParallelismHint(2)
+					.setTimeWindowSize(Days.ONE)
+					.setTargetStream(leaveArriveHomeStream);
+		
+		// compute daily geodiameter from Mobility data
+		builder.setTask("GeoDistanceBolt", new GeoDiameterTask(), "MobilityDataStream")
+					.setTargetStream(geodiameterStream)
+					.setParallelismHint(2)
+					.setTimeWindowSize(Days.ONE);
+					
+		// HMM model to correct shor-term errors in Mobility
+		builder.setTask("HMMMobilityStateRectifier", new HMMMobilityRectifier(), "MobilityDataStream")
+					.setParallelismHint(2)
+					.setTimeWindowSize(Days.ONE);
+		// based on the corrected Mobility data, compute daily activity summary
+		builder.setTask("MobilityActivitySummarier", new MobilityActivitySummarizer(), "HMMMobilityStateRectifier")
 					.setTargetStream(activitySummaryStream)
 					.setTimeWindowSize(Days.ONE);
 
@@ -105,13 +116,12 @@ public class OhmageStreamTests {
 		// generate daily activity summary
 		builder.setTask("MovesActivitySummarier", new ActivitySummarizer(), "MovesDataStream")
 				.setTimeWindowSize(Days.ONE);
-
 		
 		Config conf = new Config();
 		conf.setDebug(false);
 		
 		// if it is a dryrun? if so, no data will be writeback to ohmage
-		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, true);
+		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, false);
 		// keep the computation states in a local database or not.
 		conf.put(LifestreamsConfig.ENABLE_STATEFUL_FUNCTION, false);
 		

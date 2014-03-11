@@ -50,7 +50,7 @@ public class BasicLifestreamsBolt extends TimeWindowBolt {
 
 		((SimpleTask) state.get("task")).finishWindow(window);
 		Logger logger = LoggerFactory.getLogger(task.getClass());
-		logger.info("Finish timeWindow {}", window.getLastInstant());
+		logger.info("Finish timeWindow {}", window.getLastInstant().toLocalDate().toDate());
 	}
 
 	@Override

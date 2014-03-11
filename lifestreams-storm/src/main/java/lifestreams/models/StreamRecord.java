@@ -1,8 +1,13 @@
 package lifestreams.models;
 
 import java.io.IOException;
+import java.util.TimeZone;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.MutableDateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.ISODateTimeFormat;
 import org.ohmage.models.OhmageUser;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -22,7 +27,12 @@ public class StreamRecord<T> {
 	private OhmageUser user;
 	private StreamMetadata metadata = new StreamMetadata();
 	private T data;
-
+	public String toString(){
+		return String.format("Time:%s\nLocation:%s\nData:%s\n", this.getTimestamp(), 
+														 this.getLocation() == null ? "NA" : this.getLocation().toString(),
+														 this.getData().toString());
+		
+	}
 	public T getData() {
 		return data;
 	}
@@ -132,8 +142,16 @@ public class StreamRecord<T> {
 					false);
 			// use the timezone in the timestamp field to parse the datatime
 			// string
-			mapper.setTimeZone(new DateTime(node.get("metadata")
-					.get("timestamp").asText()).getZone().toTimeZone());
+			
+			// get the joda datetime with timezone
+			TimeZone zone = ISODateTimeFormat.dateTime().withOffsetParsed().parseDateTime(
+					node.get("metadata").get("timestamp").asText()).getZone().toTimeZone();
+			if(node.has("data") && node.get("data").has("wifi_data") && node.get("data").get("wifi_data").has("timezone") ){
+				zone = DateTimeZone.forID(node.get("data").get("wifi_data").get("timezone").asText()).toTimeZone();
+			}
+			// ask the json parser to use that timezone
+			mapper.setTimeZone(zone);
+
 			@SuppressWarnings("unchecked")
 			StreamRecord<T> dataPoint = mapper.convertValue(node, new StreamRecord<T>().getClass());
 			dataPoint.setData(mapper.convertValue(dataPoint.getData(), c));

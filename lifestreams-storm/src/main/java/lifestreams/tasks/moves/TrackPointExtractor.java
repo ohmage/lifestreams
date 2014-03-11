@@ -12,8 +12,8 @@ import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 import com.bbn.openmap.geo.Geo;
 
 /**
- * @author changun This task extract tracking points from MovesSegements and
- *         output dummy stream records with corresponding timestamp and geo
+ * @author changun This task extracts tracking points from MovesSegements and
+ *         outputs dummy stream records with corresponding timestamp and geo
  *         location information.
  * 
  */
@@ -38,6 +38,7 @@ public class TrackPointExtractor extends SimpleTask<MovesSegment> {
 	@Override
 	public void executeDataPoint(StreamRecord<MovesSegment> dp,
 			TimeWindow window) {
+		
 		if (dp.d().getActivities() != null) {
 			for (MovesActivity activity : dp.d().getActivities()) {
 				if (activity != null && activity.getTrackPoints() != null) {
