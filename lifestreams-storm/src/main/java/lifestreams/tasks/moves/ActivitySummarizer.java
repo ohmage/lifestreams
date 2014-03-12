@@ -30,8 +30,7 @@ public class ActivitySummarizer extends SimpleTask<MovesSegment> {
 	}
 
 	// this function computes the activity summary from the Moves segment we have received so far.
-	private StreamRecord<ActivitySummaryData> computeSummary(TimeWindow window) {
-		// check if there is an activity instance still being accumulated
+	private void computeAndEmitSummary(TimeWindow window, boolean isSnapshot) {
 		double totalActiveTime = 0;
 		double totalTime = 0;
 		double totalTransportationTime = 0;
@@ -39,7 +38,7 @@ public class ActivitySummarizer extends SimpleTask<MovesSegment> {
 		for (MovesSegment segment : segments) {
 			// go over each segments in the time window (usually daily)
 
-			// accumulate total time
+			// accumulate total time in seconds
 			totalTime += new Interval(segment.getStartTime(),
 					segment.getEndTime()).toDurationMillis() / 1000;
 			if (segment.getActivities() != null) {
@@ -64,28 +63,31 @@ public class ActivitySummarizer extends SimpleTask<MovesSegment> {
 				}
 			}
 		}
-
+		// create data point
 		ActivitySummaryData data = new ActivitySummaryData(window, this)
 				.setTotalActiveTime(totalActiveTime)
 				.setTotalSedentaryTime(totalTime - totalActiveTime)
 				.setTotalTime(totalTime)
 				.setTotalTransportationTime(totalTransportationTime)
 				.setActivityInstances(activityInstances);
-		StreamRecord<ActivitySummaryData> outputRecord = new StreamRecord<ActivitySummaryData>(
-				getUser(), window.getLastInstant());
-		outputRecord.setData(data);
-		return outputRecord;
+		// create and emit the record
+		this.createRecord()
+					.setData(data)
+					.setTimestamp(window.getFirstInstant())
+					.setIsSnapshot(isSnapshot)
+					.emit();
 	}
 
 	@Override
 	public void finishWindow(TimeWindow window) {
-		this.emit(computeSummary(window));
+		computeAndEmitSummary(window, false);
+		// clear the segements for this timewindow
 		segments.clear();
 	}
 
 	@Override
 	public void snapshotWindow(TimeWindow window) {
-		this.emitSnapshot(computeSummary(window));
+		computeAndEmitSummary(window, true);
 
 	}
 

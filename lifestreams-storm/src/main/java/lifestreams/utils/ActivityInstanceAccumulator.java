@@ -55,6 +55,14 @@ public class ActivityInstanceAccumulator {
 			}
 		}
 		instance.setDistance(distance);
+		// reduce the number of track points
+		if(points.size() > 2){
+			TrackPoint first = points.get(0);
+			TrackPoint last = points.get(points.size()-1);
+			TrackPoint middle = points.get(points.size()/2);
+			points.clear();
+			points.add(first);points.add(last);points.add(middle);   
+		}
 		return instance;
 	}
 }

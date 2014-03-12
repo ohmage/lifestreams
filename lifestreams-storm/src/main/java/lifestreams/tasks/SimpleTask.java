@@ -5,8 +5,11 @@ import java.io.Serializable;
 import lifestreams.bolts.IGenerator;
 import lifestreams.bolts.TimeWindow;
 import lifestreams.bolts.TimeWindowBolt;
+import lifestreams.models.GeoLocation;
 import lifestreams.models.StreamRecord;
+import lifestreams.models.data.LifestreamsData;
 
+import org.joda.time.DateTime;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,9 +58,6 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 	private OhmageUser user;
 	private transient TimeWindowBolt bolt;
 	protected Logger logger;
-	public OhmageUser getUser() {
-		return user;
-	}
 
 	public TimeWindowBolt getBolt() {
 		return bolt;
@@ -69,6 +69,7 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 		logger = LoggerFactory.getLogger(this.getClass());
 	}
 
+	
 	public abstract void executeDataPoint(StreamRecord<INPUT> dp,
 			TimeWindow window);
 
@@ -76,12 +77,53 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 
 	public abstract void snapshotWindow(TimeWindow window);
 
-	protected void emit(StreamRecord rec) {
-		bolt.emit(rec);
-	}
+	public class RecordBuilder{
+		public GeoLocation getLocation() {
+			return location;
+		}
+		public RecordBuilder setLocation(GeoLocation location) {
+			this.location = location;
+			return this;
+		}
+		public DateTime getTimestamp() {
+			return timestamp;
+		}
+		public RecordBuilder setTimestamp(DateTime timestamp) {
+			this.timestamp = timestamp;
+			return this;
+		}
+		public LifestreamsData getData() {
+			return data;
+		}
+		public RecordBuilder setData(LifestreamsData data) {
+			this.data = data;
+			return this;
+		}
+		public Boolean getIsSnapshot() {
+			return isSnapshot;
+		}
+		public RecordBuilder setIsSnapshot(Boolean isSnapshot) {
+			this.isSnapshot = isSnapshot;
+			return this;
+		}
+		public void emit(){
+			if(timestamp == null || data ==null){
+				throw new RuntimeException("The required filed: timestamp and data are missing");
+			}
+			StreamRecord rec = new StreamRecord(user, timestamp, location, data);
+			if(this.isSnapshot){
+				bolt.emitSnapshot(rec);
+			}
+			else{
+				bolt.emit(rec);
+			}
+		}
+		GeoLocation location;
+		DateTime timestamp;
 
-	protected void emitSnapshot(StreamRecord rec) {
-		bolt.emitSnapshot(rec);
+		LifestreamsData data;
+		Boolean isSnapshot = false;
+		
 	}
 
 	@Override
@@ -93,7 +135,9 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 	public String getTopologyId() {
 		return bolt.getGeneratorId();
 	}
-
+	protected RecordBuilder createRecord(){
+		return new RecordBuilder();
+	}
 	public SimpleTask() {
 
 	}

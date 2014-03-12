@@ -15,7 +15,7 @@ import lifestreams.spouts.OhmageStreamSpout;
 import lifestreams.tasks.GeoDiameterTask;
 import lifestreams.tasks.mobility.HMMMobilityRectifier;
 import lifestreams.tasks.mobility.MobilityActivitySummarizer;
-import lifestreams.tasks.mobility.PlaceDetection;
+import lifestreams.tasks.mobility.TimeLeaveReturnHome;
 import lifestreams.tasks.moves.ActivitySummarizer;
 import lifestreams.tasks.moves.TrackPointExtractor;
 import lifestreams.utils.KryoSerializer;
@@ -79,7 +79,7 @@ public class OhmageStreamTests {
 	
 		builder.setSpout("MobilityDataStream", mobilitySpout);
 		
-		builder.setTask("PlaceDetection", new PlaceDetection(), "MobilityDataStream")
+		builder.setTask("PlaceDetection", new TimeLeaveReturnHome(), "MobilityDataStream")
 					.setParallelismHint(2)
 					.setTimeWindowSize(Days.ONE)
 					.setTargetStream(leaveArriveHomeStream);
@@ -121,7 +121,7 @@ public class OhmageStreamTests {
 		conf.setDebug(false);
 		
 		// if it is a dryrun? if so, no data will be writeback to ohmage
-		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, false);
+		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, true);
 		// keep the computation states in a local database or not.
 		conf.put(LifestreamsConfig.ENABLE_STATEFUL_FUNCTION, false);
 		

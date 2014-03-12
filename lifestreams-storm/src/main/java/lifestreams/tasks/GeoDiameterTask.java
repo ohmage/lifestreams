@@ -76,14 +76,14 @@ public class GeoDiameterTask extends SimpleTask {
 		}
 	}
 
-	private StreamRecord<GeoDiameterData> computeGeoDistance(TimeWindow window) {
+	private void computeGeoDistance(TimeWindow window, Boolean isSnapshot) {
 		// first add all the unprocessed data points to generate the new convex
 		// hull
 		updateCovexHull();
 		List<StreamRecord> hull_points = this.currentConexHull;
 		if (hull_points.size() < 2) {
 			// return nothing if we don't have a convex hull...
-			return null;
+			return;
 		}
 		// take distance between the first two points as the initial distance
 		StreamRecord earlierPointOnDiameter = hull_points.get(0);
@@ -110,22 +110,23 @@ public class GeoDiameterTask extends SimpleTask {
 				}
 			}
 		}
-		// create the output record
+		// create the output data
 		GeoDiameterData data = new GeoDiameterData(window, this)
 				.setDiameter(longestDistanceInHull)
 				.setEarlierPointOnDiameter(earlierPointOnDiameter.getLocation())
 				.setLaterPointOnDiameter(laterPointOnDiameter.getLocation());
+		// emit data
+		this.createRecord()
+			.setData(data)
+			.setTimestamp(window.getFirstInstant())
+			.setIsSnapshot(isSnapshot)
+			.emit();
 
-		return new StreamRecord<GeoDiameterData>(getUser(),
-				window.getLastInstant(), data);
 	}
 
 	@Override
 	public void finishWindow(TimeWindow window) {
-		StreamRecord<GeoDiameterData> rec = computeGeoDistance(window);
-		if (rec != null) {
-			this.emit(rec);
-		}
+		computeGeoDistance(window, false);
 		// clear convex hull points
 		currentConexHull.clear();
 
@@ -133,10 +134,7 @@ public class GeoDiameterTask extends SimpleTask {
 
 	@Override
 	public void snapshotWindow(TimeWindow window) {
-		StreamRecord<GeoDiameterData> rec = computeGeoDistance(window);
-		if (rec != null) {
-			this.emitSnapshot(rec);
-		}
+		computeGeoDistance(window, true);
 
 	}
 

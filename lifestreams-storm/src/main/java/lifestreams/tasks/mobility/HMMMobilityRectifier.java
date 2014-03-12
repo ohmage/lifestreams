@@ -46,8 +46,7 @@ public class HMMMobilityRectifier extends SimpleTask<IMobilityData> {
 		data.add(dp);
 	}
 
-	@Override
-	public void finishWindow(TimeWindow window) {
+	public void performRectificationAndEmitRecords(TimeWindow window, boolean isSanpshot){
 		// create a list of observations (i.e. mobility states)
 		List<ObservationDiscrete<MobilityState>> observations = new ArrayList<ObservationDiscrete<MobilityState>>();
 		for (StreamRecord<IMobilityData> dp : data) {
@@ -62,23 +61,25 @@ public class HMMMobilityRectifier extends SimpleTask<IMobilityData> {
 		for (int i = 0; i < inferredStates.length; i++) {
 			MobilityState curState = MobilityState.values()[inferredStates[i]];
 			// create a new Mobility data point
-			RectifiedMobilityData rectifiedDp = new RectifiedMobilityData(
-					window, this).setMode(curState);
-
-			StreamRecord<RectifiedMobilityData> rec = new StreamRecord<RectifiedMobilityData>(
-					getUser(), data.get(i).getTimestamp(), data.get(i)
-							.getLocation());
-			rec.setData(rectifiedDp);
-			this.emit(rec);
+			RectifiedMobilityData rectifiedDp = new RectifiedMobilityData(window, this).setMode(curState);
+			this.createRecord()
+					.setData(rectifiedDp)
+					.setLocation(data.get(i).getLocation())
+					.setTimestamp(data.get(i).getTimestamp())
+					.setIsSnapshot(isSanpshot)
+					.emit();
 		}
 
+	}
+	@Override
+	public void finishWindow(TimeWindow window) {
+		performRectificationAndEmitRecords(window, false);
 		data.clear();
 	}
 
 	@Override
 	public void snapshotWindow(TimeWindow window) {
-		// do the same thing as in finishTimeWindow()
-		finishWindow(window); 
+		performRectificationAndEmitRecords(window, true);
 	}
 
 	public static Hmm<ObservationDiscrete<MobilityState>> createHmmModel() {

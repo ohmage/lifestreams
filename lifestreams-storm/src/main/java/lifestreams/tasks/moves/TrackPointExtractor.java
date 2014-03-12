@@ -18,9 +18,9 @@ import com.bbn.openmap.geo.Geo;
  * 
  */
 public class TrackPointExtractor extends SimpleTask<MovesSegment> {
-	class DummyMovesData extends LifestreamsData {
-		public DummyMovesData(TimeWindow window, SimpleTask task) {
-			super(window, task);
+	class DummyMovesTrackPointData extends LifestreamsData {
+		public DummyMovesTrackPointData(TrackPointExtractor generator) {
+			super(null, generator);
 		}
 
 	}
@@ -28,11 +28,11 @@ public class TrackPointExtractor extends SimpleTask<MovesSegment> {
 	private void emitTrackPoint(TrackPoint point, MovesSegment segment) {
 		Geo coordinates = new Geo(point.getLat(), point.getLon(), true);
 		GeoLocation location = new GeoLocation(point.getTimestamp(),
-				coordinates, 0, "Moves");
-		StreamRecord<DummyMovesData> record = new StreamRecord<DummyMovesData>(
-				getUser(), point.getTimestamp(), location, new DummyMovesData(
-						null, this));
-		this.emit(record);
+				coordinates, -1, "Moves");
+		this.createRecord()
+				.setData(new DummyMovesTrackPointData(this))
+				.setLocation(location)
+				.setTimestamp(point.getTimestamp()).emit();
 	}
 
 	@Override
@@ -40,19 +40,26 @@ public class TrackPointExtractor extends SimpleTask<MovesSegment> {
 			TimeWindow window) {
 		
 		if (dp.d().getActivities() != null) {
+			// if this segment contains activities
 			for (MovesActivity activity : dp.d().getActivities()) {
+				// if this activity contains tracking points
 				if (activity != null && activity.getTrackPoints() != null) {
 					for (TrackPoint point : activity.getTrackPoints()) {
-						if (point.getTimestamp() == null)
+						// pull out these track points
+						if (point.getTimestamp() == null){
+							// set the timestamp as the timestamp of the activity
 							point.setTimestamp(activity.getEndTime());
+						}
+						// emit this track point
 						emitTrackPoint(point, dp.d());
 					}
 				}
 			}
 		}
-		if (dp.d().getPlace() != null
-				&& dp.d().getPlace().getLocation() != null) {
+		if (dp.d().getPlace() != null && dp.d().getPlace().getLocation() != null) {
+			// if this segment contains a place
 			dp.d().getPlace().getLocation().setTimestamp(dp.d().getEndTime());
+			// emit the location of this place as a tracking point
 			emitTrackPoint(dp.d().getPlace().getLocation(), dp.d());
 		}
 	}

@@ -53,11 +53,11 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 			MobilityState prevState = last_dp.d().getMode();
 			DateTime dt = cur_dp.getTimestamp();
 			// get duration in seconds
-			long duration = (dt.getMillis() - last_dp.getTimestamp().getMillis()) / 1000;
+			long interval = (dt.getMillis() - last_dp.getTimestamp().getMillis()) / 1000;
 			// only accumulate the samples with sufficient frequency
-			if (duration < LONGEST_SAMPLING_PERIOD) {
-				Double halfPeriod = duration / 2.0;
-				// both states the sandwich the sampled period is responsible for one half of the duration
+			if (interval < LONGEST_SAMPLING_PERIOD) {
+				Double halfPeriod = interval / 2.0;
+				// both states the sandwich the interval is responsible for one half of the duration
 				activityTimeAccumulator.put(prevState, activityTimeAccumulator.get(prevState) + halfPeriod);
 				activityTimeAccumulator.put(curState, activityTimeAccumulator.get(curState)	+ halfPeriod);
 			}
@@ -101,7 +101,7 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 		/* Task 2. accumulate the activity instances */
 
 		// an activity instance is composed of continuous active data points
-		// an accumulator will compute the statisitcs (e.g. duration, distance) for an instance
+		// an accumulator will compute the statistics (e.g. duration, distance) for an instance
 		accumulateActivityInstance(cur_dp);
 	}
 
@@ -115,7 +115,7 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 		last_dp = dp;
 	}
 
-	private StreamRecord<ActivitySummaryData> computeSummaryDataPoint(TimeWindow window) {
+	private void computeSummaryDataPoint(TimeWindow window, boolean isSnapshot) {
 		// check if there is an activity instance being accumulated
 		if (activityInstanceAccumulator.isInitialized()) {
 			// get the accumulated activity instance
@@ -143,18 +143,17 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 				.setTotalTransportationTime(totalTransportationTime)
 				.setActivityInstances(activityInstances);
 		
-		StreamRecord<ActivitySummaryData> outputRecord =
-				new StreamRecord<ActivitySummaryData>(getUser(), window.getLastInstant());
-		
-		outputRecord.setData(data);
-		return outputRecord;
+		this.createRecord()
+				.setData(data)
+				.setTimestamp(window.getFirstInstant())
+				.setIsSnapshot(isSnapshot);
 	}
 
 
 	@Override
 	public void finishWindow(TimeWindow window) {
 		// emit the summary
-		this.emit(computeSummaryDataPoint(window));
+		computeSummaryDataPoint(window, false);
 		// re-initialize the accumulators
 		initAccumulators();
 		
@@ -162,8 +161,7 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 
 	@Override
 	public void snapshotWindow(TimeWindow window) {
-		this.emitSnapshot(computeSummaryDataPoint(window));
-		
+		computeSummaryDataPoint(window, true);
 	}
 
 }

@@ -1,5 +1,7 @@
 package lifestreams.bolts;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
@@ -146,6 +148,7 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 
 	protected void upload(StreamRecord<? extends LifestreamsData> dp) {
 		try {
+
 			new OhmageStreamClient(dp.getUser()).upload(targetStream,
 					dp.toObserverDataPoint());
 		} catch (OhmageAuthenticationError e) {
@@ -160,15 +163,20 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 			// upload the processed record back to ohmage
 			upload(dp);
 		}else if(targetStream != null){
-			// if it is a dryrun, pretty print the emit data for debug
-			ObjectMapper mapper = new ObjectMapper();
-			mapper.enable(SerializationFeature.INDENT_OUTPUT);
+			// if it is a dryrun, write the emit data for debug
 			try {
-				logger.info(mapper.writeValueAsString(dp.toObserverDataPoint()));
-			} catch (JsonProcessingException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				FileOutputStream out = new FileOutputStream(this.topologyId 
+															+ "-" + this.getComponentId()
+															+ "-" + dp.getUser().getUsername()
+															+".json", true);
+				ObjectMapper mapper = new ObjectMapper();
+				out.write(mapper.writeValueAsBytes(dp.toObserverDataPoint()));
+				out.write(',');
+				out.close();
+			} catch (IOException e) {
+				throw new  RuntimeException(e);
 			}
+
 		}
 		// emit the processed record into topology
 		return collector.emit(new Values(dp.getUser(), dp));
