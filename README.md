@@ -37,7 +37,7 @@ In addition, each bolt has to specify its source and the way the workload should
 So what Lifestreams provides on top of Storm?
 ------
 
-Lifestreams, built on top of Storm, is aimed to make it extremely easy to implement an mHealth data processing pipeline for a large number of users. Lifestreams assumes that the processing of an individual user's data can be separated from the processing of the other users, and introduce a new primitive called **IndividualTask** (or **Task** for short). An IndividualTask is similar to a bolt with workload divided by the user, but with a stronger guarantee, that is:
+Lifestreams, built on top of Storm, is aimed to make it extremely easy to implement an mHealth data processing pipeline for a large number of users. Lifestreams assumes that the processing of an individual user's data can be separated from the the other users, and introduce a new primitive called **IndividualTask** (or **Task** for short). An IndividualTask is similar to a bolt with workload divided by the user, but with a stronger guarantee, that is:
 
 > The same user's data will always go to to the same instance of an IndividualTask; and that IndividualTask instance will only receive the data for that particular user.
 
