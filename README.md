@@ -18,10 +18,10 @@ The basic primitives in Storm are **spouts** and **bolts**. A spout is a source 
 
 To achieve further parallelism, one can create multiple instances for the same spout or bolt. Storm provides several options to group the data and distribute the workload among these instances. For example, the following topology count the occurence of each word in randomly generated sentences.
 ``` java
-    TopologyBuilder builder = new TopologyBuilder();
-    builder.setSpout("spout", new RandomSentenceSpout());
-    builder.setBolt("split", new SplitSentence(), 8).shuffleGrouping("spout");
-    builder.setBolt("count", new WordCount(), 12).fieldsGrouping("split", new Fields("word"));
+TopologyBuilder builder = new TopologyBuilder();
+builder.setSpout("spout", new RandomSentenceSpout());
+builder.setBolt("split", new SplitSentence(), 8).shuffleGrouping("spout");
+builder.setBolt("count", new WordCount(), 12).fieldsGrouping("split", new Fields("word"));
 ```
 (see [here](https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/WordCountTopology.java) for full code)
 
@@ -47,7 +47,6 @@ The recommended way to implement a Task is to extend the SimpleTask class and im
 For a concrete example, the following task computes the geo-diameter of a user (see here for full code).
 
 ``` java
-
 public class ActiveInstanceCounter extends SimpleTask<MobilityData>{// input data type = MobilityData
     int activeInstanceCount = 0; // the number of active instances
     /**
@@ -70,13 +69,13 @@ public class ActiveInstanceCounter extends SimpleTask<MobilityData>{// input dat
         createRecord()
             .setTimestamp(window.getBeginOfTimeWindow())
             .setData(output)
-            .emitRecord();
+            .emitRecord(); // emit the record to the downstreaming nodes
 	    // clear the counter
 		activeInstanceCount = 0;
 	}
 }
 ``` 
-You may wonder "what on earth is a **StreamRecord**?" A StreamRecord is the main data type used in Lifestreams. A StreamRecord is always associated with a user and a timestamp, and optionally with a geo-location. The content of a stream record can be any serializable Java object, and is accessible through **getData()/setData()** methods (or **d()/d(data)** for short). For example:
+You may wonder "what on earth is a **StreamRecord**?" A StreamRecord is the container object used in Lifestreams to transfer data between spouts and tasks. A StreamRecord is associated with a user and a timestamp, and optionally with a geo-location. The payload of a stream record is accessible through **getData()/setData()** methods (or **d()/d(data)** for short). For example:
 
 ```  java
 // a stream record that contains a mobility data point
@@ -86,11 +85,43 @@ MobilityData data = rec.getData();     // or MobilityData data = rec.d();
 /* set data */
 rec.setData(data);  // or rec.d(data); 
 ``` 
+The payload of a stream record can be any serializable Java object. However, it is strongly recomended to define a POJO class for any data type you generate in Lifestreams, so that the other modules can have a defined "data contract" they can be built upon. (see [MobilityData.java](https://github.com/ohmage/lifestreams/blob/master/lifestreams-storm/src/main/java/lifestreams/models/data/MobilityData.java) for example, or [more](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/models/data).) 
 
-StreamRecord It is recomended to define a POJO class for any 
+As shown in the above example, one can create and emit a stream record by using the createRecord() method provided by SimpleTask class.
+
 ### Seemless integration with ohmage
-In addition, Lifestreams also make it dead simple to integrate with [ohmage], which is a data store for mHealth data. 
+In addition, Lifestreams also makes it dead simple to integrate with [ohmage], which is a data store for mHealth data. For data query, one can use OhmageStreamSpout to query that data and listen to the updates from Ohmage Stream API. For example, the following code creates a spout that query the Mobility data stream for 2 users since 2013-1-1.
 
+``` java
+DateTime since = new DateTime("2013-1-1");
+OhmageStream stream = new OhmageStream.Builder()
+			.observerId("edu.ucla.cens.Mobility")
+			.observerVer("2012061300")
+			.streamId("regular")
+			.streamVer("2012050700").build();
+// A list of users we are querying for
+List<OhmageUser> users = new ArrayList<OhmageUser>()
+users.add(new OhmageUser("https://test.ohmage.org", "LifestreamsTest1", "password"));
+users.add(new OhmageUser("https://test.ohmage.org", "LifestreamsTest2", "password"));
+// create a spout that query the data since 2013-1-1 and keep polling for updates of data
+OhmageStreamSpout<MobilityData> mobilitySpout = new OhmageStreamSpout<MobilityData>(mobilityStream, users, since, MobilityData.class);
+``` 
+For data uploading, one can specify the target stream to upload to for any arbitrary Tasks. Then, when a task outputs a stream record, it will be automatically uploaded to ohmage!
+
+/** setup the topology **/
+SimpleTopologyBuilder builder = new SimpleTopologyBuilder();
+// set the number of parallelism per task as the number of users
+int parallelismPerTask = users.size();
+
+/** Topology part 1. create a spout that gets mobility data and the tasks that consume the data **/
+
+builder.setSpout("MobilityDataStream", mobilitySpout);
+
+builder.setTask("PlaceDetection", new TimeLeaveReturnHome(), "MobilityDataStream")
+			.setParallelismHint(2)
+			.setTimeWindowSize(Days.ONE)
+			.setTargetStream(leaveArriveHomeStream);
+``` 
 License
 ----
 
