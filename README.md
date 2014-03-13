@@ -108,7 +108,7 @@ MobilityData data = rec.getData();     // or MobilityData data = rec.d();
 /* set data */
 rec.setData(data);  // or rec.d(data); 
 ``` 
-While you can use a generic data type, such as HashMap, or ObjectNode as the payload, it is strongly recommended to define a POJO class for any data types you will generate. Such a pracice allows future modules can have a "data type contract" to depend on. (see [MobilityData.java](https://github.com/ohmage/lifestreams/blob/master/lifestreams-storm/src/main/java/lifestreams/models/data/MobilityData.java) for example, or [more](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/models/data).) 
+While you can use a generic data type, such as HashMap, or ObjectNode as the payload, it is strongly recommended to define a POJO class for any data types you will generate. Such a pracice lets future modules have a "data type contract" to depend on. (see [MobilityData.java](https://github.com/ohmage/lifestreams/blob/master/lifestreams-storm/src/main/java/lifestreams/models/data/MobilityData.java) for example, or [more](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/models/data).) 
 
 SimpleTask provides a helper function called createRecord(), that makes it easy to create and emit a StreamRecord.
 
