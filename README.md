@@ -37,20 +37,20 @@ In addition, each bolt has to specify its source and the way the workload should
 So what Lifestreams provides on top of Storm?
 ------
 
-Lifestreams, built on top of Storm, is aimed to make it extremely easy to implement an mHealth data processing pipeline for a large number of users. Lifestreams assumes that the processing of an individual user's data can be separated from the the other users, and introduce a new primitive called **IndividualTask** (or **Task** for short). An IndividualTask is similar to a bolt with workload divided by the user, but with a stronger guarantee, that is:
+Lifestreams, built on top of Storm, is aimed to make it extremely easy to implement an mHealth data processing pipeline for a large number of users. Lifestreams assumes that the processing of an individual user's data can be separated from the the other users, and introduce a new primitive called **IndividualTask** (or **Task** for short). An IndividualTask is similar to a bolt with workload divided by the user, but with a stronger guarantee. That is:
 
 > The same user's data will always go to to the same instance of an IndividualTask; and that IndividualTask instance will only receive the data for that particular user.
 
-Such abstraction simplifies the mHealth module development by allowing the devlopers to develop  modules for processing multiple users' data as if there is only one single user. 
+Such abstraction simplifies the mHealth module development by allowing developing modules for processing multiple users' data as if there is only one single user. 
 
-In addition, Lifestreams assumes that a timestamp is always associated with a data point, and provides built-in support for performing temporal aggregation tasks. Such tasks are ubiquitous in the mHealth area, examples including computing *daily* activity summary or analyzing the *weekly* sleep patterns, etc. Lifestreams maintain a **TimeWindow** for each IndividualTask instance, and will notify an instance when all the data in the current time window has been received.
+In addition, Lifestreams assumes that a timestamp is always associated with a data point, and provides built-in support for temporal aggregation tasks. Such tasks are ubiquitous in the mHealth area. Examples include computing *daily* activity summary or analyzing the *weekly* sleep patterns, etc. Lifestreams maintain a **TimeWindow** for each IndividualTask instance, and notifies an instance when all the data in the current time window has been received.
 
 The recommended way to implement an IndividualTask is to extend the SimpleTask class and implement the following methods.
-- *executeDataPoint()* is called when receiving a new incoming data point in the current time window, so that the task can update the computation state with the new data point.
-- *finishWindow()* is called when all the data points in the current time window have been received, so that a task can finalize the computation for the current time window, emit the result, and re-initialize the computation state.
-- *snapshotWindow()* (***experimental***) is called when a front-end apps needs the computation results as soon as possible, even if we have not received all the data pin the current time yet. Typically, the snapshotWindow() method will perform the same computation as in finishWindow() method, but without reinitializing the computation state afterwards.
+- *executeDataPoint()* is called when receiving a new incoming data point. A task can update the computation state with the new data point.
+- *finishWindow()* is called when all the data points in the current time window has been received. A task can finalize the computation for the current time window, emit the result, and re-initialize the computation state.
+- *snapshotWindow()* (***experimental***) is called when the computation results is needed as soon as possible, even if we have not yet received all the data in the current time. Typically, the snapshotWindow() method will perform the same computation as in finishWindow() method, but without re-initializing the computation state afterwards.
 
-For a concrete example, the following task counts  a user's activity instances within each time window.
+For a concrete example, the following task counts a user's activity instances within each time window. (e.g. in each day)
 
 ``` java
 public class ActiveInstanceCounter extends SimpleTask<MobilityData>{// input data type = MobilityData
@@ -97,7 +97,7 @@ public class ActiveInstanceCounter extends SimpleTask<MobilityData>{// input dat
 	}
 }
 ``` 
-You may wonder "what on earth is a **StreamRecord** in the code above?" A StreamRecord is a container object used in Lifestreams to transfer data among nodes spouts and tasks (as well as, integrating with ohmage, more in the next section). A StreamRecord contains metadata including 1) the owner of the record, 2) the timestamp, 3) and optionally the geo-location associated with that record. The payload of a stream record can be any serializable Java object, and is accessible through **getData()/setData()** methods (or **d()/d(data)** for short). 
+You may wonder "what is a **StreamRecord** in the code above?" A StreamRecord is a container object used in Lifestreams to transfer data among spouts and tasks (as well as, integrating with ohmage, more in the next section). A StreamRecord contains metadata including 1) the owner of the record, 2) the timestamp, 3) and optionally the geo-location. The payload of a stream record can be any serializable Java object, and is accessible through **getData()/setData()** methods (or **d()/d(data)** for short). 
 
 For example:
 ```  java
@@ -108,13 +108,13 @@ MobilityData data = rec.getData();     // or MobilityData data = rec.d();
 /* set data */
 rec.setData(data);  // or rec.d(data); 
 ``` 
-While you can use a generic data type, such as HashMap, or ObjectNode for the payload, it is strongly recommended to define a POJO class for any data type you will generate, so that the future modules can have a defined "contract for data type" to depend on. (see [MobilityData.java](https://github.com/ohmage/lifestreams/blob/master/lifestreams-storm/src/main/java/lifestreams/models/data/MobilityData.java) for example, or [more](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/models/data).) 
+While you can use a generic data type, such as HashMap, or ObjectNode as the payload, it is strongly recommended to define a POJO class for any data types you will generate. Such a pracice allows future modules can have a "data type contract" to depend on. (see [MobilityData.java](https://github.com/ohmage/lifestreams/blob/master/lifestreams-storm/src/main/java/lifestreams/models/data/MobilityData.java) for example, or [more](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/models/data).) 
 
 SimpleTask provides a helper function called createRecord(), that makes it easy to create and emit a StreamRecord.
 
 ### Seamless integration with ohmage
-One important goal of Lifestreams is to make it a breeze to integrate with [ohmage], an open source data store used in many mHealth studies. For querying data from ohmage, OhmageStreamSpout is available to enable query and listening to the updates from Ohmage Stream API. For uploading data to ohmage, any Task can be associated with a *target stream*; consequently all the records output by the task will be automatically uploaded to ohmage! (Note that for a record to be successfully uploaded, the format of its data content must be compatible with the ohmage stream schema.)
- See the following code for example: (or see [here](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/examples/activityCount) for a working example.)
+One important goal of Lifestreams is to make it a breeze to integrate with [ohmage]. Ohmage is an open source data store used in many mHealth studies. For querying data from ohmage, OhmageStreamSpout is available to enable query and listening to the updates from Ohmage Stream API. For uploading data, any Task can be associated with a *target stream*; and consequently all the records output by that task will be automatically uploaded to ohmage! (Note that, for a record to be successfully uploaded, the format of the data must be compatible with the ohmage stream schema.)
+ See the following code for example: (or see [here](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/examples/activityCount) for a full working example.)
 
 ``` java
 public class ActivityInstanceCountTopology {
