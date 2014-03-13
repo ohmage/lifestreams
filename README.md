@@ -50,7 +50,7 @@ The recommended way to implement an IndividualTask is to extend the SimpleTask c
 - *finishWindow()* is called when all the data points in the current time window have been received, so that a task can finalize the computation for the current time window, emit the result, and re-initialize the computation state.
 - *snapshotWindow()* (***experimental***) is called when a front-end apps needs the computation results as soon as possible, even if we have not received all the data pin the current time yet. Typically, the snapshotWindow() method will perform the same computation as in finishWindow() method, but without reinitializing the computation state afterwards.
 
-For a concrete example, the following task counts  a user's activity instances within each time window (see here for full code).
+For a concrete example, the following task counts  a user's activity instances within each time window.
 
 ``` java
 public class ActiveInstanceCounter extends SimpleTask<MobilityData>{// input data type = MobilityData
