@@ -41,7 +41,7 @@ Lifestreams, built on top of Storm, is aimed to make it extremely easy to implem
 
 > The same user's data will always go to to the same instance of an IndividualTask; and that IndividualTask instance will only receive the data for that particular user.
 
-Such abstraction simplified the mHealth module development by allowing the devlopers to develop  modules for processing multiple users' data as if there is only one single user. 
+Such abstraction simplifies the mHealth module development by allowing the devlopers to develop  modules for processing multiple users' data as if there is only one single user. 
 
 In addition, Lifestreams assumes that a timestamp is always associated with a data point, and provides built-in support for performing temporal aggregation tasks. Such tasks are ubiquitous in the mHealth area, examples including computing *daily* activity summary or analyzing the *weekly* sleep patterns, etc. Lifestreams maintain a **TimeWindow** for each IndividualTask instance, and will notify an instance when all the data in the current time window has been received.
 
