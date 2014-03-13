@@ -180,6 +180,11 @@ public class ActivityInstanceCountTopology {
 	}
 }
 ``` 
+Existing Modules
+------
+Lifstreams comes with an initial set of analysis module for Mobility and Moves data. Please see [Integration Test Case](https://github.com/ohmage/lifestreams/blob/master/lifestreams-storm/src/test/java/lifestreams/OhmageStreamTests.java) for their usage. A comprehensive document will be available soon. Please stay tuned, and contribute your modules!
+
+
 License
 ----
 
