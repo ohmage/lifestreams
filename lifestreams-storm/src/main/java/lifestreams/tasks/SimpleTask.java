@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  *         It is the place where you can initialize the state of the
  *         computation.
  * 
- *         The executeDataPoint() will be called when receiving a record in the
+ *         The executeDataPoint() will be called when receiving a new record in the
  *         current time window. It is typical to update the computation state
  *         with the new data point in this method.
  * 

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<observer>
+    <id>org.ohmage.lifestreams.example</id>
+    <version>201403111</version>
+
+    <name>lifestreams output streams example</name>
+    <description>This observer stores the output streams of Lifestreams sample tasks</description>
+    <versionString>0.1</versionString>
+
+    <stream>
+        <id>activity_instance_count</id>
+        <version>20140311</version>
+
+        <name>The number of activity instances in a day</name>
+        <description>This stream records the number of activity instances in a day in mobility data.</description>
+        <metadata>
+            <timestamp />
+        </metadata>
+
+        <schema>
+{
+  "type": "object",
+  "doc": "activity instance count",
+  "fields": [
+    {
+      "name": "timeWindow",
+      "doc": "The timeWindow that are covered by this measure",
+      "type": "object",
+      "fields": [
+        {
+          "name": "firstInstant",
+          "doc": "first instant of this time window",
+          "type": "string"
+        },
+        {
+          "name": "lastInstant",
+          "doc": "last instant of this time window",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "snapshot",
+      "doc": "if this datapoint is a snapshot",
+      "type": "boolean"
+    },
+    {
+      "name": "activityInstanceCount",
+      "doc": "the number of activity instances",
+      "type": "number"
+    }
+  ]
+}
+        </schema>
+    </stream>
+</observer>

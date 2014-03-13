@@ -16,7 +16,7 @@ import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 
 /**
  * @author changun This task generates a activity summary (see
- *         ActivitySummaryData) from the Moves segments in a time window
+ *         ActivitySummaryData) from the Moves segments in the time window
  *         (e.g. daily).
  * 
  */
