@@ -5,7 +5,7 @@ Lifestreams
 
 Lifestreams is a streaming processing pipeline for processing mHealth data for a large number of users. The main features are:
   - Seamless concurrent processing for multiple users' data
-  - integrating with [ohmage] like a breeze
+  - Integration with [ohmage] like a breeze
   - Built-in support for temporal data aggregation
   - Fail-safe stateful computation
 
