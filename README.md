@@ -1,22 +1,25 @@
+(**before you start, use the following command to install the openmap.jar to your local maven repo**: mvn install:install-file -Dfile=libs/openmap.jar -DgroupId=bnn -DartifactId=openmap -Dversion=5.0.3 -Dpackaging=jar)
+
 Lifestreams
 =========
 
 Lifestreams is a streaming processing pipeline for processing mHealth data for a large number of users. The main features are:
-  - Seemless concurrent processing for multiple users' data
-  - Dead simple integration with [ohmage]
-  - Built-in support for temporal data aggreation
+  - Seamless concurrent processing for multiple users' data
+  - Integration with [ohmage] like a breeze
+  - Built-in support for temporal data aggregation
   - Fail-safe stateful computation
 
+(For impetient readers: see [ActivityInstanceCount](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/examples/activityCount) for a working example.)
 
-Lifestreams Arcchitecture
+Lifestreams Architecture
 ====
 Lifestreams is based on [Storm], a distributed streaming process framework that makes it easy to create, deploy, and scale a streaming computing topology. In this section, we will first go over several concepts in Storm, and then discuss what Lifestreams provides on top of it.
 
-The basic primitives in Storm are **spouts** and **bolts**. A spout is a source of streams. e.g. a spout may read data from ohmage API and emit a stream of data points into the topology. A bolt consumes input streams, does some processing, and possibly emits new streams into the downstreaming bolts. 
+The basic primitives in Storm are **spouts** and **bolts**. A spout is a source of streams. e.g. a spout may read data from ohmage stream API and emit a stream of data points into the topology. A bolt consumes input streams, does some processing, and possibly emits new streams into the downstreaming bolts. 
 
 ![alt text](http://storm.incubator.apache.org/documentation/images/topology.png "A Storm topology")
 
-To achieve further parallelism, one can create multiple instances for the same spout or bolt. Storm provides several options to group the data and distribute the workload among these instances. For example, the following topology count the occurence of each word in randomly generated sentences.
+To achieve further parallelism, multiple instances for the same spout or bolt can be created. Storm provides several options to group the data and distribute the workload among these instances. See the following topology that counts the occurrence of words for example:
 ``` java
 TopologyBuilder builder = new TopologyBuilder();
 builder.setSpout("spout", new RandomSentenceSpout());
@@ -25,26 +28,29 @@ builder.setBolt("count", new WordCount(), 12).fieldsGrouping("split", new Fields
 ```
 (see [here](https://github.com/nathanmarz/storm-starter/blob/master/src/jvm/storm/starter/WordCountTopology.java) for full code)
 
-As you may tell, *setSpout()* and *setBolt()* create a spout or a bolt. The first argument is the *id* of the node; the second argument is an instance of it; and the third (optional) argument is the parallelsm hint that storm will use to decide how many instances it should create for each node. 
+As you may tell, *setSpout()* and *setBolt()* create a spout or a bolt. The first argument is the *id* of the node; the second argument is an instance of a spout or bolt; and the third (optional) argument is the parallelism hint that storm will use to determine how many instances it should create for each node to share the workload. 
 
-Every bolt has to additionaly specify its stream source and the way the workload should be distributed. For example:
-- In Line 3, SplitSentence bolt specifies its stream source as RandomSentenceSpout and the workload should be randomly shuffled among the 8 instances of it. 
-- In Line 4, WordCount bolt specifies its source as the SplitSentence bolt and the workload should be ditributted by the *word* field of a data point. The storm gurantees that the data points of the same word will always go to the same instance of the WordCount bolt, so the words can be counted reliably.
+In addition, each bolt has to specify its source and the way the workload should be divided among multiple instances of itself. For example:
+- In Line 3, SplitSentence bolt specifies its source as the output of RandomSentenceSpout and the workload should be randomly shuffled among the 8 instances of it. 
+- In Line 4, WordCount bolt specifies its source as the SplitSentence bolt and the workload should be divided by the *word* field of the data points. Storm guarantees that the data points of the same word will go to the same instance of the WordCount bolt, so that it can be counted reliably.
 
 So what Lifestreams provides on top of Storm?
 ------
 
-Lifestreams, built on top of Storm, is aimed to make it extremely easy to implement a mHealth streaming pipeline for a large number of users. Lifestreams assumes that most of data should be grouped by the "user" (i.e. the owners of the data). A new premitive called **Task** is introduced. A task is similar to a bolt, but Lifestreams will create a new instance of a task for each invidual user. In other words, Lifestreams guranteees that:
+Lifestreams, built on top of Storm, is aimed to make it extremely easy to implement an mHealth data processing pipeline for a large number of users. Lifestreams assumes that the processing of an individual user's data can be separated from the the other users, and introduce a new primitive called **IndividualTask** (or **Task** for short). An IndividualTask is similar to a bolt with workload divided by the user, but with a stronger guarantee. That is:
 
-> A user's data will always be distributed to the same instance of a task; and a task instance will only receive the data for the same user.
+> The same user's data will always go to to the same instance of an IndividualTask; and that IndividualTask instance will only receive the data for that particular user.
 
-Such a process model allows the devloper to develop a multi-user data processing pipeline as if there is only one user. In addition, Lifestreams assumes that each data point is always associated with a timestamp, and provides built-in support for the tasks that perform temporal data aggregatoin(e.g. the tasks compute *daily* activity summary or *weekly* sleep trend, etc). 
+Such abstraction simplifies the mHealth module development by allowing developing modules for processing multiple users' data as if there is only one single user. 
 
-The recommended way to implement a Task is to extend the SimpleTask class and implement the following methods
-- *executeDataPoint()* will be called when receiving a new incoming data point in the current time window. Typicaly a task would update the computation state with the new data point in this method.
-- *finishWindow()* will be called when all the data points in the current time window have been received and executed. A typical task would finalize the computation for the current time window, emit the result, and re-initialize the computation state.
+In addition, Lifestreams assumes that a timestamp is always associated with a data point, and provides built-in support for temporal aggregation tasks. Such tasks are ubiquitous in the mHealth area. Examples include computing *daily* activity summary or analyzing the *weekly* sleep patterns, etc. Lifestreams maintains a **TimeWindow** for each Task instance, and notifies the instance when all the data in the current time window has been received. To make the time range of a time window be more consistent with the user's perception of time. A TimeWindow is associated with the time zone of the first data point received in that time window. For example, if the first data point received is of 2013-1-1 2:00AM ETS, then the corresponding time window covers the time between 2013-1-1 0:00AM ETS and 2013-1-1 11:59PM ETS. Then, if we receives a data point that is associated with the time that is later than the current time window (says: 2013-1-2 8:00AM PTS), Lifestreams will assume that we have received all the data in the current time window, and move on to a new time window that is corresponding to the new data points (i.e. 2013-1-2 0:00AM to 2013-1-2 11:59PM PTS. Noto that the time zone also chages with the data point.)
 
-For a concrete example, the following task computes the geo-diameter of a user (see here for full code).
+The recommended way to implement an IndividualTask is to extend the SimpleTask class and implement the following methods.
+- *executeDataPoint()* is called when receiving a new incoming data point. A task can update the computation state with the new data point.
+- *finishWindow()* is called when all the data points in the current time window has been received. A task can finalize the computation for the current time window, emit the result, and re-initialize the computation state.
+- *snapshotWindow()* (***experimental***) is called when the computation results is needed as soon as possible, even if we have not yet received all the data in the current time. Typically, the snapshotWindow() method will perform the same computation as in finishWindow() method, but without re-initializing the computation state afterwards.
+
+For a concrete example, the following task counts a user's activity instances within each time window. (e.g. in each day)
 
 ``` java
 public class ActiveInstanceCounter extends SimpleTask<MobilityData>{// input data type = MobilityData
@@ -53,7 +59,7 @@ public class ActiveInstanceCounter extends SimpleTask<MobilityData>{// input dat
      *  @param dp: the new incoming data point
      *  @param window: the current time window
      **/
-	public void executeDataPoint(StreamRecord<MobilityData> rec, TimeWindow window) {
+    public void executeDataPoint(StreamRecord<MobilityData> rec, TimeWindow window) {
             if(rec.getData().getMode().isActive()){
                 // increment the counter if this is a active mobility instance
                 activeInstanceCount ++;
@@ -64,19 +70,36 @@ public class ActiveInstanceCounter extends SimpleTask<MobilityData>{// input dat
      **/
 	public void finishWindow(TimeWindow window) {
         // create output data
-		ActivityInstanceCountData output = new ActivityInstanceCountData(activeInstanceCount);
+		ActivityInstanceCountData output = new ActivityInstanceCountData(window, this);
+        output.setActivityInstanceCount(activeInstanceCount);
         // create a stream record with the output data as payload
         createRecord()
-            .setTimestamp(window.getBeginOfTimeWindow())
+            .setTimestamp(window.getFirstInstant())
             .setData(output)
-            .emitRecord(); // emit the record to the downstreaming nodes
+            .emit(); // emit the record to the downstreaming nodes
 	    // clear the counter
 		activeInstanceCount = 0;
 	}
+    /** 
+     *  @param window: the current time window
+     **/
+    public void snapshotWindow(TimeWindow window) {
+        // create output data
+		ActivityInstanceCountData output = new ActivityInstanceCountData(window, this);
+        output.setActivityInstanceCount(activeInstanceCount);
+        // create a stream record with the output data as payload
+        createRecord()
+            .setTimestamp(window.getFirstInstant())
+            .setIsSnapshot(true)
+            .setData(output)
+            .emit(); // emit the record to the downstreaming nodes
+	    // without clearing the counter
+	}
 }
 ``` 
-You may wonder "what on earth is a **StreamRecord**?" A StreamRecord is the container object used in Lifestreams to transfer data between spouts and tasks. A StreamRecord is associated with a user and a timestamp, and optionally with a geo-location. The payload of a stream record is accessible through **getData()/setData()** methods (or **d()/d(data)** for short). For example:
+You may wonder "what is a **StreamRecord** in the code above?" A StreamRecord is a container object used in Lifestreams to transfer data among spouts and tasks (as well as, integrating with ohmage, more in the next section). A StreamRecord contains metadata including 1) the owner of the record, 2) the timestamp, 3) and optionally the geo-location. The payload of a stream record can be any serializable Java object, and is accessible through **getData()/setData()** methods (or **d()/d(data)** for short). 
 
+For example:
 ```  java
 // a stream record that contains a mobility data point
 StreamRecord<MobilityData> rec; 
@@ -85,43 +108,83 @@ MobilityData data = rec.getData();     // or MobilityData data = rec.d();
 /* set data */
 rec.setData(data);  // or rec.d(data); 
 ``` 
-The payload of a stream record can be any serializable Java object. However, it is strongly recomended to define a POJO class for any data type you generate in Lifestreams, so that the other modules can have a defined "data contract" they can be built upon. (see [MobilityData.java](https://github.com/ohmage/lifestreams/blob/master/lifestreams-storm/src/main/java/lifestreams/models/data/MobilityData.java) for example, or [more](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/models/data).) 
+While you can use a generic data type, such as HashMap, or ObjectNode as the payload, it is strongly recommended to define a POJO class for any data types you will generate. Such a pracice lets future modules have a "data type contract" to depend on. (see [MobilityData.java](https://github.com/ohmage/lifestreams/blob/master/lifestreams-storm/src/main/java/lifestreams/models/data/MobilityData.java) for example, or [more](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/models/data).) 
 
-As shown in the above example, one can create and emit a stream record by using the createRecord() method provided by SimpleTask class.
+SimpleTask provides a helper function called createRecord(), that makes it easy to create and emit a StreamRecord.
 
-### Seemless integration with ohmage
-In addition, Lifestreams also makes it dead simple to integrate with [ohmage], which is a data store for mHealth data. For data query, one can use OhmageStreamSpout to query that data and listen to the updates from Ohmage Stream API. For example, the following code creates a spout that query the Mobility data stream for 2 users since 2013-1-1.
+### Seamless integration with ohmage
+One important goal of Lifestreams is to make it a breeze to integrate with [ohmage]. Ohmage is an open source data store used in many mHealth studies. For querying data from ohmage, OhmageStreamSpout is available to enable query and listening to the updates from Ohmage Stream API. For uploading data, any Task can be associated with a *target stream*; and consequently all the records output by that task will be automatically uploaded to ohmage! (Note that, for a record to be successfully uploaded, the format of the data must be compatible with the ohmage stream schema.)
+ See the following code for example: (or see [here](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/examples/activityCount) for a full working example.)
 
 ``` java
-DateTime since = new DateTime("2013-1-1");
-OhmageStream stream = new OhmageStream.Builder()
-			.observerId("edu.ucla.cens.Mobility")
-			.observerVer("2012061300")
-			.streamId("regular")
-			.streamVer("2012050700").build();
-// A list of users we are querying for
-List<OhmageUser> users = new ArrayList<OhmageUser>()
-users.add(new OhmageUser("https://test.ohmage.org", "LifestreamsTest1", "password"));
-users.add(new OhmageUser("https://test.ohmage.org", "LifestreamsTest2", "password"));
-// create a spout that query the data since 2013-1-1 and keep polling for updates of data
-OhmageStreamSpout<MobilityData> mobilitySpout = new OhmageStreamSpout<MobilityData>(mobilityStream, users, since, MobilityData.class);
+public class ActivityInstanceCountTopology {
+    public static void main(String [ ] args) throws InterruptedException{
+		// since when to perform the computation
+		DateTime since = new DateTime("2013-1-1");
+		/** setup the input and output streams **/
+		// the input mobility stream
+		OhmageStream mobilityStream = new OhmageStream.Builder()
+									.observerId("edu.ucla.cens.Mobility")
+									.observerVer("2012061300")
+									.streamId("extended")
+									.streamVer("2012050700").build();
+		// the output stream
+		OhmageStream activityInstanceCountStream = new OhmageStream.Builder()
+									.observerId("org.ohmage.lifestreams.example")
+									.observerVer("201403111")
+									.streamId("activity_instance_count")
+									.streamVer("20140311").build();
+		
+		//A list of users we are processing the data for
+		List<OhmageUser> users = new ArrayList<OhmageUser>();
+		users.add(new OhmageUser("https://test.ohmage.org", "LifestreamsTest1", "FILL_IN_THE PASSWORD"));
+		users.add(new OhmageUser("https://test.ohmage.org", "LifestreamsTest2", "FILL_IN_THE PASSWORD"));
+		/** setup the topology **/
+		SimpleTopologyBuilder builder = new SimpleTopologyBuilder();
+		
+		// set the number of parallelism per task as the number of users
+		int parallelismPerTask = users.size();
+		
+		// spout that queries mobility data
+				OhmageStreamSpout<MobilityData> mobilitySpout = 
+						new OhmageStreamSpout<MobilityData>(mobilityStream, users, since, MobilityData.class);
+				
+		builder.setSpout("MobilitySpout", mobilitySpout);
+		
+		// create a ActivityInstanceCounter task, with MobilitySpout as input source
+		builder.setTask("ActivityInstanceCount", new ActivityInstanceCounter(), "MobilitySpout")
+					.setParallelismHint(parallelismPerTask) // num of parallelism = num of users
+					.setTimeWindowSize(Days.ONE) // aggregate the data by days
+					.setTargetStream(activityInstanceCountStream); //output data to ohmage
+
+		// set configurations
+		Config conf = new Config();
+		conf.setDebug(false);
+		
+		// if it is a dryrun? if so, no data will be writeback to ohmage
+		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, false);
+		// keep the computation states in a local database or not.
+		conf.put(LifestreamsConfig.ENABLE_STATEFUL_FUNCTION, false);
+		
+		// register all the classes used in Lifestreams framework to the kryo serializer
+		KryoSerializer.setRegistrationsForStormConfig(conf);
+	
+		LocalCluster cluster = new LocalCluster();
+		// run the topology locally
+		cluster.submitTopology("Lifestreams-on-storm", conf, builder.createTopology());
+		
+		// sleep forever...
+		while (true){
+			Thread.sleep(100000000);
+		}
+	}
+}
 ``` 
-For data uploading, one can specify the target stream to upload to for any arbitrary Tasks. Then, when a task outputs a stream record, it will be automatically uploaded to ohmage!
+Existing Modules
+------
+Lifstreams comes with an initial set of analysis module for Mobility and Moves data. Please see [Integration Test Case](https://github.com/ohmage/lifestreams/blob/master/lifestreams-storm/src/test/java/lifestreams/OhmageStreamTests.java) for their usage. A comprehensive document will be available soon. Please stay tuned, and contribute your modules!
 
-/** setup the topology **/
-SimpleTopologyBuilder builder = new SimpleTopologyBuilder();
-// set the number of parallelism per task as the number of users
-int parallelismPerTask = users.size();
 
-/** Topology part 1. create a spout that gets mobility data and the tasks that consume the data **/
-
-builder.setSpout("MobilityDataStream", mobilitySpout);
-
-builder.setTask("PlaceDetection", new TimeLeaveReturnHome(), "MobilityDataStream")
-			.setParallelismHint(2)
-			.setTimeWindowSize(Days.ONE)
-			.setTargetStream(leaveArriveHomeStream);
-``` 
 License
 ----
 
@@ -130,16 +193,6 @@ Apache 2.0
 [storm]:http://storm.incubator.apache.org/
 [ohmage]:http://ohmage.org/
 
-[john gruber]:http://daringfireball.net/
-[@thomasfuchs]:http://twitter.com/thomasfuchs
-[1]:http://daringfireball.net/projects/markdown/
-[marked]:https://github.com/chjj/marked
-[Ace Editor]:http://ace.ajax.org
-[node.js]:http://nodejs.org
-[Twitter Bootstrap]:http://twitter.github.com/bootstrap/
-[keymaster.js]:https://github.com/madrobby/keymaster
-[jQuery]:http://jquery.com
-[@tjholowaychuk]:http://twitter.com/tjholowaychuk
-[express]:http://expressjs.com
 
     
+
