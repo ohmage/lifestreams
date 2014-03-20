@@ -72,7 +72,7 @@ public class TimeWindow {
 	public DateTime getTimeWindowEndTime(){
 		return this.getTimeWindowBeginTime().plus(this.windowDuration);
 	}
-	public int getLengthInSecond(){
+	public int getTimeWindowSizeInSecond(){
 		return this.windowDuration.toPeriod().toStandardSeconds().getSeconds();
 	}
 	public DateTime getFirstInstant() {

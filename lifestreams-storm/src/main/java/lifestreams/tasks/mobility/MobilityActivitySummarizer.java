@@ -25,7 +25,7 @@ import org.ohmage.models.OhmageUser;
  */
 public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 
-	private static final Double LONGEST_SAMPLING_PERIOD = 5.5 * 60 * 1000; // in millisec
+	private static final Double LONGEST_SAMPLING_PERIOD = 5.5 * 60; // in millisec
 
 
 	EnumMap<MobilityState, Double> activityTimeAccumulator;
@@ -75,9 +75,9 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 	private void accumulateActivityInstance(StreamRecord<IMobilityData> cur_dp) {
 		if (last_dp != null) {
 			// check the sampling interval
-			long duration = (cur_dp.getTimestamp().getMillis() - last_dp.getTimestamp().getMillis()) / 1000;
-			// if the sampling interval is too large, assume the previous activity (if any) has ended
-			if (duration > LONGEST_SAMPLING_PERIOD && activityInstanceAccumulator.isInitialized()) {
+			long intrval = (cur_dp.getTimestamp().getMillis() - last_dp.getTimestamp().getMillis()) / 1000;
+			// if the sampling interval is too long, assume the previous activity (if any) has ended
+			if (intrval > LONGEST_SAMPLING_PERIOD && activityInstanceAccumulator.isInitialized()) {
 				// assume the previous activity instance has ended
 				createActivityInstanceAndRestartAccumlator();
 				
@@ -88,7 +88,7 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 			activityInstanceAccumulator.addDataPoint(cur_dp);
 		} else if (last_dp != null && last_dp.d().getMode().isActive()) { 
 			// if the current state is not active, but the last state is active
-			// then this is the end of a activity instance			
+			// then assume the previous activity instance has ended
 			createActivityInstanceAndRestartAccumlator();
 		}
 
@@ -135,7 +135,11 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 		double totalTime = totalActiveTime + totalSedentaryTime;
 		double totalTransportationTime =  
 				activityTimeAccumulator.get(MobilityState.DRIVE);
-
+		double distance = 0;
+		for(ActivityInstance instance: activityInstances){
+			distance += instance.getDistance();
+		}
+		logger.info("Distance: {} miles", distance);
 		ActivitySummaryData data = new ActivitySummaryData(window, this)
 				.setTotalActiveTime(totalActiveTime)
 				.setTotalSedentaryTime(totalSedentaryTime)
@@ -146,7 +150,8 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 		this.createRecord()
 				.setData(data)
 				.setTimestamp(window.getFirstInstant())
-				.setIsSnapshot(isSnapshot);
+				.setIsSnapshot(isSnapshot)
+				.emit();
 	}
 
 

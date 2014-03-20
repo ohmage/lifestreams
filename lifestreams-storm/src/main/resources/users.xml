@@ -1,16 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 	
-	<bean class="org.ohmage.models.OhmageUser">
+	<bean id="user1" class="org.ohmage.models.OhmageUser">
 		<constructor-arg value="${ohmage.server}"/>
-		<constructor-arg value="LifestreamsTest1"/>
+		<constructor-arg value="steinerc@hss.edu"/>
 		<constructor-arg value="${ohmage.testuser.password}"/>
 	</bean>
-		<bean class="org.ohmage.models.OhmageUser">
+	<bean id="users" class="java.util.ArrayList">
+    <constructor-arg>
+        <list>
+		 <ref bean="user1" />
+	     </list>
+    </constructor-arg>
+	</bean>
+
+	
+	<bean id= "requester" class="org.ohmage.models.OhmageUser">
 		<constructor-arg value="${ohmage.server}"/>
-		<constructor-arg value="LifestreamsTest2"/>
+		<constructor-arg value="changun"/>
 		<constructor-arg value="${ohmage.testuser.password}"/>
 	</bean>
+
 </beans>

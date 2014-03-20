@@ -21,6 +21,8 @@ import org.ohmage.sdk.OhmageStreamClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import redis.clients.jedis.Jedis;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -91,6 +93,8 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 
 	// whether to write back the processed records to the ohmage stream.
 	private boolean isDryrun = false; 
+	// whether to output data to a local redis.
+	private boolean outputToRedis = false; 
 	// the ohmage stream the processed records will be writeback to.
 	private OhmageStream targetStream;
 
@@ -162,27 +166,24 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 		if(!isDryrun && targetStream != null){
 			// upload the processed record back to ohmage
 			upload(dp);
-		}else if(targetStream != null){
-			// if it is a dryrun, write the emit data for debug
+		}
+		if(targetStream != null && outputToRedis){
+			// output data to a local redis server
+			ObjectMapper mapper = new ObjectMapper();
 			try {
-				FileOutputStream out = new FileOutputStream(this.topologyId 
-															+ "-" + this.getComponentId()
-															+ "-" + dp.getUser().getUsername()
-															+".json", true);
-				ObjectMapper mapper = new ObjectMapper();
-				out.write(mapper.writeValueAsBytes(dp.toObserverDataPoint()));
-				out.write(',');
-				out.close();
-			} catch (IOException e) {
+				Jedis jedis = new Jedis("localhost");
+				jedis.rpush(dp.getUser().toString() + targetStream.toString(), 
+						mapper.writeValueAsString(dp.toObserverDataPoint()));
+				jedis.disconnect();
+			} catch (JsonProcessingException e) {
 				throw new  RuntimeException(e);
 			}
-
 		}
 		// emit the processed record into topology
 		return collector.emit(new Values(dp.getUser(), dp));
 	}
 
-	// through DFS to get all the sub component
+	// DFS to get all the sub component
 	private Set<String> getSubGraph(TopologyContext context, String rootId,
 			Set<String> ret) {
 		ret.add(rootId);
@@ -206,6 +207,9 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 		}
 		if(stormConf.containsKey(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING)){
 			isDryrun = (Boolean) stormConf.get(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING);
+		}
+		if(stormConf.containsKey(LifestreamsConfig.OUTPUT_TO_LOCAL_REDIS)){
+			outputToRedis  = (Boolean) stormConf.get(LifestreamsConfig.OUTPUT_TO_LOCAL_REDIS);
 		}
 		this.state = new RedisBoltState(context, enableStateful);
 		

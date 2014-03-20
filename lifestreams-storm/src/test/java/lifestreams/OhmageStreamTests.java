@@ -1,6 +1,7 @@
 package lifestreams;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.annotation.Resource;
@@ -46,8 +47,10 @@ import de.javakaffee.kryoserializers.jodatime.JodaDateTimeSerializer;
 		"classpath*:/users.xml" })
 public class OhmageStreamTests {
 
-	@Resource
-	List<OhmageUser> users;
+	@Autowired
+	ArrayList<OhmageUser> users;
+	@Autowired
+	OhmageUser requester;
 	@Autowired
 	DateTime since;
 	@Autowired
@@ -64,11 +67,13 @@ public class OhmageStreamTests {
 	public void testTopology() throws InterruptedException, JsonParseException,
 			IOException {
 
+		Jedis jedis = new Jedis("localhost");
+		jedis.flushDB();
 		
 		OhmageStreamSpout<MobilityData> mobilitySpout = new OhmageStreamSpout<MobilityData>(
-				mobilityStream, users, since, MobilityData.class);
+				mobilityStream, requester, users, since, MobilityData.class);
 		OhmageStreamSpout<MovesSegment> movesSpout = new OhmageStreamSpout<MovesSegment>(
-				movesSegmentStream, users, since, MovesSegment.class);
+				movesSegmentStream, requester, users, since, MovesSegment.class);
 
 		/** setup the topology **/
 		SimpleTopologyBuilder builder = new SimpleTopologyBuilder();
@@ -83,13 +88,13 @@ public class OhmageStreamTests {
 					.setParallelismHint(2)
 					.setTimeWindowSize(Days.ONE)
 					.setTargetStream(leaveArriveHomeStream);
-		
+
 		// compute daily geodiameter from Mobility data
 		builder.setTask("GeoDistanceBolt", new GeoDiameterTask(), "MobilityDataStream")
 					.setTargetStream(geodiameterStream)
 					.setParallelismHint(2)
 					.setTimeWindowSize(Days.ONE);
-					
+		
 		// HMM model to correct shor-term errors in Mobility
 		builder.setTask("HMMMobilityStateRectifier", new HMMMobilityRectifier(), "MobilityDataStream")
 					.setParallelismHint(2)
@@ -101,7 +106,7 @@ public class OhmageStreamTests {
 
 
 		/** Topology part 2. create a spout that gets Moves data and the tasks that consume the data **/
-		
+		/*
 		builder.setSpout("MovesDataStream", movesSpout);
 
 		// extract track points from moves segments
@@ -116,12 +121,14 @@ public class OhmageStreamTests {
 		// generate daily activity summary
 		builder.setTask("MovesActivitySummarier", new ActivitySummarizer(), "MovesDataStream")
 				.setTimeWindowSize(Days.ONE);
-		
+		*/
 		Config conf = new Config();
 		conf.setDebug(false);
 		
 		// if it is a dryrun? if so, no data will be writeback to ohmage
 		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, true);
+		// keep the computation states in a local database or not.
+		conf.put(LifestreamsConfig.OUTPUT_TO_LOCAL_REDIS, true);
 		// keep the computation states in a local database or not.
 		conf.put(LifestreamsConfig.ENABLE_STATEFUL_FUNCTION, false);
 		

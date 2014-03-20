@@ -40,6 +40,9 @@ public class OhmageStreamSpout<T> extends BaseRichSpout {
 	OhmageStream stream;
 	// requester should have permission to query all the requestees' data
 	List<OhmageUser> requestees;
+	
+	OhmageUser requester;
+	
 	// from when to start the data query
 	DateTime startDate;
 
@@ -60,6 +63,7 @@ public class OhmageStreamSpout<T> extends BaseRichSpout {
 		OhmageUser requestee;
 
 		Fetcher(OhmageUser requestee) {
+
 			this.requestee = requestee;
 		}
 
@@ -69,7 +73,8 @@ public class OhmageStreamSpout<T> extends BaseRichSpout {
 			DateTime since = pointers.get(requestee).plusMillis(1);
 			OhmageStreamIterator iter;
 			try {
-				iter = new OhmageStreamClient(requestee)
+				// if only requestee is given, use it for both requestee and requester
+				iter = new OhmageStreamClient(requester == null ? requestee: requester)
 						.getOhmageStreamIteratorBuilder(stream, requestee)
 						.startDate(since).build();
 				while (iter.hasNext()) {
@@ -148,12 +153,15 @@ public class OhmageStreamSpout<T> extends BaseRichSpout {
 	 */
 	public OhmageStreamSpout(OhmageStream stream, List<OhmageUser> requestees,
 			DateTime startDate, Class<T> dataPointClass) {
+		this(stream, null, requestees, startDate, dataPointClass);
+	}
+	public OhmageStreamSpout(OhmageStream stream, OhmageUser requester, List<OhmageUser> requestees,
+			DateTime startDate, Class<T> dataPointClass) {
 		super();
 		this.stream = stream;
+		this.requester = requester;
 		this.requestees = requestees;
 		this.startDate = startDate;
 		this.dataPointClass = dataPointClass;
-
 	}
-
 }

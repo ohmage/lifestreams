@@ -118,6 +118,8 @@ public class StreamRecord<T> {
 	public ObjectNode toObserverDataPoint() {
 		ObjectMapper mapper = new ObjectMapper();
 		mapper.registerModule(new JodaModule());
+		// set the timezone of the data point as the timestamp's timezone
+		mapper.setTimeZone(this.getTimestamp().getZone().toTimeZone());
 		mapper.configure(
 				com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS,
 				false);
