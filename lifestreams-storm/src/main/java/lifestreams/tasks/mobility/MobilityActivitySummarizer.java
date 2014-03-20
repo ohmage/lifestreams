@@ -139,7 +139,7 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 		for(ActivityInstance instance: activityInstances){
 			distance += instance.getDistance();
 		}
-		logger.info("Distance: {} miles", distance);
+		getLogger().info("Distance: {} miles", distance);
 		ActivitySummaryData data = new ActivitySummaryData(window, this)
 				.setTotalActiveTime(totalActiveTime)
 				.setTotalSedentaryTime(totalSedentaryTime)

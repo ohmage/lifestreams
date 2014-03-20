@@ -57,7 +57,7 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 
 	private OhmageUser user;
 	private transient TimeWindowBolt bolt;
-	protected Logger logger;
+	private Logger logger;
 
 	public TimeWindowBolt getBolt() {
 		return bolt;
@@ -66,7 +66,7 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 	public void init(OhmageUser user, TimeWindowBolt bolt) {
 		this.user = user;
 		this.bolt = bolt;
-		logger = LoggerFactory.getLogger(this.getClass());
+		this.logger = LoggerFactory.getLogger(this.getClass());
 	}
 
 	
@@ -78,6 +78,11 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 	public abstract void snapshotWindow(TimeWindow window);
 
 	public class RecordBuilder{
+		GeoLocation location;
+		DateTime timestamp;
+
+		Object data;
+		Boolean isSnapshot = false;
 		public GeoLocation getLocation() {
 			return location;
 		}
@@ -92,10 +97,10 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 			this.timestamp = timestamp;
 			return this;
 		}
-		public LifestreamsData getData() {
+		public Object getData() {
 			return data;
 		}
-		public RecordBuilder setData(LifestreamsData data) {
+		public RecordBuilder setData(Object data) {
 			this.data = data;
 			return this;
 		}
@@ -118,12 +123,6 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 				bolt.emit(rec);
 			}
 		}
-		GeoLocation location;
-		DateTime timestamp;
-
-		LifestreamsData data;
-		Boolean isSnapshot = false;
-		
 	}
 
 	@Override
@@ -141,4 +140,9 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 	public SimpleTask() {
 
 	}
+
+	public Logger getLogger() {
+		return logger;
+	}
+
 }
