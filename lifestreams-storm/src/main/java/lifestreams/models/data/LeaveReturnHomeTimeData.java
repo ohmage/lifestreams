@@ -6,40 +6,40 @@ import lifestreams.models.GeoLocation;
 
 import org.joda.time.DateTime;
 
-public class LeaveArriveHomeTimeData extends LifestreamsData {
-	public LeaveArriveHomeTimeData(TimeWindow window, IGenerator generator) {
+public class LeaveReturnHomeTimeData extends LifestreamsData {
+	public LeaveReturnHomeTimeData(TimeWindow window, IGenerator generator) {
 		super(window, generator);
 	}
-	public int getTimeAtHomeInSeconds() {
+	public int getScaledTimeAtHomeInSeconds() {
 		return timeAtHomeInSeconds;
 	}
-	public LeaveArriveHomeTimeData setTimeAtHomeInSeconds(int timeAtHomeInSeconds) {
+	public LeaveReturnHomeTimeData setScaledTimeAtHomeInSeconds(int timeAtHomeInSeconds) {
 		this.timeAtHomeInSeconds = timeAtHomeInSeconds;
 		return this;
 	}
 	public DateTime getTimeLeaveHome() {
 		return timeLeaveHome;
 	}
-	public LeaveArriveHomeTimeData setTimeLeaveHome(DateTime timeLeaveHome) {
+	public LeaveReturnHomeTimeData setTimeLeaveHome(DateTime timeLeaveHome) {
 		this.timeLeaveHome = timeLeaveHome;
 		return this;
 	}
-	public DateTime getTimeArriveHome() {
-		return timeArriveHome;
+	public DateTime getTimeReturnHome() {
+		return timeReturneHome;
 	}
-	public LeaveArriveHomeTimeData setTimeArriveHome(DateTime timeArriveHome) {
-		this.timeArriveHome = timeArriveHome;
+	public LeaveReturnHomeTimeData setTimeReturnHome(DateTime timeReturnHome) {
+		this.timeReturneHome = timeReturnHome;
 		return this;
 	}
 	public GeoLocation getHomeLocation() {
 		return homeLocation;
 	}
-	public LeaveArriveHomeTimeData setHomeLocation(GeoLocation homeLocation) {
+	public LeaveReturnHomeTimeData setHomeLocation(GeoLocation homeLocation) {
 		this.homeLocation = homeLocation;
 		return this;
 	}
 	int timeAtHomeInSeconds;
 	DateTime timeLeaveHome;
-	DateTime timeArriveHome;
+	DateTime timeReturneHome;
 	GeoLocation homeLocation;
 }

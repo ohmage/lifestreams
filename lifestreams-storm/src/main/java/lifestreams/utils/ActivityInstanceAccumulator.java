@@ -3,14 +3,14 @@ package lifestreams.utils;
 import java.util.List;
 
 import lifestreams.models.StreamRecord;
-import lifestreams.models.data.ActivityInstance;
+import lifestreams.models.data.ActivityEpisode;
 import lifestreams.models.data.IMobilityData;
-import lifestreams.models.data.ActivityInstance.TrackPoint;
+import lifestreams.models.data.ActivityEpisode.TrackPoint;
 
 import com.bbn.openmap.geo.Geo;
 
 public class ActivityInstanceAccumulator {
-	ActivityInstance instance = new ActivityInstance();
+	ActivityEpisode instance = new ActivityEpisode();
 	KalmanLatLong filter = new KalmanLatLong((float) 1); // Q meter per second = 2
 	// return if this accumulator has been init (i.e. contains any data points)
 	public boolean isInitialized(){
@@ -39,14 +39,14 @@ public class ActivityInstanceAccumulator {
 							point.getTimestamp().getMillis());
 			// get the smoothed location fromthe filter
 			instance.getTrackPoints().add(
-					new ActivityInstance.TrackPoint(filter.get_lat(), filter.get_lng(), point.getTimestamp())
+					new ActivityEpisode.TrackPoint(filter.get_lat(), filter.get_lng(), point.getTimestamp())
 			);
 			
 		}
 
 	}
 
-	public ActivityInstance getInstance() {
+	public ActivityEpisode getInstance() {
 		List<TrackPoint> points = instance.getTrackPoints();
 		double distance = 0;
 		// moving avg with 10 mins time window
@@ -74,7 +74,7 @@ public class ActivityInstanceAccumulator {
 				curLocation = nextLocation;
 			}
 		}
-		instance.setDistance(distance);
+		instance.setDistanceInMiles(distance);
 		
 		return instance;
 	}

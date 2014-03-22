@@ -3,11 +3,16 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd    
 	                    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.1.xsd" >
+	                    
+	<!-- Load and inject component -->
+	<context:component-scan base-package="co.nutrino.api.moves" />
+	<context:component-scan base-package="com.moves.api" />
+	
 	<!-- Properties -->
 	<context:property-placeholder location="classpath:application.properties" />
 
 	<bean id="since" class="org.joda.time.DateTime">
-		<constructor-arg value="2013-6-30"/>
+		<constructor-arg value="${since}"/>
 	</bean>
 	
 	<bean id="movesSegmentStream" class="org.ohmage.models.OhmageStream">
@@ -16,6 +21,14 @@
 		<constructor-arg value="20140224"/>
 		<constructor-arg value="20140224"/>
 	</bean>	
+	
+	<bean id="movesCredentialStream" class="org.ohmage.models.OhmageStream">
+		<constructor-arg value="org.ohmage.Moves"/>
+		<constructor-arg value="oauth"/>
+		<constructor-arg value="20140213"/>
+		<constructor-arg value="20140213"/>
+	</bean>	
+	
 	<bean id="mobilityStream" class="org.ohmage.models.OhmageStream">  
 			<constructor-arg value="edu.ucla.cens.Mobility"/>
 			<constructor-arg value="extended"/>

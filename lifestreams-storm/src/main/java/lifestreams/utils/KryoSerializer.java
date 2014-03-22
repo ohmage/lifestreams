@@ -16,7 +16,7 @@ import lifestreams.models.GeoLocation;
 import lifestreams.models.MobilityState;
 import lifestreams.models.StreamMetadata;
 import lifestreams.models.StreamRecord;
-import lifestreams.models.data.ActivityInstance;
+import lifestreams.models.data.ActivityEpisode;
 import lifestreams.models.data.ActivitySummaryData;
 import lifestreams.models.data.GeoDiameterData;
 import lifestreams.models.data.LifestreamsData;
@@ -106,7 +106,7 @@ public class KryoSerializer {
 		/* stream data models */
 		kryo.register(MobilityData.class);
 		kryo.register(GeoDiameterData.class);
-		kryo.register(ActivityInstance.class);
+		kryo.register(ActivityEpisode.class);
 		kryo.register(ActivitySummaryData.class);
 		kryo.register(LifestreamsData.class);
 		kryo.register(MobilityData.class);

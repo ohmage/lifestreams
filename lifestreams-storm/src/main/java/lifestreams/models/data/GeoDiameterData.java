@@ -10,7 +10,7 @@ public class GeoDiameterData extends LifestreamsData {
 	GeoLocation earlierPointOnDiameter;
 	GeoLocation laterPointOnDiameter;
 
-	public double getDiameter() {
+	public double getGeoDiameterInMiles() {
 		return diameter;
 	}
 

@@ -12,46 +12,46 @@ public class ActivitySummaryData extends LifestreamsData {
 		return totalTime;
 	}
 
-	public ActivitySummaryData setTotalTime(double totalTime) {
+	public ActivitySummaryData setTotalTimeInSeconds(double totalTime) {
 		this.totalTime = totalTime;
 		return this;
 	}
 
-	public double getTotalActiveTime() {
+	public double getTotalActiveTimeInSeconds() {
 		return totalActiveTime;
 	}
 
-	public ActivitySummaryData setTotalActiveTime(double totalActiveTime) {
+	public ActivitySummaryData setTotalActiveTimeInSeconds(double totalActiveTime) {
 		this.totalActiveTime = totalActiveTime;
 		return this;
 	}
 
-	public double getTotalSedentaryTime() {
+	public double getTotalSedentaryTimeInSeconds() {
 		return totalSedentaryTime;
 	}
 
-	public ActivitySummaryData setTotalSedentaryTime(double totalSedentaryTime) {
+	public ActivitySummaryData setTotalSedentaryTimeInSeconds(double totalSedentaryTime) {
 		this.totalSedentaryTime = totalSedentaryTime;
 		return this;
 	}
 
-	public double getTotalTransportationTime() {
+	public double getTotalTransportationTimeInSeconds() {
 		return totalTransportationTime;
 	}
 
-	public ActivitySummaryData setTotalTransportationTime(
+	public ActivitySummaryData setTotalTransportationTimeInSeconds(
 			double totalTransportationTime) {
 		this.totalTransportationTime = totalTransportationTime;
 		return this;
 	}
 
-	public List<ActivityInstance> getActivityInstances() {
-		return activityInstances;
+	public List<ActivityEpisode> getActivityEpisodes() {
+		return activityEpisodes;
 	}
 
-	public ActivitySummaryData setActivityInstances(
-			List<ActivityInstance> activeInstances) {
-		this.activityInstances = activeInstances;
+	public ActivitySummaryData setActivityEpisodes(
+			List<ActivityEpisode> activeInstances) {
+		this.activityEpisodes = activeInstances;
 		return this;
 	}
 
@@ -60,7 +60,7 @@ public class ActivitySummaryData extends LifestreamsData {
 	double totalSedentaryTime;
 	double totalTransportationTime;
 
-	List<ActivityInstance> activityInstances = new ArrayList<ActivityInstance>();
+	List<ActivityEpisode> activityEpisodes = new ArrayList<ActivityEpisode>();
 
 	public ActivitySummaryData(TimeWindow window, IGenerator generator) {
 		super(window, generator);

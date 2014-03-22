@@ -35,7 +35,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  *            the schema of the "data" field of the ohmage stream, or it can
  *            be the Jacksson "ObjectNode".
  */
-public class OhmageStreamSpout<T> extends BaseRichSpout {
+public class OhmageStreamSpout<T extends Object> extends BaseRichSpout {
 	// stream to query
 	OhmageStream stream;
 	// requester should have permission to query all the requestees' data

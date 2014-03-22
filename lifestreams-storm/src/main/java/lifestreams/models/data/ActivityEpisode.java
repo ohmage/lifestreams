@@ -13,7 +13,7 @@ import org.joda.time.Interval;
 
 import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
 
-public class ActivityInstance {
+public class ActivityEpisode {
 	public static class TrackPoint {
 		public TrackPoint(double lat, double lng, DateTime time) {
 			super();
@@ -74,16 +74,16 @@ public class ActivityInstance {
 		this.startTime = startTime;
 	}
 
-	public double getDuration() {
+	public double getDurationInSeconds() {
 		return new Interval(this.getStartTime(), this.getEndTime())
 				.toDurationMillis() / 1000;
 	}
 
-	public double getDistance() {
+	public double getDistanceInMiles() {
 		return distance;
 	}
 
-	public void setDistance(double distance) {
+	public void setDistanceInMiles(double distance) {
 		this.distance = distance;
 	}
 
@@ -102,10 +102,10 @@ public class ActivityInstance {
 	double distance;
 	List<TrackPoint> trackPoints = new ArrayList<TrackPoint>();
 
-	static public ActivityInstance forMovesActivity(MovesActivity activity) {
-		ActivityInstance instance = new ActivityInstance();
+	static public ActivityEpisode forMovesActivity(MovesActivity activity) {
+		ActivityEpisode instance = new ActivityEpisode();
 		// get distance in miles
-		instance.setDistance(activity.getDistance() * 0.000621371192);
+		instance.setDistanceInMiles(activity.getDistance() * 0.000621371192);
 		instance.setStartTime(activity.getStartTime());
 		instance.setEndTime(activity.getEndTime());
 
@@ -115,11 +115,10 @@ public class ActivityInstance {
 		instance.setTypes(new HashSet<MobilityState>(Arrays.asList(state)));
 		// set trackpoints
 		if (activity.getTrackPoints() != null) {
-			for (co.nutrino.api.moves.impl.dto.activity.TrackPoint tPoint : activity
-					.getTrackPoints()) {
+			for (co.nutrino.api.moves.impl.dto.activity.TrackPoint tPoint : activity.getTrackPoints()) {
 				instance.getTrackPoints().add(
-						new TrackPoint(tPoint.getLat(), tPoint.getLon(), tPoint
-								.getTimestamp()));
+						new TrackPoint(tPoint.getLat(), tPoint.getLon(), tPoint.getTimestamp())
+				);
 			}
 		}
 		return instance;

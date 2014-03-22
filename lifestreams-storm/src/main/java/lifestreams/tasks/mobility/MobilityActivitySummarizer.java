@@ -8,7 +8,7 @@ import lifestreams.bolts.TimeWindow;
 import lifestreams.bolts.TimeWindowBolt;
 import lifestreams.models.MobilityState;
 import lifestreams.models.StreamRecord;
-import lifestreams.models.data.ActivityInstance;
+import lifestreams.models.data.ActivityEpisode;
 import lifestreams.models.data.ActivitySummaryData;
 import lifestreams.models.data.IMobilityData;
 import lifestreams.tasks.SimpleTask;
@@ -30,7 +30,7 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 
 	EnumMap<MobilityState, Double> activityTimeAccumulator;
 	ActivityInstanceAccumulator activityInstanceAccumulator;
-	List<ActivityInstance> activityInstances;
+	List<ActivityEpisode> activityInstances;
 	StreamRecord<IMobilityData> last_dp;
 	
 	public void init(OhmageUser user, TimeWindowBolt bolt) {
@@ -42,7 +42,7 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 		for (MobilityState mState : MobilityState.values()) {
 			activityTimeAccumulator.put(mState, 0.0);
 		}
-		activityInstances = new ArrayList<ActivityInstance>();
+		activityInstances = new ArrayList<ActivityEpisode>();
 		activityInstanceAccumulator = new ActivityInstanceAccumulator ();
 		last_dp = null;
 	}
@@ -66,7 +66,7 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 	
 	private void createActivityInstanceAndRestartAccumlator(){
 		// get the accumulated activity instance til the last data point
-		ActivityInstance instance = activityInstanceAccumulator.getInstance();
+		ActivityEpisode instance = activityInstanceAccumulator.getInstance();
 		// add that to the activity instances array
 		activityInstances.add(instance);
 		// restart the accumulator
@@ -119,7 +119,7 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 		// check if there is an activity instance being accumulated
 		if (activityInstanceAccumulator.isInitialized()) {
 			// get the accumulated activity instance
-			ActivityInstance instance = activityInstanceAccumulator.getInstance();
+			ActivityEpisode instance = activityInstanceAccumulator.getInstance();
 			// add that to the instance array
 			this.activityInstances.add(instance);
 		}
@@ -136,16 +136,16 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 		double totalTransportationTime =  
 				activityTimeAccumulator.get(MobilityState.DRIVE);
 		double distance = 0;
-		for(ActivityInstance instance: activityInstances){
-			distance += instance.getDistance();
+		for(ActivityEpisode instance: activityInstances){
+			distance += instance.getDistanceInMiles();
 		}
 		getLogger().info("Distance: {} miles", distance);
 		ActivitySummaryData data = new ActivitySummaryData(window, this)
-				.setTotalActiveTime(totalActiveTime)
-				.setTotalSedentaryTime(totalSedentaryTime)
-				.setTotalTime(totalTime)
-				.setTotalTransportationTime(totalTransportationTime)
-				.setActivityInstances(activityInstances);
+				.setTotalActiveTimeInSeconds(totalActiveTime)
+				.setTotalSedentaryTimeInSeconds(totalSedentaryTime)
+				.setTotalTimeInSeconds(totalTime)
+				.setTotalTransportationTimeInSeconds(totalTransportationTime)
+				.setActivityEpisodes(activityInstances);
 		
 		this.createRecord()
 				.setData(data)

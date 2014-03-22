@@ -70,7 +70,7 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 	}
 
 	
-	public abstract void executeDataPoint(StreamRecord<INPUT> dp,
+	public abstract void executeDataPoint(StreamRecord<INPUT> record,
 			TimeWindow window);
 
 	public abstract void finishWindow(TimeWindow window);
@@ -132,7 +132,7 @@ public abstract class SimpleTask<INPUT> implements Serializable, IGenerator {
 
 	@Override
 	public String getTopologyId() {
-		return bolt.getGeneratorId();
+		return bolt.getTopologyId();
 	}
 	protected RecordBuilder createRecord(){
 		return new RecordBuilder();

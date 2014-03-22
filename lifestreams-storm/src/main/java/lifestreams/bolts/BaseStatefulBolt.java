@@ -150,7 +150,7 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 		}
 	}
 
-	protected void upload(StreamRecord<? extends LifestreamsData> dp) {
+	protected void upload(StreamRecord<? extends Object> dp) {
 		try {
 
 			new OhmageStreamClient(dp.getUser()).upload(targetStream,
@@ -162,7 +162,7 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 		}
 	}
 
-	public List<Integer> emit(StreamRecord<? extends LifestreamsData> dp) {
+	public List<Integer> emit(StreamRecord<? extends Object> dp) {
 		if(!isDryrun && targetStream != null){
 			// upload the processed record back to ohmage
 			upload(dp);

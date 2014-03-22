@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import lifestreams.bolts.TimeWindow;
 import lifestreams.models.MobilityState;
 import lifestreams.models.StreamRecord;
-import lifestreams.models.data.ActivityInstance;
+import lifestreams.models.data.ActivityEpisode;
 import lifestreams.models.data.ActivitySummaryData;
 import lifestreams.tasks.SimpleTask;
 
@@ -34,7 +34,7 @@ public class ActivitySummarizer extends SimpleTask<MovesSegment> {
 		double totalActiveTime = 0;
 		double totalTime = 0;
 		double totalTransportationTime = 0;
-		ArrayList<ActivityInstance> activityInstances = new ArrayList<ActivityInstance>();
+		ArrayList<ActivityEpisode> activityEpisodes = new ArrayList<ActivityEpisode>();
 		for (MovesSegment segment : segments) {
 			// go over each segments in the time window (usually daily)
 
@@ -52,7 +52,7 @@ public class ActivitySummarizer extends SimpleTask<MovesSegment> {
 						// instance
 						totalActiveTime += activity.getDuration();
 						// create activity instance
-						activityInstances.add(ActivityInstance
+						activityEpisodes.add(ActivityEpisode
 								.forMovesActivity(activity));
 					} else {
 						if (state.equals(MobilityState.DRIVE)) {
@@ -65,11 +65,11 @@ public class ActivitySummarizer extends SimpleTask<MovesSegment> {
 		}
 		// create data point
 		ActivitySummaryData data = new ActivitySummaryData(window, this)
-				.setTotalActiveTime(totalActiveTime)
-				.setTotalSedentaryTime(totalTime - totalActiveTime)
-				.setTotalTime(totalTime)
-				.setTotalTransportationTime(totalTransportationTime)
-				.setActivityInstances(activityInstances);
+				.setTotalActiveTimeInSeconds(totalActiveTime)
+				.setTotalSedentaryTimeInSeconds(totalTime - totalActiveTime)
+				.setTotalTimeInSeconds(totalTime)
+				.setTotalTransportationTimeInSeconds(totalTransportationTime)
+				.setActivityEpisodes(activityEpisodes);
 		// create and emit the record
 		this.createRecord()
 					.setData(data)

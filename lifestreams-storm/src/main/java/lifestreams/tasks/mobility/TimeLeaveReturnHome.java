@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 import lifestreams.bolts.TimeWindow;
 import lifestreams.models.GeoLocation;
 import lifestreams.models.StreamRecord;
-import lifestreams.models.data.LeaveArriveHomeTimeData;
+import lifestreams.models.data.LeaveReturnHomeTimeData;
 import lifestreams.models.data.MobilityData;
 import lifestreams.models.data.WiFi;
 import lifestreams.tasks.SimpleTask;
@@ -85,7 +85,7 @@ public class TimeLeaveReturnHome extends SimpleTask<MobilityData>{
 	@Override
 	public void finishWindow(TimeWindow window) {
 		DateTime timeLeaveHome = null;
-		DateTime timeArriveHome = null;
+		DateTime timeReturnHome = null;
 		if(window.getHeuristicMissingDataRate() < 0.5 
 				&& allPoints.get(0).getTimestamp().getHourOfDay() < 8){
 			// only generate the measurement for those days we have > 50% of samples,
@@ -146,11 +146,11 @@ public class TimeLeaveReturnHome extends SimpleTask<MobilityData>{
 					}
 				}
 				if(i != -1){
-					timeArriveHome = allPoints.get(i+1).getTimestamp();
+					timeReturnHome = allPoints.get(i+1).getTimestamp();
 				}
 			}
 
-			if(timeLeaveHome != null && timeArriveHome != null){
+			if(timeLeaveHome != null && timeReturnHome != null){
 				// compute the amount of time the user is at home
 				int timeAtHome  = -1;
 				
@@ -163,7 +163,7 @@ public class TimeLeaveReturnHome extends SimpleTask<MobilityData>{
 				// calculate the total duration of timeframes at home
 				timeAtHome = (int) (window.getMedianSamplingIntervalInSecond() * timeFrames.size());
 				// scale it up with (1 + miss data rate)
-				timeAtHome *= (1 + window.getHeuristicMissingDataRate());
+				timeAtHome /= (1 - window.getHeuristicMissingDataRate());
 				
 				// find the most accurate point of the home location
 				GeoLocation mostAccurateLoc = null;
@@ -180,11 +180,11 @@ public class TimeLeaveReturnHome extends SimpleTask<MobilityData>{
 				}
 				
 				//	create data
-				LeaveArriveHomeTimeData data = new LeaveArriveHomeTimeData(window, this)
-												.setTimeLeaveHome(timeLeaveHome)
+				LeaveReturnHomeTimeData data = new LeaveReturnHomeTimeData(window, this)
+												.setTimeReturnHome(timeLeaveHome)
 												.setHomeLocation(mostAccurateLoc)
-												.setTimeArriveHome(timeArriveHome)
-												.setTimeAtHomeInSeconds(timeAtHome);
+												.setTimeReturnHome(timeReturnHome)
+												.setScaledTimeAtHomeInSeconds(timeAtHome);
 				// emit the record						
 				this.createRecord()
 						.setData(data)

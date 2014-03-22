@@ -111,15 +111,20 @@ public abstract class TimeWindowBolt extends BaseStatefulBolt {
 
 		}
 	}
-
+	@Override
 	// emit a record
-	public List<Integer> emit(StreamRecord<? extends LifestreamsData> rec) {
-		rec.d().setSnapshot(false);
+	public List<Integer> emit(StreamRecord<? extends Object> rec) {
+		if(rec.d() instanceof LifestreamsData){
+			((LifestreamsData)rec.d()).setSnapshot(false);
+		}
+		
 		return super.emit(rec);
 	}
 	// emit a snapshot record
-	public List<Integer> emitSnapshot(StreamRecord<? extends LifestreamsData> rec) {
-		rec.d().setSnapshot(true);
+	public List<Integer> emitSnapshot(StreamRecord<? extends Object> rec) {
+		if(rec.d() instanceof LifestreamsData){
+			((LifestreamsData)rec.d()).setSnapshot(true);
+		}
 		return super.emit(rec);
 	}
 
