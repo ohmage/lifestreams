@@ -28,12 +28,12 @@ public class TrackPointExtractor extends SimpleTask<MovesSegment> {
 
 	private void emitTrackPoint(TrackPoint point, MovesSegment segment) {
 		Geo coordinates = new Geo(point.getLat(), point.getLon(), true);
-		GeoLocation location = new GeoLocation(point.getTimestamp(),
+		GeoLocation location = new GeoLocation(point.getTime(),
 				coordinates, -1, "Moves");
 		this.createRecord()
 				.setData(new DummyMovesTrackPointData(this))
 				.setLocation(location)
-				.setTimestamp(point.getTimestamp()).emit();
+				.setTimestamp(point.getTime()).emit();
 	}
 
 	@Override
@@ -47,9 +47,9 @@ public class TrackPointExtractor extends SimpleTask<MovesSegment> {
 				if (activity != null && activity.getTrackPoints() != null) {
 					for (TrackPoint point : activity.getTrackPoints()) {
 						// pull out these track points
-						if (point.getTimestamp() == null){
+						if (point.getTime() == null){
 							// set the timestamp as the timestamp of the activity
-							point.setTimestamp(activity.getEndTime());
+							point.setTime(activity.getEndTime());
 						}
 						// emit this track point
 						emitTrackPoint(point, dp.d());
@@ -59,7 +59,7 @@ public class TrackPointExtractor extends SimpleTask<MovesSegment> {
 		}
 		if (dp.d().getPlace() != null && dp.d().getPlace().getLocation() != null) {
 			// if this segment contains a place
-			dp.d().getPlace().getLocation().setTimestamp(dp.d().getEndTime());
+			dp.d().getPlace().getLocation().setTime(dp.d().getEndTime());
 			// emit the location of this place as a tracking point
 			emitTrackPoint(dp.d().getPlace().getLocation(), dp.d());
 		}

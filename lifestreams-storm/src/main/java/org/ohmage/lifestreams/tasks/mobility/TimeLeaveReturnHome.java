@@ -11,6 +11,7 @@ import org.apache.commons.math3.ml.clustering.Clusterable;
 import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
 import org.apache.commons.math3.ml.distance.DistanceMeasure;
 import org.apache.commons.math3.stat.Frequency;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.ohmage.lifestreams.bolts.TimeWindow;
@@ -24,6 +25,8 @@ import org.ohmage.lifestreams.utils.UnitConversion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.bbn.openmap.geo.Geo;
+
 
 public class TimeLeaveReturnHome extends SimpleTask<MobilityData>{
 
@@ -36,6 +39,7 @@ public class TimeLeaveReturnHome extends SimpleTask<MobilityData>{
 		public double compute(double[] arg0, double[] arg1) {
 			StreamRecord<MobilityData> p0 = allPoints.get((int)arg0[0]);
 			StreamRecord<MobilityData> p1 = allPoints.get((int)arg1[0]);
+			// first use the WIFI to determine distance
 			if(p0.d().getWifis() != null && p1.d().getWifis() != null){
 				Set<WiFi> intersection = new HashSet<WiFi>(p0.d().getWifis().keySet());
 				intersection.retainAll(p1.d().getWifis().keySet());
@@ -49,7 +53,7 @@ public class TimeLeaveReturnHome extends SimpleTask<MobilityData>{
 					|| p1.getLocation() == null 
 					|| p1.getLocation().getCoordinates() == null
 					){
-				// if either one of the data points does not have GPS, return MAX distance
+				// if one of the data points does not have GPS, return MAX distance
 				return Double.MAX_VALUE;
 			}
 			// compute geo distance in miles
@@ -188,24 +192,29 @@ public class TimeLeaveReturnHome extends SimpleTask<MobilityData>{
 				// scale it up with (1 + miss data rate)
 				timeAtHome /= (1 - window.getHeuristicMissingDataRate());
 				
-				// find the most accurate point of the home location
-				GeoLocation mostAccurateLoc = null;
-
-				Double accuracy = Double.MAX_VALUE;
 				
+
+				// find home location by getting the median of all the point that is of HOME cluster
+				DescriptiveStatistics lat = new DescriptiveStatistics();
+				DescriptiveStatistics lng = new DescriptiveStatistics();
+				DescriptiveStatistics accuracy = new DescriptiveStatistics();
 				for(ClusterableMobilityData d: cPoints){
 					if(d.smoothedPlace == firstPlace && d.data.getLocation() != null){
-						if(d.data.getLocation().getAccuracy() < accuracy){
-							mostAccurateLoc = d.data.getLocation();
-							accuracy = d.data.getLocation().getAccuracy();
-						}
+						accuracy.addValue(d.data.getLocation().getAccuracy());
+						lat.addValue(d.data.getLocation().getCoordinates().getLatitude());
+						lng.addValue(d.data.getLocation().getCoordinates().getLongitude());
 					}
 				}
+				Geo medianGeo = new Geo(lat.getPercentile(50), lng.getPercentile(50), true);
+				GeoLocation homeLocation = new GeoLocation(cPoints.get(0).getTimestamp(), 
+															medianGeo, 
+															accuracy.getPercentile(50), 
+															"MedianOfAllHomeGeoPoint");
 				
 				//	create data
 				LeaveReturnHomeTimeData data = new LeaveReturnHomeTimeData(window, this)
 												.setTimeLeaveHome(timeLeaveHome)
-												.setHomeLocation(mostAccurateLoc)
+												.setHomeLocation(homeLocation)
 												.setTimeReturnHome(timeReturnHome)
 												.setScaledTimeAtHomeInSeconds(timeAtHome);
 				// emit the record						

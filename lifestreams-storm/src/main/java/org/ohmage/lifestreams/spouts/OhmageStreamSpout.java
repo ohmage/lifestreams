@@ -58,7 +58,7 @@ public class OhmageStreamSpout<T extends Object> extends BaseRichSpout {
 	// the size of timeframe to be queried in each request (this is a work around for 2.16's performance issue)
 	Duration timeframeSizeOfEachRequest = null;
 	// keep the timestamp of the last point we received for each user
-	private HashMap<OhmageUser, DateTime> pointers = new HashMap<OhmageUser, DateTime>();
+	private HashMap<OhmageUser, DateTime> userTimePointerMap = new HashMap<OhmageUser, DateTime>();
 	// thread pool. Each requestee should have it own thread
 	private ScheduledExecutorService _scheduler;
 	// the queue stores the data points fetched from the ohmage
@@ -67,60 +67,65 @@ public class OhmageStreamSpout<T extends Object> extends BaseRichSpout {
 	private SpoutOutputCollector _collector;
 	// data point factory
 	private StreamRecordFactory<T> factory;
-
+	// the columns to be queried
+	private String columnList; 
+	
 	private Class<T> dataPointClass;
 	Logger logger;
 
 	private class Fetcher implements Runnable {
-		OhmageUser requestee;
-
-		Fetcher(OhmageUser requestee) {
-
-			this.requestee = requestee;
+		public void fetch(OhmageUser requestee) throws OhmageAuthenticationError, IOException, InterruptedException{
+			DateTime startDate = userTimePointerMap.get(requestee).plusMillis(1);
+			OhmageStreamIterator iter;
+			do{
+				// run this loop once if timeframeSizeOfEachRequest  is not specified, otherwise, run until startDate > now
+				DateTime endDate = timeframeSizeOfEachRequest != null ? startDate.plus(timeframeSizeOfEachRequest) :DateTime.now();
+				// if only requestee is given, use it for both requestee and requester
+				iter = new OhmageStreamClient(requester == null ? requestee: requester)
+						.getOhmageStreamIteratorBuilder(stream, requestee)
+						.startDate(startDate)
+						.endDate(endDate)
+						.columnList(columnList)
+						.build();
+				while (iter.hasNext()) {
+					// create data point from the factory
+					ObjectNode json = iter.next();
+					StreamRecord<T> dp = factory.createRecord(json, requestee);
+					
+					// add the dp to the queue
+					_queue.put(dp);
+					// update the time
+					userTimePointerMap.put(requestee, dp.getTimestamp());
+				}
+				startDate = endDate;
+				
+			}while(timeframeSizeOfEachRequest != null && startDate.isBefore(DateTime.now()));
 		}
 		@Override
 		public void run() {
-
-			DateTime startDate = pointers.get(requestee).plusMillis(1);
-			OhmageStreamIterator iter;
-			try {
-				do{
-					// run this loop once if timeframeSizeOfEachRequest  is not specified, otherwise, run until startDate > now
-					DateTime endDate = timeframeSizeOfEachRequest != null ? startDate.plus(timeframeSizeOfEachRequest) :DateTime.now();
-					// if only requestee is given, use it for both requestee and requester
-					iter = new OhmageStreamClient(requester == null ? requestee: requester)
-							.getOhmageStreamIteratorBuilder(stream, requestee)
-							.startDate(startDate).endDate(endDate).build();
-					while (iter.hasNext()) {
-						// create data point from the factory
-						ObjectNode json = iter.next();
-						StreamRecord<T> dp = factory.createRecord(json, requestee);
-						// add the dp to the queue
-						_queue.put(dp);
-						// update the time
-						pointers.put(requestee, dp.getTimestamp());
-					}
-					startDate = endDate;
-					
-				}while(timeframeSizeOfEachRequest != null && startDate.isBefore(DateTime.now()));
-			} catch (OhmageAuthenticationError e) {
-				throw new RuntimeException(e);
-			} catch (InterruptedException e) {
-				return;
-			} catch (OhmageHttpRequestException e) {
-				logger.error("Timeout for {} for {}", stream, requestee);
-				try {
-					// slow down when timeout 
-					Thread.sleep(5 * 60 * 1000);
-				} catch (InterruptedException e1) {
+			for(OhmageUser user: userTimePointerMap.keySet()){
+				try{
+					fetch(user);
+				} catch (OhmageAuthenticationError e) {
+					// wrong username/password
+					throw new RuntimeException(e);
+				} catch (OhmageHttpRequestException e) {
+					logger.error("Timeout for {} for {}", stream, user);
+					try {// slow down when timeout 
+						Thread.sleep(5 * 60 * 1000);
+					} catch (InterruptedException e1) {return;}
+				} catch (IOException e) {
+					// sth wrong with network or JSON deserialization
+					throw new RuntimeException(e);
+				} catch (InterruptedException e) {
+					return;
 				}
-			} catch (IOException e) {
-				throw new RuntimeException(e);
 			}
-
 		}
 	}
-
+	protected LinkedBlockingQueue<StreamRecord<T>> getReturnedStreamRecordQueue(){
+		return _queue;
+	}
 	@Override
 	public void open(Map conf, TopologyContext context,
 			SpoutOutputCollector collector) {
@@ -138,15 +143,15 @@ public class OhmageStreamSpout<T extends Object> extends BaseRichSpout {
 		Jedis jedis = RedisStreamStore.getPool().getResource();
 		for (OhmageUser requestee : requestees) {
 			if(i % numOfTask == taskIndex){
-				
 				String dateStr = jedis.hget("OhmageStream:" + stream, requestee.toString());
-				DateTime startDate = (dateStr != null && recoverState ? new DateTime(dateStr):since);
+				DateTime startDate = (dateStr != null && recoverState &&  new DateTime(dateStr).isAfter(since)? new DateTime(dateStr):since);
 				logger.info("Query {} for {} since {}", stream, requestee, startDate );
-				pointers.put(requestee, startDate);
-				_scheduler.scheduleWithFixedDelay(new Fetcher(requestee), 0, 600, TimeUnit.SECONDS);
+				userTimePointerMap.put(requestee, startDate);
+				
 			}
 			i++;
 		}
+		_scheduler.scheduleWithFixedDelay(new Fetcher(), 0, 600, TimeUnit.SECONDS);
 		 RedisStreamStore.getPool().returnResource(jedis);
 		// create datapoint factory
 		this.factory = new StreamRecordFactory<T>(dataPointClass);
@@ -162,17 +167,19 @@ public class OhmageStreamSpout<T extends Object> extends BaseRichSpout {
 		final OhmageUser user;
 		final DateTime timestamp;
 	}
+	public void emitRecord(@SuppressWarnings("rawtypes") StreamRecord rec){
+		_collector.emit(new Values(rec.getUser(), rec), new MsgId(stream, rec.getUser(), rec.getTimestamp()));
+	}
 	@Override
 	public void nextTuple() {
 		try {
-			while (true) {
-				if (_queue.peek() != null) {
-					StreamRecord<T> dp = _queue.take();
-					_collector.emit(new Values(dp.getUser(), dp), new MsgId(stream, dp.getUser(), dp.getTimestamp()));
-				} else {
-					return;
-				}
-			}
+			while (_queue.peek() != null) {
+
+					StreamRecord<T> rec = _queue.take();
+					emitRecord(rec);
+			} 
+			Thread.sleep(5000);
+			
 		} catch (InterruptedException e) {
 			_scheduler.shutdownNow();
 		}
@@ -183,6 +190,7 @@ public class OhmageStreamSpout<T extends Object> extends BaseRichSpout {
 		declarer.declare(new Fields("user", "datapoint"));
 
 	}
+	
 	@Override
 	public void ack(Object id){
 		 MsgId recordId = (MsgId)id;
@@ -209,14 +217,14 @@ public class OhmageStreamSpout<T extends Object> extends BaseRichSpout {
 	 */
 	public OhmageStreamSpout(OhmageStream stream, List<OhmageUser> requestees,
 			DateTime startDate, Class<T> dataPointClass) {
-		this(stream, null, requestees, startDate, dataPointClass, null, true);
+		this(stream, null, requestees, startDate, dataPointClass, null, true, null);
 	}
 	public OhmageStreamSpout(OhmageStream stream, OhmageUser requester, List<OhmageUser> requestees,
 			DateTime startDate, Class<T> dataPointClass) {
-		this(stream, requester, requestees, startDate, dataPointClass, null, true);
+		this(stream, requester, requestees, startDate, dataPointClass, null, true, null);
 	}
 	public OhmageStreamSpout(OhmageStream stream, OhmageUser requester, List<OhmageUser> requestees,
-			DateTime startDate, Class<T> dataPointClass, Duration timeframeSizeOfEachRequest, boolean recoverState) {
+			DateTime startDate, Class<T> dataPointClass, Duration timeframeSizeOfEachRequest, boolean recoverState, String columnList) {
 		super();
 		this.stream = stream;
 		this.requester = requester;
@@ -225,5 +233,7 @@ public class OhmageStreamSpout<T extends Object> extends BaseRichSpout {
 		this.dataPointClass = dataPointClass;
 		this.timeframeSizeOfEachRequest = timeframeSizeOfEachRequest;
 		this.recoverState = recoverState;
+		this.columnList = columnList;
+		
 	}
 }

@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class MobilityData implements IMobilityData {
 	private MobilityState mode;
 	private Map<WiFi, Double> wifis;
+	private double speed;
 	public MobilityData() {
 
 	}
@@ -42,6 +43,14 @@ public class MobilityData implements IMobilityData {
 	@JsonDeserialize(using = MobilityStateDeserializer.class)
 	public void setMode(MobilityState state) {
 		this.mode = state;
+	}
+
+	public double getSpeed() {
+		return speed;
+	}
+
+	public void setSpeed(double speed) {
+		this.speed = speed;
 	}
 
 	public static class MobilityStateDeserializer extends

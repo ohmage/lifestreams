@@ -84,19 +84,19 @@ public class TimeWindow {
 	}
 	public long getMedianSamplingIntervalInSecond() {
 		if(instantSet.size() < 2)
-			return -1;
+			return windowDuration.toPeriod().toStandardSeconds().getSeconds();
 		List<Long> instants = new ArrayList<Long>(this.instantSet);
 		Collections.sort(instants);
 		List<Long> intervals = new ArrayList<Long>();
 		for(int i=1; i<instants.size(); i++){
-			intervals.add(instants.get(i) - instants.get(i-1));
+			intervals.add(Math.abs(instants.get(i) - instants.get(i-1)));
 		}
 		Collections.sort(intervals);
 		return intervals.get(intervals.size()/2);
 	}
 	public double getHeuristicMissingDataRate() {
 		if(instantSet.size() < 2)
-			return -1;
+			return 1;
 		Long secondsInTheTimeWindow = new Interval(this.getTimeWindowBeginTime(), this.getTimeWindowEndTime()).toDurationMillis() / 1000;
 		double numOfSamplesIfFullCoverage = (double)secondsInTheTimeWindow / (double)getMedianSamplingIntervalInSecond();
 		return 1 - (instantSet.size() / numOfSamplesIfFullCoverage);

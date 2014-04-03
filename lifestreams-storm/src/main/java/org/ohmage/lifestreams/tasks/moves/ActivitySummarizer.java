@@ -11,6 +11,7 @@ import org.ohmage.lifestreams.models.data.ActivitySummaryData;
 import org.ohmage.lifestreams.tasks.SimpleTask;
 
 import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
+import co.nutrino.api.moves.impl.dto.activity.MovesActivityEnum;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 
 /**
@@ -43,9 +44,13 @@ public class ActivitySummarizer extends SimpleTask<MovesSegment> {
 			if (segment.getActivities() != null) {
 				// if there is activity in this segment
 				for (MovesActivity activity : segment.getActivities()) {
+					if(activity.getGroup() == null){
+						this.getLogger().error("Encourter a activity without group: {}. Assign it to walk for now.", activity.getActivity());
+						activity.setGroup(MovesActivityEnum.Walking);
+					}
 					// go over each activity
 					MobilityState state = MobilityState
-							.fromMovesActivity(activity.getActivity());
+							.fromMovesActivity(activity.getGroup());
 					if (state.isActive()) {
 						// accumulate active times, and generate activity
 						// instance

@@ -3,6 +3,7 @@ package org.ohmage.lifestreams.models.data;
 public class WiFi{
 	final private Long bssid;
 	public WiFi(String bssid){
+		// convert BSSID to Long to save space
 		this.bssid = Long.decode("#"+bssid.toUpperCase().replace(":", ""));
 	}
 	public boolean equals(Object arg0) {

@@ -104,7 +104,7 @@ public class KalmanLatLong {
 				return;
 			}
 			// only update the state if the speed is less than 10*expected_speed
-			// this is a measure to avoid spurious results
+			// this is for avoiding spurious results
 			lat = newLat;
 			lng = newLng;
 			

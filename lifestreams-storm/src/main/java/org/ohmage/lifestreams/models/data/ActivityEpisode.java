@@ -110,13 +110,13 @@ public class ActivityEpisode {
 
 		// set mobility state
 		MobilityState state = MobilityState.fromMovesActivity(activity
-				.getActivity());
+				.getGroup());
 		instance.setTypes(new HashSet<MobilityState>(Arrays.asList(state)));
 		// set trackpoints
 		if (activity.getTrackPoints() != null) {
 			for (co.nutrino.api.moves.impl.dto.activity.TrackPoint tPoint : activity.getTrackPoints()) {
 				instance.getTrackPoints().add(
-						new TrackPoint(tPoint.getLat(), tPoint.getLon(), tPoint.getTimestamp())
+						new TrackPoint(tPoint.getLat(), tPoint.getLon(), tPoint.getTime())
 				);
 			}
 		}

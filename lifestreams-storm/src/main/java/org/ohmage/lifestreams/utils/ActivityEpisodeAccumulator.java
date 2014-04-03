@@ -1,7 +1,10 @@
 package org.ohmage.lifestreams.utils;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import org.joda.time.DateTime;
+import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.ActivityEpisode;
 import org.ohmage.lifestreams.models.data.IMobilityData;
@@ -9,9 +12,10 @@ import org.ohmage.lifestreams.models.data.ActivityEpisode.TrackPoint;
 
 import com.bbn.openmap.geo.Geo;
 
-public class ActivityInstanceAccumulator {
+public class ActivityEpisodeAccumulator {
 	ActivityEpisode instance = new ActivityEpisode();
-	KalmanLatLong filter = new KalmanLatLong((float) 1); // Q meter per second = 2
+	KalmanLatLong filter = new KalmanLatLong((float) 4); // Q meter per second = 2
+	ArrayList<GeoLocation> rawGeoLocations = new ArrayList<GeoLocation>();
 	// return if this accumulator has been init (i.e. contains any data points)
 	public boolean isInitialized(){
 		return instance.getStartTime() != null;
@@ -30,8 +34,9 @@ public class ActivityInstanceAccumulator {
 		
 		// add the type of activity
 		instance.getTypes().add(point.d().getMode());
-
+		rawGeoLocations.add(point.getLocation());
 		if (point.getLocation() != null && point.getLocation().getAccuracy() < 100) {
+			
 			// only take those points with geo location and good accuracy
 			Geo geo = point.getLocation().getCoordinates();
 			// apply kalman latlng filter to the location point
@@ -46,26 +51,12 @@ public class ActivityInstanceAccumulator {
 		}
 
 	}
-
-	public ActivityEpisode getInstance() {
+	public DateTime getEndTime(){
+		return this.instance.getEndTime();
+	}
+	public ActivityEpisode getEpisode() {
 		List<TrackPoint> points = instance.getTrackPoints();
 		double distance = 0;
-		// moving avg with 5 mins time window
-		for (TrackPoint point : points) {
-			double accumulatedLat = 0 ;
-			double accumulatedLng = 0 ;
-			int numPoints = 0;
-			for (TrackPoint otherPoint : points) {
-				if(Math.abs(point.getTime().getMillis() - otherPoint.getTime().getMillis()) < 2.5 * 60 * 1000){
-					accumulatedLat += point.getLat();
-					accumulatedLng += point.getLng();
-					numPoints ++;
-				}
-				
-			}
-			point.setLat(accumulatedLat/numPoints);
-			point.setLng(accumulatedLng/numPoints);
-		}
 		// compute the distance in mile
 		if(points.size() > 0){
 			Geo curLocation = new Geo(points.get(0).getLat(), points.get(0).getLng(), true);

@@ -13,7 +13,7 @@ import org.ohmage.lifestreams.models.data.ActivityEpisode;
 import org.ohmage.lifestreams.models.data.ActivitySummaryData;
 import org.ohmage.lifestreams.models.data.IMobilityData;
 import org.ohmage.lifestreams.tasks.SimpleTask;
-import org.ohmage.lifestreams.utils.ActivityInstanceAccumulator;
+import org.ohmage.lifestreams.utils.ActivityEpisodeAccumulator;
 import org.ohmage.models.OhmageUser;
 
 /**
@@ -24,11 +24,12 @@ import org.ohmage.models.OhmageUser;
  */
 public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 
-	private static final Double LONGEST_SAMPLING_PERIOD = 5.5 * 60; // in millisec
+	private static final int MAXIMUN_NON_ACTIVE_GAP = 2 * 60 * 1000; // in millisec
+	private static final Double MAXIMUN_SAMPLING_GAP = 5.5 * 60; // in seconds
 
 
 	EnumMap<MobilityState, Double> activityTimeAccumulator;
-	ActivityInstanceAccumulator activityInstanceAccumulator;
+	ActivityEpisodeAccumulator activityEpisodeAccumulator;
 	List<ActivityEpisode> activityInstances;
 	StreamRecord<IMobilityData> last_dp;
 	
@@ -42,7 +43,7 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 			activityTimeAccumulator.put(mState, 0.0);
 		}
 		activityInstances = new ArrayList<ActivityEpisode>();
-		activityInstanceAccumulator = new ActivityInstanceAccumulator ();
+		activityEpisodeAccumulator = new ActivityEpisodeAccumulator ();
 		last_dp = null;
 	}
 	
@@ -54,7 +55,7 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 			// get duration in seconds
 			long interval = (dt.getMillis() - last_dp.getTimestamp().getMillis()) / 1000;
 			// only accumulate the samples with sufficient frequency
-			if (interval < LONGEST_SAMPLING_PERIOD) {
+			if (interval < MAXIMUN_SAMPLING_GAP) {
 				Double halfPeriod = interval / 2.0;
 				// both states the sandwich the interval is responsible for one half of the duration
 				activityTimeAccumulator.put(prevState, activityTimeAccumulator.get(prevState) + halfPeriod);
@@ -65,18 +66,18 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 	
 	private void createActivityInstanceAndRestartAccumlator(){
 		// get the accumulated activity instance til the last data point
-		ActivityEpisode instance = activityInstanceAccumulator.getInstance();
+		ActivityEpisode instance = activityEpisodeAccumulator.getEpisode();
 		// add that to the activity instances array
 		activityInstances.add(instance);
 		// restart the accumulator
-		activityInstanceAccumulator = new ActivityInstanceAccumulator();
+		activityEpisodeAccumulator = new ActivityEpisodeAccumulator ();
 	}
 	private void accumulateActivityInstance(StreamRecord<IMobilityData> cur_dp) {
 		if (last_dp != null) {
 			// check the sampling interval
-			long intrval = (cur_dp.getTimestamp().getMillis() - last_dp.getTimestamp().getMillis()) / 1000;
+			long interval = (cur_dp.getTimestamp().getMillis() - last_dp.getTimestamp().getMillis()) / 1000;
 			// if the sampling interval is too long, assume the previous activity (if any) has ended
-			if (intrval > LONGEST_SAMPLING_PERIOD && activityInstanceAccumulator.isInitialized()) {
+			if (interval > MAXIMUN_SAMPLING_GAP && activityEpisodeAccumulator.isInitialized()) {
 				// assume the previous activity instance has ended
 				createActivityInstanceAndRestartAccumlator();
 				
@@ -84,10 +85,11 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 		}
 		if (cur_dp.d().getMode().isActive()) { // if the current state is active
 			// add this point to the accumulator
-			activityInstanceAccumulator.addDataPoint(cur_dp);
-		} else if (last_dp != null && last_dp.d().getMode().isActive()) { 
-			// if the current state is not active, but the last state is active
-			// then assume the previous activity instance has ended
+			activityEpisodeAccumulator.addDataPoint(cur_dp);
+		} else if (activityEpisodeAccumulator.isInitialized() 
+				&& activityEpisodeAccumulator.getEndTime().plusMillis(MAXIMUN_NON_ACTIVE_GAP).isBefore(cur_dp.getTimestamp())) { 
+			// if it has been more than certain of time we have not seen an active state
+			// assume the previous activity episode has ended
 			createActivityInstanceAndRestartAccumlator();
 		}
 
@@ -115,10 +117,10 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 	}
 
 	private void computeSummaryDataPoint(TimeWindow window, boolean isSnapshot) {
-		// check if there is an activity instance being accumulated
-		if (activityInstanceAccumulator.isInitialized()) {
+		// check if there is an activity episode still being accumulated
+		if (activityEpisodeAccumulator.isInitialized()) {
 			// get the accumulated activity instance
-			ActivityEpisode instance = activityInstanceAccumulator.getInstance();
+			ActivityEpisode instance = activityEpisodeAccumulator.getEpisode();
 			// add that to the instance array
 			this.activityInstances.add(instance);
 		}
