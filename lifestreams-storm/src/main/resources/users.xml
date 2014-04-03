@@ -15,8 +15,8 @@
 	
 	<bean id= "requester" class="org.ohmage.models.OhmageUser">
 		<constructor-arg value="${ohmage.server}"/>
-		<constructor-arg value="changun"/>
-		<constructor-arg value="${ohmage.testuser.password}"/>
+		<constructor-arg value="${lifestreams.username}"/>
+		<constructor-arg value="${lifestreams.password}"/>
 	</bean>
 
 </beans>
