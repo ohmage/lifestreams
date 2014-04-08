@@ -129,12 +129,13 @@ public class StreamRecord<T> implements Comparable{
 	}
 
 	public static class StreamRecordFactory<T> {
-		Class<T> c;
-
-		public StreamRecordFactory(Class<T> c) {
+		private Class<T> c;
+		public static <T> StreamRecordFactory<T> createStreamRecordFactory(Class<T> c ){
+			return new StreamRecordFactory<T>(c);
+		}
+		private StreamRecordFactory(Class<T> c){
 			this.c = c;
 		}
-
 		public StreamRecord<T> createRecord(ObjectNode node, OhmageUser user)
 				throws JsonParseException, JsonMappingException, IOException {
 			ObjectMapper mapper = new ObjectMapper();

@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -16,6 +17,7 @@ import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.MovesCredentials;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
@@ -38,9 +40,10 @@ import co.nutrino.api.moves.impl.service.MovesSecurityManager;
 import co.nutrino.api.moves.impl.service.MovesServiceBuilder;
 import co.nutrino.api.moves.request.RequestTokenConvertor;
 
-public class MovesSpout extends OhmageStreamSpout<MovesCredentials> {
+public class MovesSpout extends OhmageStreamSpout{
 	MovesUserClient userClient;
 	MovesUserStorylineClient storylineClient;
+	@Autowired
 	MovesSecurityManager movesSecurityManger;
 	Map<OhmageUser, MovesUserCredentials> userMapping = new HashMap<OhmageUser, MovesUserCredentials>();
 	DateTime lastSyncTime;
@@ -127,11 +130,8 @@ public class MovesSpout extends OhmageStreamSpout<MovesCredentials> {
 		return true;
 	}
 		
-	public MovesSpout(OhmageStream stream,  OhmageUser requester, List<OhmageUser> requestees,
-			DateTime startDate, MovesSecurityManager movesSecurityManger) {
-		super(stream, requester, requestees, startDate, MovesCredentials.class, null, false, null);
-		this.movesSecurityManger = movesSecurityManger;
-
+	public MovesSpout(OhmageStream stream,  DateTime startDate) {
+		super(stream, startDate, MovesCredentials.class, false, null);
 	}
 
 	@Override

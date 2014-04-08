@@ -12,9 +12,10 @@ import org.joda.time.DateTime;
 import org.ohmage.lifestreams.bolts.TimeWindow;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.springframework.stereotype.Component;
 
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
-
+@Component
 public class FilterDuplicatedSegment extends SimpleTask<MovesSegment>{
 	Map<Long, MovesSegment> map = new HashMap<Long, MovesSegment>();
 	@Override

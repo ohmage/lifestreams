@@ -6,17 +6,5 @@
 	
 	
 	
-   	<bean id="requesteeSet" class="org.springframework.util.StringUtils" factory-method="commaDelimitedListToSet">
-       	<constructor-arg type="java.lang.String" value="${ohmage.requestees}"/>
-   	</bean>
-
-	
-
-	
-	<bean id= "requester" class="org.ohmage.models.OhmageUser">
-		<constructor-arg value="${ohmage.server}"/>
-		<constructor-arg value="${lifestreams.username}"/>
-		<constructor-arg value="${lifestreams.password}"/>
-	</bean>
 
 </beans>

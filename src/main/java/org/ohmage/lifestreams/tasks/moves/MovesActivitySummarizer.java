@@ -9,6 +9,7 @@ import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.ActivityEpisode;
 import org.ohmage.lifestreams.models.data.ActivitySummaryData;
 import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.springframework.stereotype.Component;
 
 import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
 import co.nutrino.api.moves.impl.dto.activity.MovesActivityEnum;
@@ -20,7 +21,8 @@ import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
  *         (e.g. daily).
  * 
  */
-public class ActivitySummarizer extends SimpleTask<MovesSegment> {
+@Component
+public class MovesActivitySummarizer extends SimpleTask<MovesSegment> {
 	ArrayList<MovesSegment> segments = new ArrayList<MovesSegment>();
 
 	@Override

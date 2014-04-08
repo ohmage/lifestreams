@@ -24,10 +24,11 @@ import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.ohmage.lifestreams.utils.UnitConversion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 import com.bbn.openmap.geo.Geo;
 
-
+@Component
 public class TimeLeaveReturnHome extends SimpleTask<MobilityData>{
 
 	List<StreamRecord<MobilityData>> allPoints = new ArrayList<StreamRecord<MobilityData>>();

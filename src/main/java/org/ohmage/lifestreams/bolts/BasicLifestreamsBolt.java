@@ -5,6 +5,7 @@ import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.state.UserState;
 import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.ohmage.lifestreams.utils.KryoSerializer;
+import org.ohmage.lifestreams.utils.RedisStreamStore;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,9 +69,9 @@ public class BasicLifestreamsBolt extends TimeWindowBolt {
 	 *            performed on (such Days.One or Weeks.One, etc).
 	 */
 	public BasicLifestreamsBolt(SimpleTask task,
-			BaseSingleFieldPeriod timeWindowSize) {
+			BaseSingleFieldPeriod timeWindowSize, RedisStreamStore redisStore) {
 
-		super(timeWindowSize);
+		super(timeWindowSize, redisStore);
 		this.task = task;
 	}
 

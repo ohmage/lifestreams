@@ -9,6 +9,7 @@ import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.LifestreamsData;
 import org.ohmage.lifestreams.state.UserState;
 import org.ohmage.lifestreams.utils.PendingBuffer;
+import org.ohmage.lifestreams.utils.RedisStreamStore;
 import org.ohmage.lifestreams.utils.PendingBuffer.RecordAndSource;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
@@ -144,7 +145,8 @@ public abstract class TimeWindowBolt extends BaseStatefulBolt {
 		}
 	}
 
-	public TimeWindowBolt(BaseSingleFieldPeriod timeWindowSize) {
+	public TimeWindowBolt( BaseSingleFieldPeriod timeWindowSize, RedisStreamStore redisStore) {
+		this.redisStore = redisStore;
 		this.timeWindowSize = timeWindowSize;
 	}
 

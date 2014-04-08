@@ -93,13 +93,21 @@ public class ActivityEpisode {
 	public void setTrackPoints(List<TrackPoint> trackPoints) {
 		this.trackPoints = trackPoints;
 	}
+	public Object getAdditionalFields() {
+		return additionalFields;
+	}
 
+	public void setAdditionalFields(Object additionalFields) {
+		this.additionalFields = additionalFields;
+	}
 	Set<MobilityState> types = new HashSet<MobilityState>();
 	DateTime endTime;
 	DateTime startTime;
 	double duration;
 	double distance;
 	List<TrackPoint> trackPoints = new ArrayList<TrackPoint>();
+	Object additionalFields;
+
 
 	static public ActivityEpisode forMovesActivity(MovesActivity activity) {
 		ActivityEpisode instance = new ActivityEpisode();
@@ -107,7 +115,7 @@ public class ActivityEpisode {
 		instance.setDistanceInMiles(activity.getDistance() * 0.000621371192);
 		instance.setStartTime(activity.getStartTime());
 		instance.setEndTime(activity.getEndTime());
-
+		
 		// set mobility state
 		MobilityState state = MobilityState.fromMovesActivity(activity
 				.getGroup());
@@ -120,6 +128,8 @@ public class ActivityEpisode {
 				);
 			}
 		}
+		// include the raw MovesActivity data as additional fields
+		instance.setAdditionalFields(activity);
 		return instance;
 	}
 }

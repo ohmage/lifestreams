@@ -15,6 +15,7 @@ import org.ohmage.lifestreams.models.data.IMobilityData;
 import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.ohmage.lifestreams.utils.ActivityEpisodeAccumulator;
 import org.ohmage.models.OhmageUser;
+import org.springframework.stereotype.Component;
 
 /**
  * @author changun This task generates a activity summary (see
@@ -22,6 +23,7 @@ import org.ohmage.models.OhmageUser;
  *         (e.g. daily).
  * 
  */
+@Component
 public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 
 	private static final int MAXIMUN_NON_ACTIVE_GAP = 2 * 60 * 1000; // in millisec

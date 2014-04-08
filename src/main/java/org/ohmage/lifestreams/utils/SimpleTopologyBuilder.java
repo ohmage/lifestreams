@@ -8,6 +8,8 @@ import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.bolts.BasicLifestreamsBolt;
 import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.ohmage.models.OhmageStream;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import backtype.storm.generated.StormTopology;
 import backtype.storm.topology.BoltDeclarer;
@@ -15,8 +17,9 @@ import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.SpoutDeclarer;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
-
+@Component
 public class SimpleTopologyBuilder {
+	@Autowired RedisStreamStore redisStore;
 	TopologyBuilder builder = new TopologyBuilder();
 	List<BoltConfig> boltConfigs = new ArrayList<BoltConfig>();
 	
@@ -46,7 +49,7 @@ public class SimpleTopologyBuilder {
 			return this;
 		}
 		private void buildBolt(){
-			BasicLifestreamsBolt bolt = new BasicLifestreamsBolt(task, windowSize);
+			BasicLifestreamsBolt bolt = new BasicLifestreamsBolt(task, windowSize, redisStore);
 			bolt.setTargetStream(targetStream);
 			BoltDeclarer declarer = builder.setBolt(id, bolt, parallelism_hint)
 					.fieldsGrouping(source, new Fields("user"));

@@ -5,6 +5,7 @@ import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.LifestreamsData;
 import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.springframework.stereotype.Component;
 
 import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
 import co.nutrino.api.moves.impl.dto.activity.TrackPoint;
@@ -18,6 +19,7 @@ import com.bbn.openmap.geo.Geo;
  *         location information.
  * 
  */
+@Component
 public class TrackPointExtractor extends SimpleTask<MovesSegment> {
 	class DummyMovesTrackPointData extends LifestreamsData {
 		public DummyMovesTrackPointData(TrackPointExtractor generator) {

@@ -19,6 +19,7 @@ import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.models.data.RectifiedMobilityData;
 import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.ohmage.models.OhmageUser;
+import org.springframework.stereotype.Component;
 
 import com.bbn.openmap.geo.Geo;
 
@@ -40,6 +41,7 @@ import be.ac.ulg.montefiore.run.jahmm.OpdfDiscreteFactory;
  *         as Drive, or Drive as Still. The HMM modle is able to correct those
  *         errors.
  */
+@Component
 public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 	private static final int DRIVE_VERIFICATION_TIMEFRAME_SIZE = 10 * 60 * 1000; // in millisecs
 	private static final int MAXIMUN_ALLOWABLE_SAMPLING_INTERVAL = 6 * 60 * 1000; // in millisecs

@@ -8,6 +8,7 @@ import org.ohmage.lifestreams.bolts.TimeWindow;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.GeoDiameterData;
 import org.ohmage.lifestreams.utils.UnitConversion;
+import org.springframework.stereotype.Component;
 
 import com.bbn.openmap.geo.ConvexHull;
 import com.bbn.openmap.geo.Geo;
@@ -17,6 +18,7 @@ import com.bbn.openmap.geo.Geo;
  *         geo-location information) by updating a convex hull every 10 records
  */
 @SuppressWarnings("rawtypes")
+@Component
 public class GeoDiameterTask extends SimpleTask {
 
 	private static final long serialVersionUID = 5133741379346160935L;

@@ -9,6 +9,7 @@ import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.LeaveReturnHomeTimeData;
 import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.springframework.stereotype.Component;
 
 import com.bbn.openmap.geo.Geo;
 
@@ -17,8 +18,8 @@ import co.nutrino.api.moves.impl.dto.storyline.MovesPlace;
 import co.nutrino.api.moves.impl.dto.storyline.MovesPlaceTypeEnum;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 
-
-public class TimeLeaveReturnHome extends SimpleTask<MovesSegment> {
+@Component
+public class MovesTimeLeaveReturnHome extends SimpleTask<MovesSegment> {
 
 	ArrayList<MovesSegment> segments = new ArrayList<MovesSegment>();
 	static final float minimunCoverageRate = (float)0.5;
