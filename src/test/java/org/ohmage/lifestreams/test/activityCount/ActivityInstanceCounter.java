@@ -1,16 +1,17 @@
-package org.ohmage.lifestreams.examples.activityCount;
+package org.ohmage.lifestreams.test.activityCount;
 
 import org.ohmage.lifestreams.bolts.TimeWindow;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.springframework.stereotype.Component;
 
 /**
  * @author changun This example counts the number of activity instances in the
  *         mobility data of each time window, and outputs the
  *         ActivityInstanceCountData.        
  */
-														
+@Component											
 public class ActivityInstanceCounter extends SimpleTask<MobilityData>{ // input data type = MobilityData
 	// counter for activity instances
 	int activityInstanceCount = 0;

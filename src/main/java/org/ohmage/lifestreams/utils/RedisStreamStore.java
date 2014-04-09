@@ -53,7 +53,6 @@ public class RedisStreamStore implements Serializable {
 		String value = mapper.writeValueAsString(rec.toObserverDataPoint());
 		jedis.hset(rec.getUser().toString() + stream.toString(), key, value);
 		getPool().returnResource(jedis);
-
 	}
 	
 	

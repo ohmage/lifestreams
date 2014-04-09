@@ -1,4 +1,4 @@
-package org.ohmage.lifestreams.examples.activityCount;
+package org.ohmage.lifestreams.test.activityCount;
 
 import org.ohmage.lifestreams.bolts.IGenerator;
 import org.ohmage.lifestreams.bolts.TimeWindow;

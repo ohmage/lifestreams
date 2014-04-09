@@ -1,4 +1,4 @@
-package org.ohmage.lifestreams.examples.activityCount;
+package org.ohmage.lifestreams.test.activityCount;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,6 +6,8 @@ import java.util.Set;
 
 import org.joda.time.DateTime;
 import org.joda.time.Days;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
@@ -13,13 +15,18 @@ import org.ohmage.lifestreams.utils.KryoSerializer;
 import org.ohmage.lifestreams.utils.SimpleTopologyBuilder;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportResource;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 
 
-@ImportResource({"classpath*:/users.xml", "classpath*:/mainContext.xml"})
+
+@ContextConfiguration({"classpath*:/users.xml", "classpath*:/mainContext.xml", "classpath:/testContext.xml"})
 @RunWith(SpringJUnit4ClassRunner.class)
 public class ActivityInstanceCountTopology {
 	@Autowired // output stream
@@ -31,7 +38,8 @@ public class ActivityInstanceCountTopology {
 	@Autowired // activityInstanceCounter
 	ActivityInstanceCounter activityInstanceCounter;
 	
-	public run() throws InterruptedException{
+	@Test
+	public void run() throws InterruptedException{
 		// since when to perform the computation
 		DateTime since = new DateTime("2013-1-1");
 		/** setup the input and output streams **/
@@ -55,7 +63,7 @@ public class ActivityInstanceCountTopology {
 		conf.setDebug(false);
 		
 		// if it is a dryrun? if so, no data will be writeback to ohmage
-		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, false);
+		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, true);
 		// keep the computation states in a local database or not.
 		conf.put(LifestreamsConfig.ENABLE_STATEFUL_FUNCTION, false);
 		
@@ -66,10 +74,9 @@ public class ActivityInstanceCountTopology {
 		// run the cluster locally
 		cluster.submitTopology("Lifestreams-on-storm", conf, builder.createTopology());
 		
-		// sleep forever...
-		while (true){
-			Thread.sleep(100000000);
-		}
+
+		Thread.sleep(1000 * 60 * 1);
+
 	}
 
 	
