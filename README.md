@@ -1,5 +1,3 @@
-(**before you start, use the following command to install the openmap.jar to your local maven repo**: mvn install:install-file -Dfile=libs/openmap.jar -DgroupId=bnn -DartifactId=openmap -Dversion=5.0.3 -Dpackaging=jar)
-
 Lifestreams
 =========
 
