@@ -97,18 +97,20 @@
          <scope>compile</scope>
       </dependency>
       <!-- Moves DTO -->
+      <!-- Please checkout the code from: https://github.com/changun/moves-api-->
       <dependency>
          <artifactId>moves-api</artifactId>
          <groupId>com.moves</groupId>
-         <version>0.1</version>
+         <version>0.2</version>
       </dependency>
-      <!-- Ohmage models -->
+      <!-- Ohmage Stream SDK -->
+      <!-- Please checkout the code from: https://github.com/changun/OhmageStreamSDK -->
       <dependency>
          <groupId>org.ohmage</groupId>
          <artifactId>streamSDK</artifactId>
          <version>0.0.1-SNAPSHOT</version>
       </dependency>
-       <!-- Ohmage models -->
+       <!-- Openmap -->
       <dependency>
          <groupId>bnn</groupId>
          <artifactId>openmap</artifactId>

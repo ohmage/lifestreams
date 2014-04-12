@@ -38,6 +38,7 @@ public class RedisStreamStore implements Serializable {
 	}
 	public List<ObjectNode> query(OhmageUser requestee, OhmageStream stream) throws IOException{
 		Jedis jedis = getPool().getResource();
+		jedis.select(0);
 		List<String> data = jedis.hvals(requestee.toString() + stream.toString());
 		List<ObjectNode> json_data = new ArrayList<ObjectNode>();
 		ObjectMapper mapper = new ObjectMapper();
@@ -49,6 +50,7 @@ public class RedisStreamStore implements Serializable {
 	}
 	public void store(OhmageStream stream, StreamRecord rec) throws IOException{
 		Jedis jedis = getPool().getResource();
+		jedis.select(0);
 		String key = rec.getData().toString();
 		String value = mapper.writeValueAsString(rec.toObserverDataPoint());
 		jedis.hset(rec.getUser().toString() + stream.toString(), key, value);
