@@ -147,9 +147,10 @@ public class OhmageStreamSpout extends BaseRichSpout {
 		}
 		// initialize logger
 		this.logger = LoggerFactory.getLogger(this.getClass());
-		// ** End of initialize those objects that are not serializable ** //
 		
-		// parameters for distributing the work
+		
+		// ** Setup the work ** //
+		// parameters for distributing the work among multiple spouts
 		int numOfTask = context.getComponentTasks(context.getThisComponentId()).size();
 		int taskIndex = context.getThisTaskIndex();
 		
@@ -162,6 +163,7 @@ public class OhmageStreamSpout extends BaseRichSpout {
 		Jedis jedis = redisStore.getPool().getResource();
 		for (String requestee : requestees) {
 			if(i % numOfTask == taskIndex){
+				// initialize the time pointers for each requestee that belongs to this spout.
 				String dateStr = jedis.hget("OhmageStream:" + stream, requestee.toString());
 				DateTime startDate = (dateStr != null && recoverState &&  new DateTime(dateStr).isAfter(since)? new DateTime(dateStr):since);
 				logger.info("Query {} for {} since {}", stream, requestee, startDate );
