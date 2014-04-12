@@ -7,7 +7,13 @@ Lifestreams is a streaming processing pipeline for processing mHealth data for a
   - Built-in support for temporal data aggregation
   - Fail-safe stateful computation
 
-(For impetient readers: see [ActivityInstanceCount](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/examples/activityCount) for a working example.)
+(For impatient readers: see [ActivityInstanceCount](https://github.com/ohmage/lifestreams/tree/master/src/test/java/org/ohmage/lifestreams/test/activityCount) for a working example.)
+
+Dependencies
+===
+Lifestreams depends on the following modules. Please check them out to your local Maven repository before compiling Lifestreams
+- [Ohmage Stream SDK](https://github.com/changun/OhmageStreamSDK) for interacting with ohmage stream API.
+- [Moves-api](https://github.com/changun/moves-api) for interacting with Moves API.
 
 Lifestreams Architecture
 ====
@@ -41,8 +47,7 @@ Lifestreams, built on top of Storm, is aimed to make it extremely easy to implem
 
 Such abstraction simplifies the mHealth module development by allowing developing modules for processing multiple users' data as if there is only one single user. 
 
-In addition, Lifestreams assumes that a timestamp is always associated with a data point, and provides built-in support for temporal aggregation tasks. Such tasks are ubiquitous in the mHealth area. Examples include computing *daily* activity summary or analyzing the *weekly* sleep patterns, etc. Lifestreams maintains a **TimeWindow** for each Task instance, and notifies the instance when all the data in the current time window has been received. To make the time range of a time window be more consistent with the user's perception of time. A TimeWindow is associated with the time zone of the first data point received in that time window. For example, if the first data point received is of 2013-1-1 2:00AM ETS, then the corresponding time window covers the time between 2013-1-1 0:00AM ETS and 2013-1-1 11:59PM ETS. Then, if we receives a data point that is associated with the time that is later than the current time window (says: 2013-1-2 8:00AM PTS), Lifestreams will assume that we have received all the data in the current time window, and move on to a new time window that is corresponding to the new data points (i.e. 2013-1-2 0:00AM to 2013-1-2 11:59PM PTS. Noto that the time zone also chages with the data point.)
-
+In addition, Lifestreams assumes that a timestamp is always associated with a data point, and provides built-in support for temporal aggregation tasks. Such tasks are ubiquitous in the mHealth area. Examples include computing *daily* activity summary or analyzing the *weekly* sleep patterns, etc. Lifestreams maintains a **TimeWindow** for each Task instance, and notifies the instance when all the data in the current time window has been received. (See [Appendix A](#appendixA) for more detail about TimeWindow)
 The recommended way to implement an IndividualTask is to extend the SimpleTask class and implement the following methods.
 - *executeDataPoint()* is called when receiving a new incoming data point. A task can update the computation state with the new data point.
 - *finishWindow()* is called when all the data points in the current time window has been received. A task can finalize the computation for the current time window, emit the result, and re-initialize the computation state.
@@ -62,7 +67,7 @@ public class ActiveInstanceCounter extends SimpleTask<MobilityData>{// input dat
                 // increment the counter if this is a active mobility instance
                 activeInstanceCount ++;
             }
-	}
+    }
     /** 
      *  @param window: the current time window
      **/
@@ -106,13 +111,13 @@ MobilityData data = rec.getData();     // or MobilityData data = rec.d();
 /* set data */
 rec.setData(data);  // or rec.d(data); 
 ``` 
-While you can use a generic data type, such as HashMap, or ObjectNode as the payload, it is strongly recommended to define a POJO class for any data types you will generate. Such a pracice lets future modules have a "data type contract" to depend on. (see [MobilityData.java](https://github.com/ohmage/lifestreams/blob/master/lifestreams-storm/src/main/java/lifestreams/models/data/MobilityData.java) for example, or [more](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/models/data).) 
+While you can use a generic data type, such as HashMap, or ObjectNode as the payload, it is strongly recommended to define a POJO class for any data types you will generate. Such a pracice lets future modules have a "data type contract" to depend on. (see [MobilityData.java](https://github.com/ohmage/lifestreams/blob/master/src/main/java/org/ohmage/lifestreams/models/data/MobilityData.java) for example, or [more](https://github.com/ohmage/lifestreams/tree/master/src/main/java/org/ohmage/lifestreams/models/data).) 
 
 SimpleTask provides a helper function called createRecord(), that makes it easy to create and emit a StreamRecord.
 
 ### Seamless integration with ohmage
 One important goal of Lifestreams is to make it a breeze to integrate with [ohmage]. Ohmage is an open source data store used in many mHealth studies. For querying data from ohmage, OhmageStreamSpout is available to enable query and listening to the updates from Ohmage Stream API. For uploading data, any Task can be associated with a *target stream*; and consequently all the records output by that task will be automatically uploaded to ohmage! (Note that, for a record to be successfully uploaded, the format of the data must be compatible with the ohmage stream schema.)
- See the following code for example: (or see [here](https://github.com/ohmage/lifestreams/tree/master/lifestreams-storm/src/main/java/lifestreams/examples/activityCount) for a full working example.)
+ See the following code for example: (or see [here](https://github.com/ohmage/lifestreams/tree/master/src/test/java/org/ohmage/lifestreams/test/activityCount) for a full working example.)
 
 ``` java
 public class ActivityInstanceCountTopology {
@@ -180,7 +185,11 @@ public class ActivityInstanceCountTopology {
 ``` 
 Existing Modules
 ------
-Lifstreams comes with an initial set of analysis module for Mobility and Moves data. Please see [Integration Test Case](https://github.com/ohmage/lifestreams/blob/master/lifestreams-storm/src/test/java/lifestreams/OhmageStreamTests.java) for their usage. A comprehensive document will be available soon. Please stay tuned, and contribute your modules!
+Lifstreams comes with an initial set of analysis module for Mobility and Moves data. Please see [MobilityMovesTopology](https://github.com/ohmage/lifestreams/blob/master/src/main/java/org/ohmage/lifestreams/MobilityMovesTopology.java) for their usage. A comprehensive document will be available soon. Please stay tuned, and contribute your modules!
+
+Appendix A. Temporal data aggregation <a name="appendixA"></a>
+---
+Lifestreams provide built-in support for temporal aggregation, such as computing of *daily* distance on foot or *weekly* sleep patterns. Lifestreams maintains a **TimeWindow** for each Task instance, and notifies the instance when all the data in the current time window has been received. To make the time range of a time window be more consistent with the user's perception of time. A TimeWindow is associated with the time zone of the first data point received in that time window. For example, if the first data point received is of 2013-1-1 2:00AM ETS, then the corresponding time window covers the time between 2013-1-1 0:00AM ETS and 2013-1-1 11:59PM ETS. Then, if we receives a data point that is associated with the time that is later than the current time window (says: 2013-1-2 8:00AM PTS), Lifestreams will assume that we have received all the data in the current time window, and move on to a new time window that is corresponding to the new data points (i.e. 2013-1-2 0:00AM to 2013-1-2 11:59PM PTS. Noto that the time zone also chages with the data point.)
 
 
 License
