@@ -36,6 +36,7 @@ public class RedisStreamStore implements Serializable {
 		}
 		return pool;
 	}
+	// query all the processed data for a given user and stream
 	public List<ObjectNode> query(OhmageUser requestee, OhmageStream stream) throws IOException{
 		Jedis jedis = getPool().getResource();
 		jedis.select(0);
@@ -48,6 +49,10 @@ public class RedisStreamStore implements Serializable {
 		getPool().returnResource(jedis);
 		return json_data;
 	}
+	// store a record to the Redis server. The records of the same pair of stream + user will be 
+	// stored in a hash table, with the keys as the string representation of the data (i.e. output of data.getString().)
+	// In most cases, where the  data object is a subclass of the LifestreamsData, see lifestreams.models.data.LifestreamsData
+	// for the format of this representation.
 	public void store(OhmageStream stream, StreamRecord rec) throws IOException{
 		Jedis jedis = getPool().getResource();
 		jedis.select(0);
