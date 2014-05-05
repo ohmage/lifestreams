@@ -1,7 +1,6 @@
 package org.ohmage.lifestreams.spouts;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -15,10 +14,9 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.Resource;
 
 import org.joda.time.DateTime;
-import org.joda.time.Duration;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.StreamRecord.StreamRecordFactory;
-import org.ohmage.lifestreams.utils.RedisStreamStore;
+import org.ohmage.lifestreams.stores.RedisStreamStore;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
 import org.ohmage.models.OhmageUser.OhmageAuthenticationError;
@@ -31,13 +29,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.exceptions.JedisException;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;

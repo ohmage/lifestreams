@@ -1,7 +1,6 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -10,26 +9,27 @@ import org.apache.commons.math3.ml.clustering.Cluster;
 import org.apache.commons.math3.ml.clustering.Clusterable;
 import org.apache.commons.math3.ml.clustering.DBSCANClusterer;
 import org.apache.commons.math3.ml.distance.DistanceMeasure;
-import org.apache.commons.math3.stat.Frequency;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.joda.time.DateTime;
-import org.joda.time.Interval;
-import org.ohmage.lifestreams.bolts.TimeWindow;
+import org.joda.time.Days;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.LeaveReturnHomeTimeData;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.models.data.WiFi;
-import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.lifestreams.utils.UnitConversion;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.bbn.openmap.geo.Geo;
 
 @Component
-public class TimeLeaveReturnHome extends SimpleTask<MobilityData>{
+public class TimeLeaveReturnHome extends SimpleTimeWindowTask<MobilityData>{
+
+	public TimeLeaveReturnHome() {
+		super(Days.ONE);
+	}
 
 	List<StreamRecord<MobilityData>> allPoints = new ArrayList<StreamRecord<MobilityData>>();
 	final static int MIN_SECONDS_IN_A_PLACE = 7200;
@@ -231,11 +231,4 @@ public class TimeLeaveReturnHome extends SimpleTask<MobilityData>{
 
 		allPoints.clear();
 	}
-
-	@Override
-	public void snapshotWindow(TimeWindow window) {
-		/* this module does not support snapshot for now*/
-		
-	}
-
 }

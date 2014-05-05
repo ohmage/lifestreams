@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.ohmage.lifestreams.bolts.TimeWindow;
+import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.GeoDiameterData;
 import org.ohmage.lifestreams.utils.UnitConversion;
@@ -19,7 +19,7 @@ import com.bbn.openmap.geo.Geo;
  */
 @SuppressWarnings("rawtypes")
 @Component
-public class GeoDiameterTask extends SimpleTask {
+public class GeoDiameterTask extends SimpleTimeWindowTask {
 
 	private static final long serialVersionUID = 5133741379346160935L;
 
@@ -133,11 +133,4 @@ public class GeoDiameterTask extends SimpleTask {
 		currentConexHull.clear();
 
 	}
-
-	@Override
-	public void snapshotWindow(TimeWindow window) {
-		computeGeoDistance(window, true);
-
-	}
-
 }

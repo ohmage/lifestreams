@@ -2,13 +2,15 @@ package org.ohmage.lifestreams.tasks.moves;
 
 import java.util.ArrayList;
 
+import org.joda.time.Days;
 import org.joda.time.Interval;
-import org.ohmage.lifestreams.bolts.TimeWindow;
+import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.ActivityEpisode;
 import org.ohmage.lifestreams.models.data.ActivitySummaryData;
-import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.springframework.stereotype.Component;
 
 import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
@@ -22,7 +24,7 @@ import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
  * 
  */
 @Component
-public class MovesActivitySummarizer extends SimpleTask<MovesSegment> {
+public class MovesActivitySummarizer extends SimpleTimeWindowTask<MovesSegment> {
 	ArrayList<MovesSegment> segments = new ArrayList<MovesSegment>();
 
 	@Override
@@ -89,12 +91,6 @@ public class MovesActivitySummarizer extends SimpleTask<MovesSegment> {
 		computeAndEmitSummary(window, false);
 		// clear the segements for this timewindow
 		segments.clear();
-	}
-
-	@Override
-	public void snapshotWindow(TimeWindow window) {
-		computeAndEmitSummary(window, true);
-
 	}
 
 }

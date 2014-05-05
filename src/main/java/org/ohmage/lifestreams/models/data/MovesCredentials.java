@@ -1,8 +1,5 @@
 package org.ohmage.lifestreams.models.data;
 
-import org.ohmage.lifestreams.bolts.IGenerator;
-import org.ohmage.lifestreams.bolts.TimeWindow;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class MovesCredentials{

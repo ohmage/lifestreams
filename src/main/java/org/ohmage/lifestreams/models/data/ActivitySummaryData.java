@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.ohmage.lifestreams.bolts.IGenerator;
-import org.ohmage.lifestreams.bolts.TimeWindow;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 
 public class ActivitySummaryData extends LifestreamsData {
 

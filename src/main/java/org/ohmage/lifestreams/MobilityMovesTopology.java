@@ -1,18 +1,14 @@
 package org.ohmage.lifestreams;
-import java.util.List;
-
 import org.joda.time.DateTime;
 import org.joda.time.Days;
-import org.ohmage.lifestreams.models.data.MobilityData;
-import org.ohmage.lifestreams.models.data.MovesCredentials;
 import org.ohmage.lifestreams.spouts.MovesSpout;
 import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
 import org.ohmage.lifestreams.tasks.GeoDiameterTask;
 import org.ohmage.lifestreams.tasks.mobility.HMMMobilityRectifier;
 import org.ohmage.lifestreams.tasks.mobility.MobilityActivitySummarizer;
 import org.ohmage.lifestreams.tasks.mobility.TimeLeaveReturnHome;
-import org.ohmage.lifestreams.tasks.moves.MovesActivitySummarizer;
 import org.ohmage.lifestreams.tasks.moves.FilterDuplicatedSegment;
+import org.ohmage.lifestreams.tasks.moves.MovesActivitySummarizer;
 import org.ohmage.lifestreams.tasks.moves.TrackPointExtractor;
 import org.ohmage.lifestreams.utils.KryoSerializer;
 import org.ohmage.lifestreams.utils.SimpleTopologyBuilder;
@@ -21,11 +17,10 @@ import org.ohmage.models.OhmageUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
-import co.nutrino.api.moves.impl.service.MovesSecurityManager;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
+import co.nutrino.api.moves.impl.service.MovesSecurityManager;
 
 
 @Component
@@ -148,8 +143,7 @@ public class MobilityMovesTopology {
 				.setTargetStream(movesSegmentStream);
 			
 			// extract track points from moves segments
-			builder.setTask("MovesTrackPointExtractor", trackPointExtractor, "MovesDataStream")
-					.setTimeWindowSize(Days.ONE);
+			builder.setTask("MovesTrackPointExtractor", trackPointExtractor, "MovesDataStream");
 			
 			
 			// compute geo diameter based on the track points

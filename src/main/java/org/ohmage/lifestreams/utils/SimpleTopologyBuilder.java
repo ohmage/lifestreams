@@ -5,8 +5,10 @@ import java.util.List;
 
 import org.joda.time.Days;
 import org.joda.time.base.BaseSingleFieldPeriod;
-import org.ohmage.lifestreams.bolts.BasicLifestreamsBolt;
-import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.ohmage.lifestreams.bolts.LifestreamsBolt;
+import org.ohmage.lifestreams.stores.RedisStreamStore;
+import org.ohmage.lifestreams.tasks.Task;
+import org.ohmage.lifestreams.tasks.TimeWindowTask;
 import org.ohmage.models.OhmageStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -26,12 +28,11 @@ public class SimpleTopologyBuilder {
 	public class BoltConfig{
 		final String id;
 		final String source;
-		final SimpleTask task;
+		final Task task;
 		int  parallelism_hint = 1;
 		OhmageStream targetStream = null;
-		BaseSingleFieldPeriod windowSize = Days.ONE;
 		
-		BoltConfig(String id, SimpleTask task, String source){
+		BoltConfig(String id, Task task, String source){
 			this.id = id;
 			this.task = task;
 			this.source = source;
@@ -41,7 +42,11 @@ public class SimpleTopologyBuilder {
 			return this;
 		}
 		public BoltConfig setTimeWindowSize(BaseSingleFieldPeriod windowSize){
-			this.windowSize = windowSize;
+			if(task instanceof TimeWindowTask ){
+				((TimeWindowTask)task).setTimeWindowSize(windowSize);
+			}else{
+				throw new RuntimeException("Only TimeWindowTask should be assigned a window size.");
+			}
 			return this;
 		}
 		public BoltConfig setParallelismHint(int hint){
@@ -49,7 +54,7 @@ public class SimpleTopologyBuilder {
 			return this;
 		}
 		private void buildBolt(){
-			BasicLifestreamsBolt bolt = new BasicLifestreamsBolt(task, windowSize, redisStore);
+			LifestreamsBolt bolt = new LifestreamsBolt(task);
 			bolt.setTargetStream(targetStream);
 			BoltDeclarer declarer = builder.setBolt(id, bolt, parallelism_hint)
 					.fieldsGrouping(source, new Fields("user"));
@@ -57,7 +62,7 @@ public class SimpleTopologyBuilder {
 	}
 
 	
-	public BoltConfig setTask(String id, SimpleTask task, String source){
+	public BoltConfig setTask(String id, Task task, String source){
 		BoltConfig config = new BoltConfig(id, task, source);
 		this.boltConfigs.add(config);
 		// return a BoltConfig object for further configuration

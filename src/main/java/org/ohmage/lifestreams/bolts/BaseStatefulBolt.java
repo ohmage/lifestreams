@@ -1,32 +1,23 @@
 package org.ohmage.lifestreams.bolts;
 
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.models.data.LifestreamsData;
-import org.ohmage.lifestreams.state.RedisBoltState;
 import org.ohmage.lifestreams.state.UserState;
-import org.ohmage.lifestreams.utils.RedisStreamStore;
+import org.ohmage.lifestreams.stores.StreamStore;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
 import org.ohmage.models.OhmageUser.OhmageAuthenticationError;
 import org.ohmage.sdk.OhmageStreamClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import redis.clients.jedis.Jedis;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
@@ -41,31 +32,27 @@ import backtype.storm.tuple.Values;
 /**
  * @author changun
  * BaseLifestreamsStatefulBolt is the base class of all the Lifestreams components.
- * It assume that the received tuples is shuffled by User and main the computation 
- * state of each user.
+ * It assume that the received tuples is grouped the OhmageUser.
  * 
  * It provides the following functionality:
- * 1. Command Receiving and propagation: perform the specified operation when 
+ * 
+ * 1. Writeback: If the target ohmage stream is specified and dryrun == false, the 
+ *    processed records will be upload to the specified ohmage stream.
+ *    
+ * 2. COMMAND Receiving and propagation (EXPERIMENTAL): perform the specified operation when 
  *    receiving a command, and propagate the command if the command targets one of 
  *    its descendant components.
- *    
- * 2. Stateful Computation: (when enableStateful = true) maintain the state of the 
- *    computation for each user in the local redis server.
- *    
- * 3. Writeback: If the target ohmage stream is specified and dryrun == false, the 
- *    processed records will be upload to the specified ohmage stream.
  */
 public abstract class BaseStatefulBolt extends BaseRichBolt implements
 		IGenerator {
 
 	
+	private static final String UNAKCED_TUPLES_FIELD_NAME = "_UnakcedTuples";
+
 	// storm data collector (for emitting records)
 	private OutputCollector collector;
-	// whether to store the computation states in the local redis store
-	private boolean enableStateful = false;
-	// keep the state for each user in the local redis store when enableStateful = true
-	protected RedisBoltState state;
 	
+	private HashMap<OhmageUser, UserState> userStateMap = new HashMap<OhmageUser, UserState>();
 	// the components in the subtree with this bolt as root.
 	// (when a bolt receives a command targeting one of its subcomponent,
 	// it should propagate the command)
@@ -83,7 +70,7 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 			UserState state,GlobalStreamId source);
 
 	// the operation to perform on each incoming command
-	abstract protected void executeCommand(OhmageUser user, Command command, UserState state);
+	abstract protected boolean executeCommand(OhmageUser user, Command command, UserState state);
 
 	// the name of the topology, and the name of this bolt
 	// these values will be populated during prepare phase (see prepare()) 
@@ -102,8 +89,8 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 	// the ohmage stream the processed records will be writeback to.
 	private OhmageStream targetStream;
 
-	// the redis store service
-	RedisStreamStore redisStore;
+	// the stream store, where the processed data being output to
+	StreamStore streamStore;
 	
 	public OhmageStream getTargetStream() {
 		return targetStream;
@@ -112,7 +99,7 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 	/**
 	 * @param targetStream
 	 * if the target stream is set and dryrun = false, the processed 
-	 * records will be write back to the given ohmage stream. 
+	 * records will be write back to the given stream stream. 
 	 */
 	public void setTargetStream(OhmageStream targetStream) {
 		this.targetStream = targetStream;
@@ -124,14 +111,16 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 		OhmageUser user = (OhmageUser) input.getValueByField("user");
 		UserState userState;
 		// check if it is a new user
-		if (!state.containUser(user)) {
-			userState = state.newUserState(user);
+		if (!userStateMap.containsKey(user)) {
+			userStateMap.put(user, new UserState());
+			userState = userStateMap.get(user);
+			userState.put(UNAKCED_TUPLES_FIELD_NAME, new LinkedList<Tuple>());
 			// new user method should implement the necessary initialization for
 			// the user state
 			newUser(user, userState);
 		} else {
 			// else, get the state for this user
-			userState = state.get(user);
+			userState = userStateMap.get(user);
 		}
 
 		// check if what we receive is a Command instead of a data record
@@ -146,12 +135,11 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 			}
 			return;
 		}
+		// buffer the tuples
+		((LinkedList<Tuple>)userState.get(UNAKCED_TUPLES_FIELD_NAME)).add(input);
+		
 		// process data point
 		execute(user, input, userState, input.getSourceGlobalStreamid());
-		// persistent any changes we just made if stateful computation is enabled
-		if(this.enableStateful){
-			state.sync(user);
-		}
 	}
 
 	protected void upload(StreamRecord<? extends Object> dp) {
@@ -166,40 +154,27 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 		}
 	}
 
-	public List<Integer> emit(StreamRecord<? extends Object> rec, List<Tuple> anchors) {
+	public void emit(StreamRecord<? extends Object> rec) {
 		if(!isDryrun && targetStream != null){
 			// upload the processed record back to ohmage
-			upload(rec);
+			streamStore.upload(targetStream, rec);
 		}
-		if(targetStream != null && outputToRedis){
-			// output data to the local redis server
-			// we store the data of the same stream to a Redis hashMap
-			// where the key contains the componentId + timeWindow info
-			// and the value is the JSON string of the output record
-			// The idea is that, the records generated by the same component
-			// and of the same window can replace the old records.
-			try {
-				redisStore.store(targetStream, rec);
-			} catch (IOException e) {
-				throw new  RuntimeException(e);
-			}
-		}
-
-
-		// emit a new Tuple, and anchor and ack all the previous tuples
+		UserState state= userStateMap.get(rec.getUser());
+		LinkedList<Tuple> unackedTuple = ((LinkedList<Tuple>)state.get(UNAKCED_TUPLES_FIELD_NAME)); 
+		
+		// emit a new Tuple, anchoring all the previous tuples
 		List<Integer> targetIds = null;
 		if(this.subComponents.size() > 0){
-			targetIds = collector.emit(anchors, new Values(rec.getUser(), rec));
+			collector.emit(unackedTuple, new Values(rec.getUser(), rec));
 		}
-	
-		for(int i=anchors.size() -1; i>=0 ;i--){
+		
+		while(unackedTuple.size() > 0){
 			// ack the latest tuple first! so that if the program crashes inside this loop, the spout still know from when to restart
-			collector.ack(anchors.get(i));
+			collector.ack(unackedTuple.removeLast());
 		}
-		return targetIds;
 	}
 
-	// DFS to get all the sub component
+	// DFS to get all the descendants of this Bold
 	private Set<String> getSubGraph(TopologyContext context, String rootId,
 			Set<String> ret) {
 		ret.add(rootId);
@@ -218,23 +193,20 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 
 	@Override
 	public void prepare(@SuppressWarnings("rawtypes") Map stormConf, TopologyContext context, OutputCollector collector) {
-		if(stormConf.containsKey(LifestreamsConfig.ENABLE_STATEFUL_FUNCTION)){
-			enableStateful = (Boolean) stormConf.get(LifestreamsConfig.ENABLE_STATEFUL_FUNCTION);
-		}
+		// initialize the topology-wide arguments
 		if(stormConf.containsKey(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING)){
 			isDryrun = (Boolean) stormConf.get(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING);
 		}
 		if(stormConf.containsKey(LifestreamsConfig.OUTPUT_TO_LOCAL_REDIS)){
 			outputToRedis  = (Boolean) stormConf.get(LifestreamsConfig.OUTPUT_TO_LOCAL_REDIS);
 		}
-		this.state = new RedisBoltState(context, enableStateful);
-		
+
 		this.collector = collector;
 		// populate the names of this bolt and the topology
 		this.componentId = context.getThisComponentId();
 		this.topologyId = context.getStormId();
-		this.sourceIds = new HashSet<String>();
 		// get the source spouts of this component
+		this.sourceIds = new HashSet<String>();
 		for(String spout: context.getRawTopology().get_spouts().keySet()){
 			Set<String> nodes = new HashSet<String>();
 			if(this.getSubGraph(context, spout, nodes).contains(this.componentId)){

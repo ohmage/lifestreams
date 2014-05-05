@@ -1,14 +1,13 @@
 package org.ohmage.lifestreams.bolts;
 
-import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.state.UserState;
-import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.utils.KryoSerializer;
-import org.ohmage.lifestreams.utils.RedisStreamStore;
 import org.ohmage.models.OhmageUser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import backtype.storm.generated.GlobalStreamId;
+import backtype.storm.tuple.Tuple;
 
 /**
  * @author changun BasicLifestreamsBolt, based on BaseStatefulBolt and
@@ -21,43 +20,19 @@ import org.slf4j.LoggerFactory;
  *         functionality provided by BaseStatefulBolt.
  */
 @SuppressWarnings("rawtypes")
-public class BasicLifestreamsBolt extends TimeWindowBolt {
+public class LifestreamsBolt extends BaseStatefulBolt {
 
-	SimpleTask task;
+	Task task;
 
 
 	@Override
 	protected void newUser(OhmageUser user, UserState state) {
-		super.newUser(user, state);
 		// make a copy of the SimpleTask object
-		SimpleTask newtask = KryoSerializer.getInstance().copy(task);
+		Task newtask = KryoSerializer.getInstance().copy(task);
 		// call the init() method to initialize the object
 		newtask.init(user, this);
 		// store the object to the UserState
-		state.put("task", newtask);
-	}
-
-	@SuppressWarnings("unchecked")
-	@Override
-	protected void executeDataPoint(OhmageUser user, StreamRecord dp,
-			UserState state, TimeWindow window) {
-		((SimpleTask) state.get("task")).executeDataPoint(dp, window);
-	}
-
-	@Override
-	protected void finishWindow(OhmageUser user, UserState state,
-			TimeWindow window) {
-
-		((SimpleTask) state.get("task")).finishWindow(window);
-		Logger logger = LoggerFactory.getLogger(task.getClass());
-		logger.info("Finish timeWindow {} for {}", window.getLastInstant().toLocalDate().toDate(), user);
-	}
-
-	@Override
-	protected void snapshotWindow(OhmageUser user, UserState state,
-			TimeWindow window) {
-		((SimpleTask) state.get("task")).snapshotWindow(window);
-
+		state.put("_task", newtask);
 	}
 
 	/**
@@ -68,11 +43,23 @@ public class BasicLifestreamsBolt extends TimeWindowBolt {
 	 *            the length of the time window the computation will be
 	 *            performed on (such Days.One or Weeks.One, etc).
 	 */
-	public BasicLifestreamsBolt(SimpleTask task,
-			BaseSingleFieldPeriod timeWindowSize, RedisStreamStore redisStore) {
-
-		super(timeWindowSize, redisStore);
+	public LifestreamsBolt(Task task) {
 		this.task = task;
+	}
+
+	@Override
+	protected void execute(OhmageUser user, Tuple input, UserState state,
+			GlobalStreamId source) {
+		StreamRecord rec = (StreamRecord) input.getValueByField("datapoint");
+		((Task) state.get("_task")).executeDataPoint(rec, source);
+		
+	}
+
+	@Override
+	protected boolean executeCommand(OhmageUser user, Command command,
+			UserState state) {
+		// TODO Auto-generated method stub
+		return false;
 	}
 
 }

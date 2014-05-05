@@ -1,32 +1,29 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
-import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 
 import org.joda.time.DateTime;
-import org.ohmage.lifestreams.bolts.TimeWindow;
-import org.ohmage.lifestreams.bolts.TimeWindowBolt;
+import org.joda.time.Days;
+import org.joda.time.base.BaseSingleFieldPeriod;
+import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.models.data.RectifiedMobilityData;
-import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.models.OhmageUser;
 import org.springframework.stereotype.Component;
-
-import com.bbn.openmap.geo.Geo;
 
 import be.ac.ulg.montefiore.run.jahmm.Hmm;
 import be.ac.ulg.montefiore.run.jahmm.ObservationDiscrete;
 import be.ac.ulg.montefiore.run.jahmm.OpdfDiscrete;
 import be.ac.ulg.montefiore.run.jahmm.OpdfDiscreteFactory;
+
+import com.bbn.openmap.geo.Geo;
 
 /**
  * @author changun This task uses a Hidden Markov Chain model to correct the
@@ -42,15 +39,17 @@ import be.ac.ulg.montefiore.run.jahmm.OpdfDiscreteFactory;
  *         errors.
  */
 @Component
-public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
+public class HMMMobilityRectifier extends SimpleTimeWindowTask<MobilityData> {
+	
+
 	private static final int DRIVE_VERIFICATION_TIMEFRAME_SIZE = 10 * 60 * 1000; // in millisecs
 	private static final int MAXIMUN_ALLOWABLE_SAMPLING_INTERVAL = 6 * 60 * 1000; // in millisecs
 	
 	Hmm<ObservationDiscrete<MobilityState>> hmmModel;
 	List<StreamRecord<MobilityData>> data = new ArrayList<StreamRecord<MobilityData>>();
 
-	
-	public void init(OhmageUser user, TimeWindowBolt bolt) {
+	@Override
+	public void init(OhmageUser user, LifestreamsBolt bolt) {
 		super.init(user, bolt);
 		this.hmmModel = createHmmModel();
 	}
@@ -122,11 +121,6 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 	public void finishWindow(TimeWindow window) {
 		correctMobilityStates(window, false);
 		data.clear();
-	}
-
-	@Override
-	public void snapshotWindow(TimeWindow window) {
-		correctMobilityStates(window, true);
 	}
 
 	public static Hmm<ObservationDiscrete<MobilityState>> createHmmModel() {

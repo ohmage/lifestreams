@@ -9,23 +9,22 @@ import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 
 import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.tuple.Tuple;
 
 public class PendingBuffer {
 	// we keep a buffer for each data stream
 
 	static public class RecordAndSource {
-		public final Tuple data;
+		public final StreamRecord rec;
 		public final GlobalStreamId source;
 		public final DateTime time;
-		public RecordAndSource(Tuple data, DateTime time, GlobalStreamId source) {
-			this.data = data;
+		public RecordAndSource(StreamRecord rec, DateTime time, GlobalStreamId source) {
+			this.rec = rec;
 			this.source = source;
 			this.time = time;
 		}
 
-		public Tuple getData() {
-			return data;
+		public StreamRecord getRecord() {
+			return rec;
 		}
 		public DateTime getTime(){
 			return time;
@@ -39,15 +38,15 @@ public class PendingBuffer {
 	private Set<GlobalStreamId> pendingStreams = new HashSet<GlobalStreamId>();
 
 	// put into the buffer ordered by time
-	public void put(Tuple input, DateTime time, GlobalStreamId source) {
+	public void put(StreamRecord rec, DateTime time, GlobalStreamId source) {
 		pendingStreams.add(source);
 		for (int i = 0; i < buffer.size(); i++) {
 			if (time.isBefore(buffer.get(i).getTime())) {
-				buffer.add(i, new RecordAndSource(input, time, source));
+				buffer.add(i, new RecordAndSource(rec, time, source));
 				return;
 			}
 		}
-		buffer.add(new RecordAndSource(input, time, source));
+		buffer.add(new RecordAndSource(rec, time, source));
 	}
 
 	public Set<GlobalStreamId> getPendingStreams() {

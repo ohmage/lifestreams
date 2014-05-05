@@ -5,14 +5,16 @@ import java.util.EnumMap;
 import java.util.List;
 
 import org.joda.time.DateTime;
-import org.ohmage.lifestreams.bolts.TimeWindow;
-import org.ohmage.lifestreams.bolts.TimeWindowBolt;
+import org.joda.time.Days;
+import org.joda.time.base.BaseSingleFieldPeriod;
+import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.ActivityEpisode;
 import org.ohmage.lifestreams.models.data.ActivitySummaryData;
 import org.ohmage.lifestreams.models.data.IMobilityData;
-import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.lifestreams.utils.ActivityEpisodeAccumulator;
 import org.ohmage.models.OhmageUser;
 import org.springframework.stereotype.Component;
@@ -24,7 +26,7 @@ import org.springframework.stereotype.Component;
  * 
  */
 @Component
-public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
+public class MobilityActivitySummarizer extends SimpleTimeWindowTask<IMobilityData> {
 
 	private static final int MAXIMUN_NON_ACTIVE_GAP = 2 * 60 * 1000; // in millisec
 	private static final Double MAXIMUN_SAMPLING_GAP = 5.5 * 60; // in seconds
@@ -35,7 +37,7 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 	List<ActivityEpisode> activityInstances;
 	StreamRecord<IMobilityData> last_dp;
 	
-	public void init(OhmageUser user, TimeWindowBolt bolt) {
+	public void init(OhmageUser user, LifestreamsBolt bolt) {
 		super.init(user, bolt);
 		initAccumulators();
 	}
@@ -167,9 +169,5 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 		
 	}
 
-	@Override
-	public void snapshotWindow(TimeWindow window) {
-		computeSummaryDataPoint(window, true);
-	}
 
 }

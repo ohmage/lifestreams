@@ -1,4 +1,4 @@
-package org.ohmage.lifestreams.utils;
+package org.ohmage.lifestreams.stores;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -8,17 +8,13 @@ import java.util.List;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 

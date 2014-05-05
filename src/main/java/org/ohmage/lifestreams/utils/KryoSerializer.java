@@ -12,7 +12,6 @@ import java.util.LinkedList;
 import java.util.regex.Pattern;
 
 import org.joda.time.DateTime;
-import org.ohmage.lifestreams.bolts.TimeWindow;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamMetadata;
@@ -23,6 +22,7 @@ import org.ohmage.lifestreams.models.data.GeoDiameterData;
 import org.ohmage.lifestreams.models.data.LifestreamsData;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.models.data.RectifiedMobilityData;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.models.OhmageServer;
 import org.ohmage.models.OhmageUser;
 

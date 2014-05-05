@@ -7,8 +7,8 @@ import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.ActivityEpisode;
-import org.ohmage.lifestreams.models.data.IMobilityData;
 import org.ohmage.lifestreams.models.data.ActivityEpisode.TrackPoint;
+import org.ohmage.lifestreams.models.data.IMobilityData;
 
 import com.bbn.openmap.geo.Geo;
 

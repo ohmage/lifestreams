@@ -3,7 +3,7 @@ package org.ohmage.lifestreams.models.data;
 import java.util.Set;
 
 import org.ohmage.lifestreams.bolts.IGenerator;
-import org.ohmage.lifestreams.bolts.TimeWindow;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
