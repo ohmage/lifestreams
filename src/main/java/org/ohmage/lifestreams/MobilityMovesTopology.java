@@ -89,9 +89,6 @@ public class MobilityMovesTopology {
 	@Value("${enable.moves.topology}")
 	boolean enableMoves;
 	
-	@Value("${global.config.output.to.redis}")
-	boolean outputToRedis;
-	
 	@Value("${global.config.keep.computation.states}")
 	boolean keepComputationState;
 	
@@ -166,8 +163,6 @@ public class MobilityMovesTopology {
 		
 		// if it is a dryrun? if so, no data will be writeback to ohmage
 		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, dryRun);
-		// whether to output the processed data to the local redis or not
-		conf.put(LifestreamsConfig.OUTPUT_TO_LOCAL_REDIS, outputToRedis);
 		// keep the computation states in a local database or not.
 		conf.put(LifestreamsConfig.ENABLE_STATEFUL_FUNCTION, keepComputationState);
 		

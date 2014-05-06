@@ -23,8 +23,6 @@ import backtype.storm.tuple.Tuple;
 public class LifestreamsBolt extends BaseStatefulBolt {
 
 	Task task;
-
-
 	@Override
 	protected void newUser(OhmageUser user, UserState state) {
 		// make a copy of the SimpleTask object

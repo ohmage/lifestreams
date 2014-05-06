@@ -7,6 +7,7 @@ import org.joda.time.Days;
 import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.stores.RedisStreamStore;
+import org.ohmage.lifestreams.stores.StreamStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tasks.TimeWindowTask;
 import org.ohmage.models.OhmageStream;
@@ -21,7 +22,9 @@ import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
 @Component
 public class SimpleTopologyBuilder {
-	@Autowired RedisStreamStore redisStore;
+	@Autowired(required=false) 
+	StreamStore defaultStreamStore;
+	
 	TopologyBuilder builder = new TopologyBuilder();
 	List<BoltConfig> boltConfigs = new ArrayList<BoltConfig>();
 	
@@ -56,6 +59,7 @@ public class SimpleTopologyBuilder {
 		private void buildBolt(){
 			LifestreamsBolt bolt = new LifestreamsBolt(task);
 			bolt.setTargetStream(targetStream);
+			bolt.setStreamStore(defaultStreamStore);
 			BoltDeclarer declarer = builder.setBolt(id, bolt, parallelism_hint)
 					.fieldsGrouping(source, new Fields("user"));
 		}

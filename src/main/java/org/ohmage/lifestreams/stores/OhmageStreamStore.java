@@ -10,9 +10,8 @@ import org.ohmage.models.OhmageUser;
 public class OhmageStreamStore implements StreamStore {
 
 	@Override
-	public boolean upload(OhmageStream stream, StreamRecord rec) {
+	public void upload(OhmageStream stream, StreamRecord rec) {
 		// TODO Auto-generated method stub
-		return false;
 	}
 
 	@Override

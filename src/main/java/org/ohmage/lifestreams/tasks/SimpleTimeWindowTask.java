@@ -19,7 +19,7 @@ public abstract class SimpleTimeWindowTask<T> extends TimeWindowTask {
 	@Override
 	public void init(OhmageUser user, LifestreamsBolt bolt) {
 		super.init(user, bolt);
-		if(this.getBolt().getSourceIds().size() != 1){
+		if(this.getBolt().getInputStreams().size() != 1){
 			throw new RuntimeException("SimpleTasks are only allowed to have one source stream.");
 		}
 	}

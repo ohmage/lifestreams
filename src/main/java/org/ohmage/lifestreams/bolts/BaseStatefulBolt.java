@@ -49,10 +49,15 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 	
 	private static final String UNAKCED_TUPLES_FIELD_NAME = "_UnakcedTuples";
 
+	
 	// storm data collector (for emitting records)
 	private OutputCollector collector;
-	
-	private HashMap<OhmageUser, UserState> userStateMap = new HashMap<OhmageUser, UserState>();
+
+	// the name of the topology, and the name of this bolt
+	// these values will be populated during prepare phase (see prepare()) 
+	private String topologyId;
+	private String componentId;
+	private Set<String> sourceIds;
 	// the components in the subtree with this bolt as root.
 	// (when a bolt receives a command targeting one of its subcomponent,
 	// it should propagate the command)
@@ -60,6 +65,8 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 	
 	// the input streams of this bolt
 	Set<GlobalStreamId> inputStreams;
+
+	private HashMap<OhmageUser, UserState> userStateMap = new HashMap<OhmageUser, UserState>();
 
 	// called when this bolt receive the data of a new user
 	abstract protected void newUser(OhmageUser newUser, UserState state);
@@ -71,39 +78,18 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 
 	// the operation to perform on each incoming command
 	abstract protected boolean executeCommand(OhmageUser user, Command command, UserState state);
-
-	// the name of the topology, and the name of this bolt
-	// these values will be populated during prepare phase (see prepare()) 
-	private String topologyId;
-	private String componentId;
-	private Set<String> sourceIds;
-
 	
 	// logger
 	Logger logger = LoggerFactory.getLogger(BaseStatefulBolt.class);
 
 	// whether to write back the processed records to the ohmage stream.
 	private boolean isDryrun = false; 
-	// whether to output data to a local redis.
-	private boolean outputToRedis = false; 
+	// the stream store, where the processed data being output to
+	private StreamStore streamStore;
 	// the ohmage stream the processed records will be writeback to.
 	private OhmageStream targetStream;
 
-	// the stream store, where the processed data being output to
-	StreamStore streamStore;
 	
-	public OhmageStream getTargetStream() {
-		return targetStream;
-	}
-	
-	/**
-	 * @param targetStream
-	 * if the target stream is set and dryrun = false, the processed 
-	 * records will be write back to the given stream stream. 
-	 */
-	public void setTargetStream(OhmageStream targetStream) {
-		this.targetStream = targetStream;
-	}
 
 	@Override
 	public void execute(Tuple input) {
@@ -197,10 +183,6 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 		if(stormConf.containsKey(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING)){
 			isDryrun = (Boolean) stormConf.get(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING);
 		}
-		if(stormConf.containsKey(LifestreamsConfig.OUTPUT_TO_LOCAL_REDIS)){
-			outputToRedis  = (Boolean) stormConf.get(LifestreamsConfig.OUTPUT_TO_LOCAL_REDIS);
-		}
-
 		this.collector = collector;
 		// populate the names of this bolt and the topology
 		this.componentId = context.getThisComponentId();
@@ -222,7 +204,31 @@ public abstract class BaseStatefulBolt extends BaseRichBolt implements
 			inputStreams.add(streamId);
 		}
 	}
+	
+	public StreamStore getStreamStore() {
+		return streamStore;
+	}
 
+	public void setStreamStore(StreamStore streamStore) {
+		this.streamStore = streamStore;
+	}
+
+	/**
+	 * if the target stream is set and dryrun = false, the processed 
+	 * records will be write back to the given stream stream. 
+	 */
+	public OhmageStream getTargetStream() {
+		return targetStream;
+	}
+
+	public void setTargetStream(OhmageStream targetStream) {
+		this.targetStream = targetStream;
+	}
+	
+	public Set<GlobalStreamId> getInputStreams() {
+		return inputStreams;
+	}
+	
 	public String getComponentId() {
 		return componentId;
 	}
