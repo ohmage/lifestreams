@@ -3,29 +3,31 @@ package org.ohmage.lifestreams.tasks.moves;
 import java.util.ArrayList;
 
 import org.joda.time.DateTime;
+import org.joda.time.Days;
 import org.joda.time.Interval;
-import org.ohmage.lifestreams.bolts.TimeWindow;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.LeaveReturnHomeTimeData;
-import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.springframework.stereotype.Component;
-
-import com.bbn.openmap.geo.Geo;
 
 import co.nutrino.api.moves.impl.dto.activity.TrackPoint;
 import co.nutrino.api.moves.impl.dto.storyline.MovesPlace;
 import co.nutrino.api.moves.impl.dto.storyline.MovesPlaceTypeEnum;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 
+import com.bbn.openmap.geo.Geo;
+import com.javadocmd.simplelatlng.LatLng;
+
 @Component
-public class MovesTimeLeaveReturnHome extends SimpleTask<MovesSegment> {
+public class MovesTimeLeaveReturnHome extends SimpleTimeWindowTask<MovesSegment> {
+
 
 	ArrayList<MovesSegment> segments = new ArrayList<MovesSegment>();
 	static final float minimunCoverageRate = (float)0.5;
 	@Override
-	public void executeDataPoint(StreamRecord<MovesSegment> record,
-			TimeWindow window) {
+	public void executeDataPoint(StreamRecord<MovesSegment> record,	TimeWindow window) {
 		segments.add(record.d());
 		
 	}
@@ -95,7 +97,7 @@ public class MovesTimeLeaveReturnHome extends SimpleTask<MovesSegment> {
 						if(homeLocation == null && segment.getPlace().getLocation() != null){
 							// get the location of the home
 							TrackPoint geoPoint = segment.getPlace().getLocation();
-							Geo coordinates = new Geo(geoPoint.getLat(), geoPoint.getLon(), true);
+							LatLng coordinates = new LatLng(geoPoint.getLat(), geoPoint.getLon());
 							homeLocation = new GeoLocation(segment.getStartTime(),
 									coordinates, -1, "Moves");
 						}
@@ -117,12 +119,8 @@ public class MovesTimeLeaveReturnHome extends SimpleTask<MovesSegment> {
 			}
 		}
 		segments.clear();
+		checkpoint(window.getTimeWindowEndTime());
 	}
 
-	@Override
-	public void snapshotWindow(TimeWindow window) {
-		// TODO Auto-generated method stub
-		
-	}
 
 }

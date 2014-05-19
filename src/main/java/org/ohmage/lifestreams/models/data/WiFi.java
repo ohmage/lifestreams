@@ -7,7 +7,12 @@ public class WiFi{
 		this.bssid = Long.decode("#"+bssid.toUpperCase().replace(":", ""));
 	}
 	public boolean equals(Object arg0) {
-		return bssid.equals(arg0.toString());
+		if(arg0 instanceof WiFi){
+			return bssid.equals(((WiFi)arg0).bssid);
+		}
+		else{
+			return false;
+		}
 	}
 	public int hashCode() {
 		return bssid.hashCode();

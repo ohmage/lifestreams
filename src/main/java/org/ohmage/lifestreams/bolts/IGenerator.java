@@ -6,7 +6,4 @@ public interface IGenerator {
 	String getGeneratorId();
 	Set<String> getSourceIds();
 	String getTopologyId();
-	
-	
-
 }

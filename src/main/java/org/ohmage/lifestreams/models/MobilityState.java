@@ -3,7 +3,7 @@ package org.ohmage.lifestreams.models;
 import co.nutrino.api.moves.impl.dto.activity.MovesActivityEnum;
 
 public enum MobilityState {
-	STILL, RUN, WALK, DRIVE, CYCLING;
+	STILL, RUN, WALK, DRIVE, CYCLING, UNKNOWN;
 	public boolean isActive() {
 		if (this.equals(RUN) || this.equals(WALK) || this.equals(CYCLING)) {
 			return true;

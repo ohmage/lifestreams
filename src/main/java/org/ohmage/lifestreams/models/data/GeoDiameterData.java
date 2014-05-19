@@ -1,8 +1,8 @@
 package org.ohmage.lifestreams.models.data;
 
 import org.ohmage.lifestreams.bolts.IGenerator;
-import org.ohmage.lifestreams.bolts.TimeWindow;
 import org.ohmage.lifestreams.models.GeoLocation;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 
 public class GeoDiameterData extends LifestreamsData {
 

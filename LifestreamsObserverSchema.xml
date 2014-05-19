@@ -31,7 +31,7 @@
         {
           "name": "firstInstant",
           "doc": "first instant of this time window",
-          "type": "string"
+          "type": "string" 
         },
         {
           "name": "lastInstant",
@@ -234,5 +234,4 @@
 }
         </schema>
     </stream>
-    
 </observer>

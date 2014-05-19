@@ -1,12 +1,10 @@
 package org.ohmage.lifestreams.models;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.TimeZone;
 
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.MutableDateTime;
-import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.ISODateTimeFormat;
 import org.ohmage.models.OhmageUser;
 
@@ -28,11 +26,13 @@ public class StreamRecord<T> implements Comparable{
 	private StreamMetadata metadata = new StreamMetadata();
 	private T data;
 	public String toString(){
-		return String.format("Time:%s\nLocation:%s\nData:%s\n", this.getTimestamp(), 
-														 this.getLocation() == null ? "NA" : this.getLocation().toString(),
-														 this.getData().toString());
+		return String.format("Time:%s\nLocation:%s\nData:%s\n",
+				this.getTimestamp(),
+				this.getLocation() == null ? "NA" : this.getLocation().toString(),
+				this.getData().toString());
 		
 	}
+
 	public T getData() {
 		return data;
 	}
@@ -128,7 +128,7 @@ public class StreamRecord<T> implements Comparable{
 		return node;
 	}
 
-	public static class StreamRecordFactory<T> {
+	public static class StreamRecordFactory<T> implements Serializable {
 		private Class<T> c;
 		public static <T> StreamRecordFactory<T> createStreamRecordFactory(Class<T> c ){
 			return new StreamRecordFactory<T>(c);
@@ -139,24 +139,22 @@ public class StreamRecord<T> implements Comparable{
 		public StreamRecord<T> createRecord(ObjectNode node, OhmageUser user)
 				throws JsonParseException, JsonMappingException, IOException {
 			ObjectMapper mapper = new ObjectMapper();
+			
 			mapper.registerModule(new JodaModule());
 			mapper.configure(
 					com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
 					false);
-			// use the timezone in the timestamp field to parse the datatime
-			// string
+			// use the timezone in the timestamp field to parse the datatime string
 			
-			// get the joda datetime with timezone
-			TimeZone zone = ISODateTimeFormat.dateTime().withOffsetParsed().parseDateTime(
-					node.get("metadata").get("timestamp").asText()).getZone().toTimeZone();
-			if(node.has("data") && node.get("data").has("wifi_data") && node.get("data").get("wifi_data").has("timezone") ){
-				zone = DateTimeZone.forID(node.get("data").get("wifi_data").get("timezone").asText()).toTimeZone();
-			}
-			// ask the json parser to use that timezone
+			// get the timezone
+			TimeZone zone = ISODateTimeFormat.dateTime().withOffsetParsed().parseDateTime(node.get("metadata").get("timestamp").asText()).getZone().toTimeZone();
+
+			// make the json parser to use the timezone in the timestamp field to parse all the ISODateTime
 			mapper.setTimeZone(zone);
 
 			@SuppressWarnings("unchecked")
 			StreamRecord<T> dataPoint = mapper.convertValue(node, new StreamRecord<T>().getClass());
+			
 			dataPoint.setData(mapper.convertValue(dataPoint.getData(), c));
 			dataPoint.setUser(user);
 			return dataPoint;

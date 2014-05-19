@@ -1,18 +1,14 @@
 package org.ohmage.lifestreams;
-import java.util.List;
-
 import org.joda.time.DateTime;
 import org.joda.time.Days;
-import org.ohmage.lifestreams.models.data.MobilityData;
-import org.ohmage.lifestreams.models.data.MovesCredentials;
 import org.ohmage.lifestreams.spouts.MovesSpout;
 import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
 import org.ohmage.lifestreams.tasks.GeoDiameterTask;
 import org.ohmage.lifestreams.tasks.mobility.HMMMobilityRectifier;
 import org.ohmage.lifestreams.tasks.mobility.MobilityActivitySummarizer;
 import org.ohmage.lifestreams.tasks.mobility.TimeLeaveReturnHome;
-import org.ohmage.lifestreams.tasks.moves.MovesActivitySummarizer;
 import org.ohmage.lifestreams.tasks.moves.FilterDuplicatedSegment;
+import org.ohmage.lifestreams.tasks.moves.MovesActivitySummarizer;
 import org.ohmage.lifestreams.tasks.moves.TrackPointExtractor;
 import org.ohmage.lifestreams.utils.KryoSerializer;
 import org.ohmage.lifestreams.utils.SimpleTopologyBuilder;
@@ -21,21 +17,15 @@ import org.ohmage.models.OhmageUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 
-import co.nutrino.api.moves.impl.service.MovesSecurityManager;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
+import co.nutrino.api.moves.impl.service.MovesSecurityManager;
 
 
 @Component
 public class MobilityMovesTopology {
 
-	@Autowired
-	OhmageUser requester;
-	@Autowired
-	DateTime since;
-	
 	// ** Input Streams **//
 	@Autowired
 	OhmageStream mobilityStream;
@@ -93,15 +83,7 @@ public class MobilityMovesTopology {
 	
 	@Value("${enable.moves.topology}")
 	boolean enableMoves;
-	
-	@Value("${global.config.output.to.redis}")
-	boolean outputToRedis;
-	
-	@Value("${global.config.keep.computation.states}")
-	boolean keepComputationState;
-	
-	@Value("${global.config.dryrun}")
-	boolean dryRun;
+
 	
 	@Autowired
 	SimpleTopologyBuilder builder;
@@ -148,8 +130,7 @@ public class MobilityMovesTopology {
 				.setTargetStream(movesSegmentStream);
 			
 			// extract track points from moves segments
-			builder.setTask("MovesTrackPointExtractor", trackPointExtractor, "MovesDataStream")
-					.setTimeWindowSize(Days.ONE);
+			builder.setTask("MovesTrackPointExtractor", trackPointExtractor, "MovesDataStream");
 			
 			
 			// compute geo diameter based on the track points
@@ -166,26 +147,11 @@ public class MobilityMovesTopology {
 					.setTargetStream(leaveArriveHomeStream)
 					.setTimeWindowSize(Days.ONE);
 		}
-		
-		Config conf = new Config();
-		conf.setDebug(false);
-		
-		// if it is a dryrun? if so, no data will be writeback to ohmage
-		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, dryRun);
-		// whether to output the processed data to the local redis or not
-		conf.put(LifestreamsConfig.OUTPUT_TO_LOCAL_REDIS, outputToRedis);
-		// keep the computation states in a local database or not.
-		conf.put(LifestreamsConfig.ENABLE_STATEFUL_FUNCTION, keepComputationState);
-		
-		
-		// Since it may require very long time for a tuple to be fully processed, we make the tuples never timeout.
-		conf.put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS , Integer.MAX_VALUE);
-		// register all the classes used in Lifestreams framework to the kryo serializer
-		KryoSerializer.setRegistrationsForStormConfig(conf);
-
 
 		LocalCluster cluster = new LocalCluster();
-		cluster.submitTopology("Lifestreams-on-storm", conf, builder.createTopology());
+		cluster.submitTopology("Lifestreams-on-storm", 
+							   builder.getConfiguration(), 
+							   builder.createTopology());
 		
 		// sleep forever until interrupted
 		while (true){

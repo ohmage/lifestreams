@@ -1,9 +1,6 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
-import java.util.List;
-
 import org.apache.commons.math3.ml.clustering.Clusterable;
-import org.apache.commons.math3.ml.distance.DistanceMeasure;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.MobilityData;
 

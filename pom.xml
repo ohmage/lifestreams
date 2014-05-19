@@ -59,13 +59,21 @@
       </dependency>
       <!-- Storm -->
       <dependency>
-         <groupId>storm</groupId>
-         <artifactId>storm</artifactId>
-         <version>0.7.2</version>
+         <groupId>org.apache.storm</groupId>
+         <artifactId>storm-core</artifactId>
+         <version>0.9.1-incubating</version>
          <exclusions>
             <exclusion>
-               <artifactId>kryo</artifactId>
-               <groupId>com.googlecode</groupId>
+            	<artifactId>logback-core</artifactId>
+            	<groupId>ch.qos.logback</groupId>
+            </exclusion>
+            <exclusion>
+            	<artifactId>logback-classic</artifactId>
+            	<groupId>ch.qos.logback</groupId>
+            </exclusion>
+            <exclusion>
+            	<artifactId>log4j-over-slf4j</artifactId>
+            	<groupId>org.slf4j</groupId>
             </exclusion>
          </exclusions>
       </dependency>
@@ -87,7 +95,12 @@
 			<artifactId>commons-math3</artifactId>
 			<version>3.2</version>
 	  </dependency>
-            
+	        <!-- Apache Lang (for Deep Copy) -->
+	   <dependency>
+       <groupId>org.apache.commons</groupId>
+  <artifactId>commons-lang3</artifactId>
+  <version>3.3.2</version>
+    </dependency>
       <!-- Redis -->
       <dependency>
          <groupId>redis.clients</groupId>
@@ -116,9 +129,20 @@
          <artifactId>openmap</artifactId>
          <version>5.0.3</version>
       </dependency>
+      <!-- Sparse Matrix -->
+      <dependency>
+  			<groupId>org.la4j</groupId>
+  			<artifactId>la4j</artifactId>
+  			<version>0.4.9</version>
+	   </dependency>
+	   <dependency>
+  			<groupId>com.javadocmd</groupId>
+  			<artifactId>simplelatlng</artifactId>
+  			<version>RELEASE</version>
+		</dependency>
    </dependencies>
    <properties>
-      <start-class>lifestreams.Application</start-class>
+      <start-class>org.ohmage.lifestreams.Application</start-class>
    </properties>
    <build>
       <plugins>
