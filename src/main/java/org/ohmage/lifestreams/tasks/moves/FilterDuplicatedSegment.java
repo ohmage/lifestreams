@@ -19,23 +19,26 @@ public class FilterDuplicatedSegment extends SimpleTimeWindowTask<MovesSegment>{
 		super(Days.ONE);
 	}
 	
-	Map<Long, MovesSegment> map = new HashMap<Long, MovesSegment>();
+	MovesSegment lastSegment;
 	@Override
 	public void executeDataPoint(StreamRecord<MovesSegment> record,
 			TimeWindow window) {
-		map.put(record.d().getEndTime().getMillis(), record.d());
-		
+		if(lastSegment != null){
+			if(!lastSegment.getStartTime().equals(record.getData().getStartTime())){
+				// we may receive consecutive segments with the same start time
+				// so we only emit a segment if its following segment has a different start time
+				this.createRecord()
+					.setData(lastSegment)
+					.setTimestamp(lastSegment.getEndTime())
+					.emit();;
+			}
+		}
+		lastSegment = record.getData();
+		checkpoint(record.getTimestamp());
 	}
-
+ 
 	@Override
 	public void finishWindow(TimeWindow window) {
-		List<Long> segmentTimes = new ArrayList<Long>(map.keySet());
-		Collections.sort(segmentTimes);
-		for(Long segmentTime: segmentTimes){
-			MovesSegment segment = map.get(segmentTime);
-			this.createRecord().setData(segment).setTimestamp(segment.getEndTime()).emit();;
-		}
-		map.clear();
-		
+
 	}
 }

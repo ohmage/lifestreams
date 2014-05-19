@@ -27,7 +27,7 @@ public class ActivityInstanceCounter extends SimpleTimeWindowTask<MobilityData>{
 			// increment the counter if the mobility state of this data point is active
 			activityInstanceCount ++;
 		}
-		
+		 
 	}
 
 	@Override
@@ -36,11 +36,11 @@ public class ActivityInstanceCounter extends SimpleTimeWindowTask<MobilityData>{
 		ActivityInstanceCountData data = new ActivityInstanceCountData(window, this);
 		this.createRecord()
 				.setTimestamp(window.getFirstInstant())
-				.setIsSnapshot(false)
 				.setData(data)
 				.emit();
 		// restart the counter
 		activityInstanceCount = 0;
+		checkpoint(window.getTimeWindowEndTime());
 		
 	}
 

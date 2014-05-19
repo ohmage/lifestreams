@@ -11,6 +11,7 @@ import org.ohmage.lifestreams.models.data.ActivityEpisode.TrackPoint;
 import org.ohmage.lifestreams.models.data.IMobilityData;
 
 import com.bbn.openmap.geo.Geo;
+import com.javadocmd.simplelatlng.LatLng;
 
 public class ActivityEpisodeAccumulator {
 	ActivityEpisode instance = new ActivityEpisode();
@@ -38,7 +39,7 @@ public class ActivityEpisodeAccumulator {
 		if (point.getLocation() != null && point.getLocation().getAccuracy() < 100) {
 			
 			// only take those points with geo location and good accuracy
-			Geo geo = point.getLocation().getCoordinates();
+			LatLng geo = point.getLocation().getCoordinates();
 			// apply kalman latlng filter to the location point
 			filter.Process(geo.getLatitude(), geo.getLongitude(), 
 							(float) point.getLocation().getAccuracy(), 

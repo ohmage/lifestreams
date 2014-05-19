@@ -11,6 +11,7 @@ import co.nutrino.api.moves.impl.dto.activity.TrackPoint;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 
 import com.bbn.openmap.geo.Geo;
+import com.javadocmd.simplelatlng.LatLng;
 
 /**
  * @author changun This task extracts tracking points from MovesSegements and
@@ -27,13 +28,13 @@ public class TrackPointExtractor extends SimpleTask<MovesSegment> {
 	}
 
 	private void emitTrackPoint(TrackPoint point, MovesSegment segment) {
-		Geo coordinates = new Geo(point.getLat(), point.getLon(), true);
-		GeoLocation location = new GeoLocation(point.getTime(),
-				coordinates, -1, "Moves");
+		LatLng coordinates = new LatLng(point.getLat(), point.getLon());
+		GeoLocation location = new GeoLocation(point.getTime(),	coordinates, -1, "Moves");
 		this.createRecord()
 				.setData(new DummyMovesTrackPointData(this))
 				.setLocation(location)
-				.setTimestamp(point.getTime()).emit();
+				.setTimestamp(point.getTime())
+				.emit();
 	}
 
 
@@ -63,7 +64,7 @@ public class TrackPointExtractor extends SimpleTask<MovesSegment> {
 			// emit the location of this place as a tracking point
 			emitTrackPoint(segment.getPlace().getLocation(), segment);
 		}
-		
+		checkpoint(record.getTimestamp());
 	}
 
 }

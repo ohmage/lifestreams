@@ -8,9 +8,13 @@ import org.joda.time.Days;
 import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.models.StreamRecord;
+import org.ohmage.lifestreams.spouts.RedisBookkeeper;
+import org.ohmage.lifestreams.tasks.Task.RecordBuilder;
+import org.ohmage.lifestreams.tuples.RecordTuple;
 import org.ohmage.lifestreams.utils.PendingBuffer;
-import org.ohmage.lifestreams.utils.PendingBuffer.RecordAndSource;
 import org.ohmage.models.OhmageUser;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import backtype.storm.generated.GlobalStreamId;
 
@@ -55,9 +59,10 @@ import backtype.storm.generated.GlobalStreamId;
  */
 public abstract class TimeWindowTask extends Task {
 
-	private TimeWindow curTimeWindow;
-	private PendingBuffer pendingBuf;
+	transient private TimeWindow curTimeWindow;
+	transient private PendingBuffer pendingBuf;
 	private BaseSingleFieldPeriod timeWindowSize;
+
 	
 	public TimeWindowTask(BaseSingleFieldPeriod timeWindowSize){
 		this.timeWindowSize = timeWindowSize;
@@ -69,43 +74,48 @@ public abstract class TimeWindowTask extends Task {
 		this.timeWindowSize = timeWindowSize;
 	}
 	@Override
-	public void init(OhmageUser user, LifestreamsBolt bolt) {
-		super.init(user, bolt);
+	public void init() {
+		super.init();
 		pendingBuf = new PendingBuffer();
 	}
-	public void executeDataPoint(StreamRecord rec, GlobalStreamId source){
-		DateTime time = rec.getTimestamp();
+	@Override
+	public void recover() {
+		super.recover();
+		pendingBuf = new PendingBuffer();
+	}
+	@Override
+	public void executeDataPoint(RecordTuple tuple){
+		StreamRecord rec = tuple.getStreamRecord();
 		// init the cur timewindow if it has not been initialized
 		if(curTimeWindow == null){
 			curTimeWindow = new TimeWindow(timeWindowSize, rec.getTimestamp());
 		}
+		
 		// check if the received record fall into the current time window
 		if (curTimeWindow.withinWindow(rec.getTimestamp())) {
 			// if so, update the time window statistics
 			curTimeWindow.update(rec.getTimestamp());
 			// and process the record
-			executeDataPoint(rec, source, curTimeWindow);
+			executeDataPoint(tuple, curTimeWindow);
 			
 		} else {
 			// if not so, store that record to the pending buffer
-			pendingBuf.put(rec, time, source);
-			if (pendingBuf.getPendingStreams().size() == getBolt().getSourceIds().size()) {
+			pendingBuf.put(tuple);
+			if (pendingBuf.getPendingStreams().size() == getState().getBolt().getSourceIds().size()) {
 				// when the number of unique pending stream == the number of source streams
 				// it means that every input stream has at least one data point pending.
 				// Then, we assume we have received all the data for the current time window
 				
 				// finalize the computation for the current time window
 				finishWindow(curTimeWindow);
+				// clear the time window, so we can move on to the next one
+				curTimeWindow = null;
 				// take all the points out from the pending buffer (they are sorted by time)
-				List<RecordAndSource> pendings = new ArrayList<RecordAndSource>(pendingBuf.getBuffer());
+				List<RecordTuple> pendings = new ArrayList<RecordTuple>(pendingBuf.getBuffer());
 				pendingBuf.clearBuffer();
-
-				// update the current time window to cover the time of the first record that was in the pending buffer
-				DateTime timeOfNextTimeWindow = pendings.get(0).getTime();
-				curTimeWindow = new TimeWindow(timeWindowSize, timeOfNextTimeWindow);
 				// replay all the pending record
-				for (RecordAndSource dataAndSource : pendings) {
-					executeDataPoint(dataAndSource.getRecord(), dataAndSource.getSource());
+				for (RecordTuple pendingTuple : pendings) {
+					executeDataPoint(pendingTuple);
 				}
 			}
 
@@ -113,7 +123,7 @@ public abstract class TimeWindowTask extends Task {
 	}
 
 	
-	public abstract void executeDataPoint(StreamRecord record, GlobalStreamId source, TimeWindow window);
+	public abstract void executeDataPoint(RecordTuple input, TimeWindow window);
 	public abstract void finishWindow(TimeWindow window);
 
 }

@@ -8,6 +8,7 @@ import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
 import org.ohmage.lifestreams.utils.KryoSerializer;
 import org.ohmage.lifestreams.utils.SimpleTopologyBuilder;
+import org.ohmage.lifestreams.test.activityCount.ActivityInstanceCounter;
 import org.ohmage.models.OhmageStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;

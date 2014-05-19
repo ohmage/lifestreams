@@ -18,6 +18,7 @@ import co.nutrino.api.moves.impl.dto.storyline.MovesPlaceTypeEnum;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 
 import com.bbn.openmap.geo.Geo;
+import com.javadocmd.simplelatlng.LatLng;
 
 @Component
 public class MovesTimeLeaveReturnHome extends SimpleTimeWindowTask<MovesSegment> {
@@ -96,7 +97,7 @@ public class MovesTimeLeaveReturnHome extends SimpleTimeWindowTask<MovesSegment>
 						if(homeLocation == null && segment.getPlace().getLocation() != null){
 							// get the location of the home
 							TrackPoint geoPoint = segment.getPlace().getLocation();
-							Geo coordinates = new Geo(geoPoint.getLat(), geoPoint.getLon(), true);
+							LatLng coordinates = new LatLng(geoPoint.getLat(), geoPoint.getLon());
 							homeLocation = new GeoLocation(segment.getStartTime(),
 									coordinates, -1, "Moves");
 						}
@@ -118,6 +119,7 @@ public class MovesTimeLeaveReturnHome extends SimpleTimeWindowTask<MovesSegment>
 			}
 		}
 		segments.clear();
+		checkpoint(window.getTimeWindowEndTime());
 	}
 
 

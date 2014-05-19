@@ -9,6 +9,7 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.joda.time.DateTime;
@@ -27,10 +28,16 @@ import org.ohmage.models.OhmageServer;
 import org.ohmage.models.OhmageUser;
 
 import backtype.storm.Config;
+import backtype.storm.serialization.IKryoFactory;
+import backtype.storm.serialization.KryoTupleSerializer;
+import backtype.storm.serialization.SerializableSerializer;
+import backtype.storm.tuple.Tuple;
+import backtype.storm.utils.IndifferentAccessMap;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Registration;
+import com.esotericsoftware.shaded.org.objenesis.strategy.SerializingInstantiatorStrategy;
 import com.esotericsoftware.shaded.org.objenesis.strategy.StdInstantiatorStrategy;
 
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;
@@ -48,13 +55,14 @@ import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import de.javakaffee.kryoserializers.jodatime.JodaDateTimeSerializer;
 
-public class KryoSerializer {
+public class KryoSerializer  implements IKryoFactory {
 
-	public static Kryo getInstance() {
+	public static Kryo getInstance()  {
 		Kryo kryo = new Kryo();
 
 		// 
-		// kryo.setRegistrationRequired(false);
+		kryo.setRegistrationRequired(false);
+		kryo.setReferences(false);
 		kryo.setInstantiatorStrategy(new StdInstantiatorStrategy());
 
 		// some common classes and their corresponding serializer
@@ -77,8 +85,10 @@ public class KryoSerializer {
 		kryo.register(EnumMap.class, new EnumMapSerializer());
 		kryo.register(BitSet.class, new BitSetSerializer());
 		kryo.register(Pattern.class, new RegexSerializer());
+		
 		UnmodifiableCollectionsSerializer.registerSerializers(kryo);
 		SynchronizedCollectionsSerializer.registerSerializers(kryo);
+		// Kryo can't not serialize IndifferentAccessMap in storm, use the default java serializer
 
 
 		
@@ -127,5 +137,25 @@ public class KryoSerializer {
 				}
 			}
 		}
+	}
+	@Override
+	public Kryo getKryo(Map conf) {
+		// TODO Auto-generated method stub
+		return getInstance();
+	}
+	@Override
+	public void preRegister(Kryo k, Map conf) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void postRegister(Kryo k, Map conf) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void postDecorate(Kryo k, Map conf) {
+		// TODO Auto-generated method stub
+		
 	}
 }

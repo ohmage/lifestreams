@@ -29,7 +29,7 @@ public class RedisStreamStore implements StreamStore {
 	@Value("${redis.host}")
 	String host;
 
-	private JedisPool pool;
+	transient private JedisPool pool;
 	public JedisPool getPool(){
 		if(pool == null){
 			pool = new JedisPool(new JedisPoolConfig(), host);
@@ -66,7 +66,7 @@ public class RedisStreamStore implements StreamStore {
 
 		for(String string:stringStream){
 			try {
-				records.add(recFactory.createRecord(mapper.convertValue(string, ObjectNode.class), user));
+				records.add(recFactory.createRecord((ObjectNode) mapper.readTree(string), user));
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}

@@ -38,7 +38,6 @@ public class LifestreamsData {
 
 	}
 
-	boolean isSnapshot;
 	GeneratorInfo generator;
 	TimeWindow timeWindow;
 
@@ -52,13 +51,6 @@ public class LifestreamsData {
 					, this.getGenerator().getComponentId()
 					, this.getTimeWindow().getTimeWindowBeginTime()
 					, this.getTimeWindow().getTimeWindowEndTime());
-	}
-	public boolean isSnapshot() {
-		return isSnapshot;
-	}
-
-	public void setSnapshot(boolean isSnapshot) {
-		this.isSnapshot = isSnapshot;
 	}
 
 	@JsonProperty

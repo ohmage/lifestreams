@@ -26,11 +26,6 @@ import co.nutrino.api.moves.impl.service.MovesSecurityManager;
 @Component
 public class MobilityMovesTopology {
 
-	@Autowired
-	OhmageUser requester;
-	@Autowired
-	DateTime since;
-	
 	// ** Input Streams **//
 	@Autowired
 	OhmageStream mobilityStream;
@@ -88,12 +83,7 @@ public class MobilityMovesTopology {
 	
 	@Value("${enable.moves.topology}")
 	boolean enableMoves;
-	
-	@Value("${global.config.keep.computation.states}")
-	boolean keepComputationState;
-	
-	@Value("${global.config.dryrun}")
-	boolean dryRun;
+
 	
 	@Autowired
 	SimpleTopologyBuilder builder;
@@ -157,24 +147,11 @@ public class MobilityMovesTopology {
 					.setTargetStream(leaveArriveHomeStream)
 					.setTimeWindowSize(Days.ONE);
 		}
-		
-		Config conf = new Config();
-		conf.setDebug(false);
-		
-		// if it is a dryrun? if so, no data will be writeback to ohmage
-		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, dryRun);
-		// keep the computation states in a local database or not.
-		conf.put(LifestreamsConfig.ENABLE_STATEFUL_FUNCTION, keepComputationState);
-		
-		
-		// Since it may require very long time for a tuple to be fully processed, we make the tuples never timeout.
-		conf.put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS , Integer.MAX_VALUE);
-		// register all the classes used in Lifestreams framework to the kryo serializer
-		KryoSerializer.setRegistrationsForStormConfig(conf);
-
 
 		LocalCluster cluster = new LocalCluster();
-		cluster.submitTopology("Lifestreams-on-storm", conf, builder.createTopology());
+		cluster.submitTopology("Lifestreams-on-storm", 
+							   builder.getConfiguration(), 
+							   builder.createTopology());
 		
 		// sleep forever until interrupted
 		while (true){

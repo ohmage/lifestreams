@@ -25,7 +25,7 @@ public class TimeWindow {
 	private DateTime epoch;
 	// the instants at which we have data point
 	// it is used to compute the median sampling period and missing data rate
-	Set<Long> instantSet = new HashSet<Long>();
+	transient Set<Long> instantSet = new HashSet<Long>();
 	public TimeWindow(BaseSingleFieldPeriod duration, DateTime time) {
 		this.windowDuration = duration;
 		this.firstInstant = time;
@@ -68,7 +68,7 @@ public class TimeWindow {
 		return timeWindowBeginTime;
 	}
 	public DateTime getTimeWindowEndTime(){
-		return this.getTimeWindowBeginTime().plus(this.windowDuration);
+		return this.getTimeWindowBeginTime().plus(this.windowDuration).minus(1);
 	}
 	public int getTimeWindowSizeInSecond(){
 		return this.windowDuration.toPeriod().toStandardSeconds().getSeconds();
@@ -93,6 +93,9 @@ public class TimeWindow {
 		return intervals.get(intervals.size()/2);
 	}
 	public double getHeuristicMissingDataRate() {
+		if(instantSet == null){
+			return -1;
+		}
 		if(instantSet.size() < 2)
 			return 1;
 		Long secondsInTheTimeWindow = new Interval(this.getTimeWindowBeginTime(), this.getTimeWindowEndTime()).toDurationMillis() / 1000;

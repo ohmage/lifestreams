@@ -34,7 +34,7 @@ public class MovesActivitySummarizer extends SimpleTimeWindowTask<MovesSegment> 
 	}
 
 	// this function computes the activity summary from the Moves segment we have received so far.
-	private void computeAndEmitSummary(TimeWindow window, boolean isSnapshot) {
+	private void computeAndEmitSummary(TimeWindow window) {
 		double totalActiveTime = 0;
 		double totalTime = 0;
 		double totalTransportationTime = 0;
@@ -49,7 +49,7 @@ public class MovesActivitySummarizer extends SimpleTimeWindowTask<MovesSegment> 
 				// if there is activity in this segment
 				for (MovesActivity activity : segment.getActivities()) {
 					if(activity.getGroup() == null){
-						this.getLogger().error("Encourter a activity without group: {}. Assign it to walk for now.", activity.getActivity());
+						this.getLogger().error("Encounter a activity without group: {}. Assign it to walk for now.", activity.getActivity());
 						activity.setGroup(MovesActivityEnum.Walking);
 					}
 					// go over each activity
@@ -82,15 +82,15 @@ public class MovesActivitySummarizer extends SimpleTimeWindowTask<MovesSegment> 
 		this.createRecord()
 					.setData(data)
 					.setTimestamp(window.getFirstInstant())
-					.setIsSnapshot(isSnapshot)
 					.emit();
 	}
 
 	@Override
 	public void finishWindow(TimeWindow window) {
-		computeAndEmitSummary(window, false);
+		computeAndEmitSummary(window);
 		// clear the segements for this timewindow
 		segments.clear();
+		checkpoint(window.getTimeWindowEndTime());
 	}
 
 }

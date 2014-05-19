@@ -5,15 +5,19 @@ import java.util.List;
 
 import org.joda.time.Days;
 import org.joda.time.base.BaseSingleFieldPeriod;
+import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.bolts.LifestreamsBolt;
+import org.ohmage.lifestreams.spouts.RedisBookkeeper;
 import org.ohmage.lifestreams.stores.RedisStreamStore;
 import org.ohmage.lifestreams.stores.StreamStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tasks.TimeWindowTask;
 import org.ohmage.models.OhmageStream;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import backtype.storm.Config;
 import backtype.storm.generated.StormTopology;
 import backtype.storm.topology.BoltDeclarer;
 import backtype.storm.topology.IRichSpout;
@@ -24,6 +28,14 @@ import backtype.storm.tuple.Fields;
 public class SimpleTopologyBuilder {
 	@Autowired(required=false) 
 	StreamStore defaultStreamStore;
+	
+	// Lifestreams Configuration
+	@Value("${global.config.dryrun}")
+	boolean dryRun;
+	@Value("${lifestreams.cold.start}")
+	boolean coldStart;
+	@Autowired
+	RedisBookkeeper bookkeeper;
 	
 	TopologyBuilder builder = new TopologyBuilder();
 	List<BoltConfig> boltConfigs = new ArrayList<BoltConfig>();
@@ -57,7 +69,7 @@ public class SimpleTopologyBuilder {
 			return this;
 		}
 		private void buildBolt(){
-			LifestreamsBolt bolt = new LifestreamsBolt(task);
+			LifestreamsBolt bolt = new LifestreamsBolt(task, bookkeeper);
 			bolt.setTargetStream(targetStream);
 			bolt.setStreamStore(defaultStreamStore);
 			BoltDeclarer declarer = builder.setBolt(id, bolt, parallelism_hint)
@@ -87,6 +99,22 @@ public class SimpleTopologyBuilder {
 		for(BoltConfig config: boltConfigs){
 			config.buildBolt();
 		}
+		if(coldStart){
+			this.bookkeeper.clearAll();
+		}
 		return builder.createTopology();
+	}
+	public Config getConfiguration(){
+		Config conf = new Config();
+		conf.setDebug(false);
+		
+		// if it is a dryrun? if so, no data will be writeback to ohmage (or the defined stream store)
+		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, dryRun);
+		conf.put(Config.TOPOLOGY_MESSAGE_TIMEOUT_SECS , 3 * 60);
+		conf.put(Config.TOPOLOGY_KRYO_FACTORY, KryoSerializer.class.getName());
+		conf.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, 100000);
+		// register all the classes used in Lifestreams framework to the kryo serializer
+		return conf;
+
 	}
 }

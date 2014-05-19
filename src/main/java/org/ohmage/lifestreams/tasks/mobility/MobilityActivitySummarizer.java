@@ -32,13 +32,17 @@ public class MobilityActivitySummarizer extends SimpleTimeWindowTask<IMobilityDa
 	private static final Double MAXIMUN_SAMPLING_GAP = 5.5 * 60; // in seconds
 
 
-	EnumMap<MobilityState, Double> activityTimeAccumulator;
-	ActivityEpisodeAccumulator activityEpisodeAccumulator;
-	List<ActivityEpisode> activityInstances;
-	StreamRecord<IMobilityData> last_dp;
+	transient EnumMap<MobilityState, Double> activityTimeAccumulator;
+	transient ActivityEpisodeAccumulator activityEpisodeAccumulator;
+	transient List<ActivityEpisode> activityInstances;
+	transient StreamRecord<IMobilityData> last_dp;
 	
-	public void init(OhmageUser user, LifestreamsBolt bolt) {
-		super.init(user, bolt);
+	public void init() {
+		super.init();
+		initAccumulators();
+	}
+	public void recover() {
+		super.recover();
 		initAccumulators();
 	}
 	private void initAccumulators() {
@@ -113,14 +117,14 @@ public class MobilityActivitySummarizer extends SimpleTimeWindowTask<IMobilityDa
 	@Override
 	public void executeDataPoint(StreamRecord<IMobilityData> dp, TimeWindow window) {
 		if (last_dp == null	|| dp.getTimestamp().isAfter(last_dp.getTimestamp())){
-			// make sure we does not go back in time, then update the summaries
+			// make sure we do not go back in time, then update the summaries
 			updateSummary(dp);
 		}
 		// update the last record
 		last_dp = dp;
 	}
 
-	private void computeSummaryDataPoint(TimeWindow window, boolean isSnapshot) {
+	private void computeSummaryDataPoint(TimeWindow window) {
 		// check if there is an activity episode still being accumulated
 		if (activityEpisodeAccumulator.isInitialized()) {
 			// get the accumulated activity instance
@@ -140,11 +144,6 @@ public class MobilityActivitySummarizer extends SimpleTimeWindowTask<IMobilityDa
 		double totalTime = totalActiveTime + totalSedentaryTime;
 		double totalTransportationTime =  
 				activityTimeAccumulator.get(MobilityState.DRIVE);
-		double distance = 0;
-		for(ActivityEpisode instance: activityInstances){
-			distance += instance.getDistanceInMiles();
-		}
-		getLogger().info("Distance: {} miles", distance);
 		ActivitySummaryData data = new ActivitySummaryData(window, this)
 				.setTotalActiveTimeInSeconds(totalActiveTime)
 				.setTotalSedentaryTimeInSeconds(totalSedentaryTime)
@@ -155,7 +154,6 @@ public class MobilityActivitySummarizer extends SimpleTimeWindowTask<IMobilityDa
 		this.createRecord()
 				.setData(data)
 				.setTimestamp(window.getFirstInstant())
-				.setIsSnapshot(isSnapshot)
 				.emit();
 	}
 
@@ -163,9 +161,10 @@ public class MobilityActivitySummarizer extends SimpleTimeWindowTask<IMobilityDa
 	@Override
 	public void finishWindow(TimeWindow window) {
 		// emit the summary
-		computeSummaryDataPoint(window, false);
+		computeSummaryDataPoint(window);
 		// re-initialize the accumulators
 		initAccumulators();
+		checkpoint(window.getTimeWindowEndTime());
 		
 	}
 

@@ -1,6 +1,7 @@
 package org.ohmage.lifestreams.models;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.TimeZone;
 
 import org.joda.time.DateTime;
@@ -31,6 +32,7 @@ public class StreamRecord<T> implements Comparable{
 				this.getData().toString());
 		
 	}
+
 	public T getData() {
 		return data;
 	}
@@ -126,7 +128,7 @@ public class StreamRecord<T> implements Comparable{
 		return node;
 	}
 
-	public static class StreamRecordFactory<T> {
+	public static class StreamRecordFactory<T> implements Serializable {
 		private Class<T> c;
 		public static <T> StreamRecordFactory<T> createStreamRecordFactory(Class<T> c ){
 			return new StreamRecordFactory<T>(c);
@@ -152,6 +154,7 @@ public class StreamRecord<T> implements Comparable{
 
 			@SuppressWarnings("unchecked")
 			StreamRecord<T> dataPoint = mapper.convertValue(node, new StreamRecord<T>().getClass());
+			
 			dataPoint.setData(mapper.convertValue(dataPoint.getData(), c));
 			dataPoint.setUser(user);
 			return dataPoint;

@@ -3,6 +3,8 @@ package org.ohmage.lifestreams.tasks;
 import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.models.StreamRecord;
+import org.ohmage.lifestreams.tasks.Task.RecordBuilder;
+import org.ohmage.lifestreams.tuples.RecordTuple;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.LoggerFactory;
 
@@ -17,20 +19,21 @@ public abstract class SimpleTimeWindowTask<T> extends TimeWindowTask {
 		super(timeWindowSize);
 	}
 	@Override
-	public void init(OhmageUser user, LifestreamsBolt bolt) {
-		super.init(user, bolt);
-		if(this.getBolt().getInputStreams().size() != 1){
+	public void init() {
+		super.init();
+		if(this.getState().getBolt().getInputStreams().size() != 1){
 			throw new RuntimeException("SimpleTasks are only allowed to have one source stream.");
 		}
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
-	public void executeDataPoint(StreamRecord record, GlobalStreamId source, TimeWindow window) {
-		executeDataPoint(record, window);
+	public void executeDataPoint(RecordTuple tuple, TimeWindow window) {
+		executeDataPoint(tuple.getStreamRecord(), window);
 	}
+	
 	abstract public void executeDataPoint(StreamRecord<T> record, TimeWindow window);
-
+	
 	
 
 }

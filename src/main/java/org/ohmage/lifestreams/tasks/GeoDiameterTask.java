@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.joda.time.base.BaseSingleFieldPeriod;
+import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.GeoDiameterData;
 import org.ohmage.lifestreams.utils.UnitConversion;
@@ -12,6 +13,9 @@ import org.springframework.stereotype.Component;
 
 import com.bbn.openmap.geo.ConvexHull;
 import com.bbn.openmap.geo.Geo;
+import com.javadocmd.simplelatlng.LatLng;
+import com.javadocmd.simplelatlng.LatLngTool;
+import com.javadocmd.simplelatlng.util.LengthUnit;
 
 /**
  * @author changun This task compute the geodiameter from a set of records (with
@@ -41,26 +45,19 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 		// prepare an geolocation array for computing convex hull
 		List<Geo> geoPoints = new LinkedList<Geo>();
 		for (StreamRecord point : unprocessedPoints) {
-			geoPoints.add(point.getLocation().getCoordinates());
+			geoPoints.add(new Geo(point.getLocation().getCoordinates().getLatitude(),
+					point.getLocation().getCoordinates().getLongitude()));
 		}
 
 		// get the combined convex hull
 		Geo[] hull = ConvexHull
 				.hull(geoPoints.toArray(new Geo[geoPoints.size()]));
 
-		// replace the current old convex hull with new one
-		// notice: we record a convex hull by storing the vertexes of the hull
+		// record the updated convex hull by storing the vertexes of the hull
 		currentConexHull.clear();
-		for (Geo location : hull) {
+		for (Geo vertex : hull) {
 			// get the geolocation of each vertex
-			for (StreamRecord point : unprocessedPoints) {
-				// for each point, check if it has the same location as the
-				// vertex
-				if (point.getLocation().getCoordinates() == location) {
-					currentConexHull.add(point);
-					break;
-				}
-			}
+			currentConexHull.add(unprocessedPoints.get(geoPoints.indexOf(vertex)));
 		}
 		// clear the unprocessed points buffer
 		unprocessedPoints.clear();
@@ -78,7 +75,7 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 		}
 	}
 
-	private void computeGeoDistance(TimeWindow window, Boolean isSnapshot) {
+	private void computeGeoDistance(TimeWindow window) {
 		// first add all the unprocessed data points to generate the new convex
 		// hull
 		updateCovexHull();
@@ -88,23 +85,18 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 			return;
 		}
 		// take distance between the first two points as the initial distance
-		StreamRecord earlierPointOnDiameter = hull_points.get(0);
-		StreamRecord laterPointOnDiameter = hull_points.get(1);
-		double longestDistanceInHull = 
-				earlierPointOnDiameter.getLocation().getCoordinates().distanceNM(
-						laterPointOnDiameter.getLocation().getCoordinates()
-				);
-		// convert from NMs to miles
-		longestDistanceInHull *= 1.15078;
+		StreamRecord earlierPointOnDiameter = null;
+		StreamRecord laterPointOnDiameter = null;
+		double longestDistanceInHull = 0;
 		// compute the pairwise distance between each pair of vertexes to find the
 		// longest distance
 		for (int i = 0; i < hull_points.size() - 1; i++) {
 			for (int j = i + 1; j < hull_points.size(); j++) {
-				Geo x = hull_points.get(i).getLocation().getCoordinates();
-				Geo y = hull_points.get(j).getLocation().getCoordinates();
+				GeoLocation x = hull_points.get(i).getLocation();
+				GeoLocation y = hull_points.get(j).getLocation();
 				// compute the diameter in miles
-				double distance = UnitConversion.NMToMile(x.distanceNM(y));
-				if (longestDistanceInHull < distance) {
+				double distance = GeoLocation.distance(x, y, LengthUnit.MILE);
+				if (longestDistanceInHull <= distance) {
 					// record the points that have the longest distance so far
 					longestDistanceInHull = distance;
 					earlierPointOnDiameter = hull_points.get(i);
@@ -121,16 +113,15 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 		this.createRecord()
 			.setData(data)
 			.setTimestamp(window.getFirstInstant())
-			.setIsSnapshot(isSnapshot)
 			.emit();
 
 	}
-
+ 
 	@Override
 	public void finishWindow(TimeWindow window) {
-		computeGeoDistance(window, false);
+		computeGeoDistance(window);
 		// clear convex hull points
 		currentConexHull.clear();
-
+		this.checkpoint(window.getTimeWindowEndTime());
 	}
 }

@@ -16,9 +16,6 @@
 		<constructor-arg value="${lifestreams.password}"/>
 	</bean>
 
-   	<bean id="requestees" class="org.springframework.util.StringUtils" factory-method="commaDelimitedListToSet">
-       	<constructor-arg value="${ohmage.requestees}"/>
-   	</bean>
 	
 	<bean id="movesSegmentStream" class="org.ohmage.models.OhmageStream">
 		<constructor-arg value="org.ohmage.Moves"/>
@@ -61,26 +58,21 @@
 	</bean>  
 	
 	<!-- Moves Spout -->
-	<bean id="moves-since" class="org.joda.time.DateTime">
-		<constructor-arg value="2014-2-13"/>
-	</bean>
 	<bean id="movesSpout" class="org.ohmage.lifestreams.spouts.MovesSpout">  
 			<constructor-arg ref="movesCredentialStream"/>
-			<constructor-arg ref="moves-since"/>
 	</bean>
 	
 	<!-- Mobility Spout -->
 	<bean id="since" class="org.joda.time.DateTime">
 		<constructor-arg value="${since}"/>
 	</bean>	
-	<bean id="mobilitySpout" class="org.ohmage.lifestreams.spouts.OhmageStreamSpout">  
-			<constructor-arg ref="mobilityStream"/>
-			<constructor-arg ref="since"/>
-			<constructor-arg>
-				<value type="java.lang.Class">org.ohmage.lifestreams.models.data.MobilityData</value>
+	<bean id="mobilitySpout" class="org.ohmage.lifestreams.spouts.OhmageStreamSpout">
+	    	<constructor-arg>
+				<value>org.ohmage.lifestreams.models.data.MobilityData</value>
 			</constructor-arg>
-			<constructor-arg value="true"/>
+			<constructor-arg ref="mobilityStream"/>
 			<constructor-arg value="wifi_data,mode"/>
+			<constructor-arg value="1000"/>
 	</bean>
 	
 	<!-- Load and inject component -->
