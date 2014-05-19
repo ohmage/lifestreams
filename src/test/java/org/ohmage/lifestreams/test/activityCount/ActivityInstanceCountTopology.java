@@ -1,23 +1,16 @@
 package org.ohmage.lifestreams.test.activityCount;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ohmage.lifestreams.LifestreamsConfig;
-import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
 import org.ohmage.lifestreams.utils.KryoSerializer;
 import org.ohmage.lifestreams.utils.SimpleTopologyBuilder;
+import org.ohmage.lifestreams.test.activityCount.ActivityInstanceCounter;
 import org.ohmage.models.OhmageStream;
-import org.ohmage.models.OhmageUser;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.ImportResource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 

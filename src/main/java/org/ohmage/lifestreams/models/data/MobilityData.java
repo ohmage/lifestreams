@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.ohmage.lifestreams.models.MobilityState;
 
+import com.esotericsoftware.minlog.Log;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -60,7 +61,22 @@ public class MobilityData implements IMobilityData {
 				DeserializationContext ctxt) throws IOException,
 				JsonProcessingException {
 			String mode = jp.getText();
-			return MobilityState.valueOf(mode.toUpperCase());
+			try{
+				return MobilityState.valueOf(mode.toUpperCase());
+			}catch (IllegalArgumentException e){
+				if(mode.toUpperCase().equals("BIKE")){
+					return MobilityState.CYCLING;
+				}
+				else if(mode.toUpperCase().equals("RUNNING")){
+					return MobilityState.RUN;
+				}
+				else if(mode.toUpperCase().equals("WALKING")){
+					return MobilityState.WALK;
+				}else{
+					Log.error("UNKNOWN Mobility State has been thrown");
+					return MobilityState.UNKNOWN;
+				}
+			}
 		}
 		
 

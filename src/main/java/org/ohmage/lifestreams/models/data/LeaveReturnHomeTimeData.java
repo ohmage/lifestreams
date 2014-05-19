@@ -2,8 +2,8 @@ package org.ohmage.lifestreams.models.data;
 
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.bolts.IGenerator;
-import org.ohmage.lifestreams.bolts.TimeWindow;
 import org.ohmage.lifestreams.models.GeoLocation;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 
 public class LeaveReturnHomeTimeData extends LifestreamsData {
 	public LeaveReturnHomeTimeData(TimeWindow window, IGenerator generator) {

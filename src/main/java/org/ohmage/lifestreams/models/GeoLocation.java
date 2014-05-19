@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import com.bbn.openmap.geo.Geo;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -15,18 +14,21 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.javadocmd.simplelatlng.LatLng;
+import com.javadocmd.simplelatlng.LatLngTool;
+import com.javadocmd.simplelatlng.util.LengthUnit;
 
 public class GeoLocation {
 	// The ISO8601-formatted date-time-timezone string.
 	final DateTime timestamp;
 	// geo coordinates
-	final Geo coordinates;
+	final LatLng coordinates;
 	// accuracy in meter
 	final double accuracy;
 	// name of provider (WiFi, GPS, etc)
 	final String provider;
 
-	public GeoLocation(DateTime timestamp, Geo coordinates, double accuracy,
+	public GeoLocation(DateTime timestamp, LatLng coordinates, double accuracy,
 			String provider) {
 		super();
 		this.timestamp = timestamp;
@@ -39,7 +41,7 @@ public class GeoLocation {
 		return timestamp;
 	}
 
-	public Geo getCoordinates() {
+	public LatLng getCoordinates() {
 		return coordinates;
 	}
 
@@ -51,7 +53,10 @@ public class GeoLocation {
 		return provider;
 	}
 	public String toString(){
-		return String.format("%s accuracy:%s", this.getCoordinates().toString(), this.getAccuracy());
+		return String.format("%s accuracy:%s time:%s", this.getCoordinates().toString(), this.getAccuracy(), this.getTimestamp());
+	}
+	public static double distance(GeoLocation x, GeoLocation y, LengthUnit unit){
+		return LatLngTool.distance(x.coordinates, y.coordinates, unit);
 	}
 	public static class GeoLocationDeserializer extends
 			JsonDeserializer<GeoLocation> {
@@ -62,8 +67,8 @@ public class GeoLocation {
 			ObjectCodec oc = jp.getCodec();
 			JsonNode node = oc.readTree(jp);
 
-			Geo geo = new Geo(node.get("latitude").asDouble(), node.get(
-					"longitude").asDouble(), true);
+			LatLng geo = new LatLng(node.get("latitude").asDouble(), node.get(
+					"longitude").asDouble());
 			DateTime timestamp = null;
 			if (node.get("timestamp") != null) {
 				timestamp = new DateTime(node.get("timestamp").asText());

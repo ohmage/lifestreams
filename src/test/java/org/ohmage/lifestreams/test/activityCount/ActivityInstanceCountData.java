@@ -1,8 +1,8 @@
 package org.ohmage.lifestreams.test.activityCount;
 
 import org.ohmage.lifestreams.bolts.IGenerator;
-import org.ohmage.lifestreams.bolts.TimeWindow;
 import org.ohmage.lifestreams.models.data.LifestreamsData;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 
 /**
  * @author changun This class define the data type of the output payload. It

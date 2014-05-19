@@ -1,32 +1,32 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
-import java.io.BufferedOutputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 
 import org.joda.time.DateTime;
-import org.ohmage.lifestreams.bolts.TimeWindow;
-import org.ohmage.lifestreams.bolts.TimeWindowBolt;
+import org.joda.time.Days;
+import org.joda.time.base.BaseSingleFieldPeriod;
+import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.models.data.RectifiedMobilityData;
-import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.models.OhmageUser;
 import org.springframework.stereotype.Component;
-
-import com.bbn.openmap.geo.Geo;
 
 import be.ac.ulg.montefiore.run.jahmm.Hmm;
 import be.ac.ulg.montefiore.run.jahmm.ObservationDiscrete;
 import be.ac.ulg.montefiore.run.jahmm.OpdfDiscrete;
 import be.ac.ulg.montefiore.run.jahmm.OpdfDiscreteFactory;
+
+import com.bbn.openmap.geo.Geo;
+import com.javadocmd.simplelatlng.LatLng;
+import com.javadocmd.simplelatlng.LatLngTool;
+import com.javadocmd.simplelatlng.util.LengthUnit;
 
 /**
  * @author changun This task uses a Hidden Markov Chain model to correct the
@@ -42,40 +42,84 @@ import be.ac.ulg.montefiore.run.jahmm.OpdfDiscreteFactory;
  *         errors.
  */
 @Component
-public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
-	private static final int DRIVE_VERIFICATION_TIMEFRAME_SIZE = 10 * 60 * 1000; // in millisecs
-	private static final int MAXIMUN_ALLOWABLE_SAMPLING_INTERVAL = 6 * 60 * 1000; // in millisecs
+public class HMMMobilityRectifier extends SimpleTimeWindowTask<MobilityData> {
 	
-	Hmm<ObservationDiscrete<MobilityState>> hmmModel;
-	List<StreamRecord<MobilityData>> data = new ArrayList<StreamRecord<MobilityData>>();
 
-	
-	public void init(OhmageUser user, TimeWindowBolt bolt) {
-		super.init(user, bolt);
-		this.hmmModel = createHmmModel();
-	}
+	private static final int DRIVE_VERIFICATION_TIMEFRAME_SIZE = 10 * 60; // in seconds
+	private static final int MAXIMUN_ALLOWABLE_SAMPLING_INTERVAL =  3 * 60; // in seconds
+	private static final int MINIMUN_SAMPLING_INTERVAL =  30; // in seconds
+	transient Hmm<ObservationDiscrete<MobilityState>> hmmModel;
+	List<StreamRecord<MobilityData>> data = new ArrayList<StreamRecord<MobilityData>>(100);
 
 	@Override
-	public void executeDataPoint(StreamRecord<MobilityData> dp,
-			TimeWindow window) {
+	public void init() {
+		super.init();
+		this.hmmModel = createHmmModel();
+	}
+	@Override
+	public void recover(){
+		super.recover();
+		init();
+	}
+	int consectiveStill = 0; 
+	@Override
+	public void executeDataPoint(StreamRecord<MobilityData> dp,	TimeWindow window) {
+		if(dp.getData().getMode() == MobilityState.UNKNOWN){
+			return;
+		}
 		if(data.size() > 0){
 			DateTime lastTime = data.get(data.size()-1).getTimestamp();
-			if(lastTime.plusMillis(MAXIMUN_ALLOWABLE_SAMPLING_INTERVAL).isBefore(dp.getTimestamp())){
-				// if the sampling gap is too long, perform the rectification for the previous samples first
-				correctMobilityStates(window, false);
+			MobilityState lastState = data.get(data.size()-1).getData().getMode();
+			if(lastTime.plusSeconds(MINIMUN_SAMPLING_INTERVAL).isAfter(dp.getTimestamp())){
+				// skip too frequent samples
+				return;
+			}
+			else if(lastTime.plusSeconds(MAXIMUN_ALLOWABLE_SAMPLING_INTERVAL).isBefore(dp.getTimestamp())){
+				
+				// if the sampling gap is too large, perform the rectification on the previous samples
+				correctMobilityStates(window, data);
 				data.clear();
+				checkpoint(lastTime);
+				consectiveStill = 0;
+			}
+			else if(dp.getData().getMode() == MobilityState.STILL && consectiveStill >= 60){
+				correctMobilityStates(window, data);
+				data.clear();
+				checkpoint(lastTime);
+				consectiveStill = 0;
 			}
 		}
-		data.add(dp);
-		// sort Mobility data points by time
-		Collections.sort(data);
-	}
 
-	public void correctMobilityStates(TimeWindow window, boolean isSanpshot){
+		data.add(dp);
+		if(dp.getData().getMode() == MobilityState.STILL){
+			consectiveStill ++;
+		}else{
+			consectiveStill = 0;
+		}
+	}
+	private void emitNewRecord(StreamRecord<MobilityData> dp, MobilityState state, TimeWindow window){
+		RectifiedMobilityData rectifiedDp = new RectifiedMobilityData(window, this).setMode(state);
+		this.createRecord()
+		.setData(rectifiedDp)
+		.setLocation(dp.getLocation())
+		.setTimestamp(dp.getTimestamp())
+		.emit();
+	}
+	public void correctMobilityStates(TimeWindow window, List<StreamRecord<MobilityData>> data){
+		
+		
+		if(data.size() < 20){
+			for(StreamRecord<MobilityData> rec: data){
+				emitNewRecord(rec, rec.getData().getMode(), window);
+			}
+			return;
+		}
+		
+		
 		// first, correct those DRIVE states whose max displacement in the next and previous 10 minutes is less than 1KM to be STILL or WALK
 		for (StreamRecord<MobilityData> dp : data) {
 			if(dp.d().getMode() == MobilityState.DRIVE && dp.getLocation() != null){
-				Geo curLocation = dp.getLocation().getCoordinates();
+				LatLng curLocation = dp.getLocation().getCoordinates();
 				Double largestDisplacement = 0.0;
 				HashSet<MobilityState> modes = new HashSet<MobilityState> ();
 				for (StreamRecord<MobilityData> otherDP : data) {
@@ -83,8 +127,9 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 					   && Math.abs(otherDP.getTimestamp().getMillis() - dp.getTimestamp().getMillis()) < DRIVE_VERIFICATION_TIMEFRAME_SIZE){
 						modes.add(otherDP.d().getMode());
 						// compute displacement
-						Geo otherLocation = otherDP.getLocation().getCoordinates();
-						largestDisplacement = Math.max(largestDisplacement , otherLocation.distanceKM(curLocation));
+						LatLng otherLocation = otherDP.getLocation().getCoordinates();
+						largestDisplacement = Math.max(largestDisplacement , 
+								                       LatLngTool.distance(curLocation, otherLocation, LengthUnit.KILOMETER));
 					}
 				}
 				if(largestDisplacement < 1){
@@ -95,11 +140,11 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 			}
 		}
 		// create a list of observations (i.e. mobility states) for HMM
-		List<ObservationDiscrete<MobilityState>> observations = new ArrayList<ObservationDiscrete<MobilityState>>();
+		List<ObservationDiscrete<MobilityState>> observations = 
+				new ArrayList<ObservationDiscrete<MobilityState>>();
 		for (StreamRecord<MobilityData> dp : data) {
 			MobilityData mdp = dp.d();
-			observations.add(new ObservationDiscrete<MobilityState>(mdp
-					.getMode()));
+			observations.add(new ObservationDiscrete<MobilityState>(mdp.getMode()));
 		}
 		// compute the most likely state given the HMM model
 		int[] inferredStates = hmmModel.mostLikelyStateSequence(observations);
@@ -108,25 +153,12 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 		for (int i = 0; i < inferredStates.length; i++) {
 			MobilityState curState = MobilityState.values()[inferredStates[i]];
 			// create a new Mobility data point
-			RectifiedMobilityData rectifiedDp = new RectifiedMobilityData(window, this).setMode(curState);
-			this.createRecord()
-					.setData(rectifiedDp)
-					.setLocation(data.get(i).getLocation())
-					.setTimestamp(data.get(i).getTimestamp())
-					.setIsSnapshot(isSanpshot)
-					.emit();
+			emitNewRecord(data.get(i), curState, window);
 		}
-
 	}
 	@Override
 	public void finishWindow(TimeWindow window) {
-		correctMobilityStates(window, false);
-		data.clear();
-	}
 
-	@Override
-	public void snapshotWindow(TimeWindow window) {
-		correctMobilityStates(window, true);
 	}
 
 	public static Hmm<ObservationDiscrete<MobilityState>> createHmmModel() {
@@ -134,28 +166,28 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 				MobilityState.class);
 		Hmm<ObservationDiscrete<MobilityState>> hmm = new Hmm<ObservationDiscrete<MobilityState>>(
 				MobilityState.values().length, factory);
-		// Assume we will never have CYCLING state
+		// Assume we will never have CYCLING and UNKNOWN state
 		for (MobilityState state : MobilityState.values()) {
-			if (state.equals(MobilityState.CYCLING)) {
+			if (state.equals(MobilityState.CYCLING) || state.equals(MobilityState.UNKNOWN)) {
 				hmm.setPi(state.ordinal(), 0);
 			} else {
 				hmm.setPi(state.ordinal(),
-						1.0 / (MobilityState.values().length - 1));
+						1.0 / (MobilityState.values().length - 2));
 			}
 		}
 
 		hmm.setOpdf(MobilityState.STILL.ordinal(),
 				new OpdfDiscrete<MobilityState>(MobilityState.class,
-						new double[] { 0.70, 0.005, 0.005, 0.29, 0 }));
+						new double[] { 0.70, 0.005, 0.005, 0.29, 0, 0 }));
 		hmm.setOpdf(MobilityState.RUN.ordinal(),
 				new OpdfDiscrete<MobilityState>(MobilityState.class,
-						new double[] { 0.20, 0.50, 0.10, 0.20, 0 }));
+						new double[] { 0.20, 0.50, 0.10, 0.20, 0 , 0}));
 		hmm.setOpdf(MobilityState.WALK.ordinal(),
 				new OpdfDiscrete<MobilityState>(MobilityState.class,
-						new double[] { 0.20, 0.10, 0.50, 0.20, 0 }));
+						new double[] { 0.20, 0.10, 0.50, 0.20, 0, 0 }));
 		hmm.setOpdf(MobilityState.DRIVE.ordinal(),
 				new OpdfDiscrete<MobilityState>(MobilityState.class,
-						new double[] { 0.28, 0.01, 0.01, 0.70, 0 }));
+						new double[] { 0.28, 0.01, 0.01, 0.70, 0, 0 }));
 
 		hmm.setAij(MobilityState.STILL.ordinal(),
 				MobilityState.STILL.ordinal(), 0.70);
@@ -167,6 +199,8 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 				MobilityState.DRIVE.ordinal(), 0.01);
 		hmm.setAij(MobilityState.STILL.ordinal(),
 				MobilityState.CYCLING.ordinal(), 0.00);
+		hmm.setAij(MobilityState.STILL.ordinal(),
+				MobilityState.UNKNOWN.ordinal(), 0.00);
 
 		hmm.setAij(MobilityState.RUN.ordinal(), MobilityState.STILL.ordinal(),
 				0.10);
@@ -178,7 +212,9 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 				0.01);
 		hmm.setAij(MobilityState.RUN.ordinal(),
 				MobilityState.CYCLING.ordinal(), 0.00);
-
+		hmm.setAij(MobilityState.RUN.ordinal(),
+				MobilityState.UNKNOWN.ordinal(), 0.00);
+		
 		hmm.setAij(MobilityState.WALK.ordinal(), MobilityState.STILL.ordinal(),
 				0.10);
 		hmm.setAij(MobilityState.WALK.ordinal(), MobilityState.RUN.ordinal(),
@@ -189,6 +225,8 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 				0.01);
 		hmm.setAij(MobilityState.WALK.ordinal(),
 				MobilityState.CYCLING.ordinal(), 0.00);
+		hmm.setAij(MobilityState.WALK.ordinal(),
+				MobilityState.UNKNOWN.ordinal(), 0.00);
 
 		hmm.setAij(MobilityState.DRIVE.ordinal(),
 				MobilityState.STILL.ordinal(), 0.09);
@@ -200,6 +238,8 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 				MobilityState.DRIVE.ordinal(), 0.70);
 		hmm.setAij(MobilityState.DRIVE.ordinal(),
 				MobilityState.CYCLING.ordinal(), 0.00);
+		hmm.setAij(MobilityState.DRIVE.ordinal(),
+				MobilityState.UNKNOWN.ordinal(), 0.00);
 		return (hmm);
 	}
 }

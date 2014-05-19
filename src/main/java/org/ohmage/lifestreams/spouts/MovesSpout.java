@@ -1,31 +1,53 @@
 package org.ohmage.lifestreams.spouts;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.LocalDate;
 import org.joda.time.MutableDateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.models.data.MovesCredentials;
+import org.ohmage.lifestreams.models.StreamRecord.StreamRecordFactory;
+import org.ohmage.lifestreams.models.data.MovesCredentialsData;
+import org.ohmage.lifestreams.tuples.RecordTuple;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
+import org.ohmage.models.OhmageUser.OhmageAuthenticationError;
+import org.ohmage.sdk.OhmageStreamClient;
+import org.ohmage.sdk.OhmageStreamIterator;
+import org.ohmage.sdk.OhmageStreamIterator.SortOrder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.tuple.Values;
+import co.nutrino.api.moves.exception.OAuthException;
+import co.nutrino.api.moves.exception.ResourceException;
 import co.nutrino.api.moves.impl.client.MovesClient;
 import co.nutrino.api.moves.impl.client.MovesUserCredentials;
 import co.nutrino.api.moves.impl.client.activity.MovesUserStorylineClient;
 import co.nutrino.api.moves.impl.client.activity.MovesUserStorylineResourceClient;
+import co.nutrino.api.moves.impl.client.authentication.MovesAuthenticationClient;
 import co.nutrino.api.moves.impl.client.user.MovesUserClient;
+import co.nutrino.api.moves.impl.dto.authentication.UserMovesAuthentication;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 import co.nutrino.api.moves.impl.dto.storyline.MovesStoryline;
 import co.nutrino.api.moves.impl.dto.user.MovesUser;
@@ -40,65 +62,180 @@ import co.nutrino.api.moves.impl.service.MovesSecurityManager;
 import co.nutrino.api.moves.impl.service.MovesServiceBuilder;
 import co.nutrino.api.moves.request.RequestTokenConvertor;
 
-public class MovesSpout extends OhmageStreamSpout{
+public class MovesSpout extends BaseOhmageSpout<MovesSegment>{
+	class MovesInfo{
+		public MovesInfo(MovesUser user, MovesUserCredentials credentials) {
+			this.user = user;
+			this.credentials = credentials;
+		}
+		final MovesUser user;
+		final MovesUserCredentials credentials;
+	}
+	
+	// the following are from Moves APIs
 	MovesUserClient userClient;
 	MovesUserStorylineClient storylineClient;
+	MovesAuthenticationClient authClient;
 	@Autowired
 	MovesSecurityManager movesSecurityManger;
-	Map<OhmageUser, MovesUserCredentials> userMapping = new HashMap<OhmageUser, MovesUserCredentials>();
-	DateTime lastSyncTime;
-	class MovesQueryTooFastException extends Exception{};
-	public boolean fetchMovesData(OhmageUser ohmageUser, MovesUserCredentials credentials) throws MovesQueryTooFastException {
-		MovesUser user = null;
-		try {
-			// try to see if this is a valid MovesUserCredentials
-			user = userClient.getUser(credentials);
-		} catch(java.lang.IllegalArgumentException e){
-			// Moves returns null. it maybe because we query too fast, so sleep for a while
-			throw new  MovesQueryTooFastException();
-		} catch (Exception e) {
-			logger.error("Credential for user {} not working. Error: {}", ohmageUser, e.toString());
-			return false;
+	
+	// the ohmage stream that stores the moves credentials
+	OhmageStream movesCredentialsStream;
+
+	// record factory for MovesCredentials record in ohmage
+	StreamRecordFactory<MovesCredentialsData> dataPointFactory = StreamRecordFactory.createStreamRecordFactory(MovesCredentialsData.class);
+	
+	public Iterator<StreamRecord<MovesCredentialsData>> getMovesCredentialDataIterator(final OhmageUser user, DateTime after) throws OhmageAuthenticationError, IOException{
+		final OhmageStreamIterator iter = new OhmageStreamClient(getRequester())
+												.getOhmageStreamIteratorBuilder(movesCredentialsStream, user)
+												.order(SortOrder.ReversedChronological)
+												.startDate(after)
+												.build();
+		return new  Iterator<StreamRecord<MovesCredentialsData>>(){
+			@Override
+			public boolean hasNext() {
+				return iter.hasNext();
+			}
+			@Override
+			public StreamRecord<MovesCredentialsData> next() {
+				StreamRecord<MovesCredentialsData> rec;
+				try {
+					rec = dataPointFactory.createRecord(iter.next(), user);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+				return rec;
+			}
+			@Override
+			public void remove() {
+				throw new UnsupportedOperationException();
+			}
+		};
+	}
+	public MovesUserCredentials getStoredMovesCredentialsFor(OhmageUser requestee) throws OhmageAuthenticationError, IOException{
+		// There are two places that could store the moves credentials for a particular user.
+		// 1. the requestee's own moves credentials stream.
+		// 2. the requester's moves credentials stream.
+		
+		StreamRecord<MovesCredentialsData> latestRec= null;
+		// query the latest record from the requestee's own credentails stream
+		Iterator<StreamRecord<MovesCredentialsData>> iter = getMovesCredentialDataIterator(requestee, null);
+		while(iter.hasNext()){
+			StreamRecord<MovesCredentialsData> rec = iter.next();
+			MovesCredentialsData credentials = rec.getData();
+			if(credentials.getUsername() == null || credentials.getUsername().length() == 0){
+				// only get the record that belong to the requestee himself (i.e. the record without username)
+				latestRec = rec;
+				break;
+			}
 		}
-		// we got a working credential, get all the segments for this user.
-		MovesUserProfile movesProfile = user.getProfile();
+		// query the requester's moves credentials stream and get the latest one that belongs to the user
+		iter = getMovesCredentialDataIterator(getRequester(), null);
+		
+		while(iter.hasNext()){
+			StreamRecord<MovesCredentialsData> rec = iter.next();
+			if(latestRec != null && rec.getTimestamp().isBefore(latestRec.getTimestamp())){
+				break;
+			}
+			MovesCredentialsData credentials = rec.getData();
+			if(credentials.getUsername() != null && credentials.getUsername().equals(requestee.getUsername())){
+				latestRec = rec;
+				break;
+			}
+		}
+		if(latestRec != null){
+			MovesCredentialsData cData = latestRec.getData();
+			// create MovesUserCredentials based on it
+			MovesUserCredentials credentials = new MovesUserCredentials(
+					cData.getAccessToken() , cData.getRefreshToken());
+			return credentials;
+		}else{
+			return null;
+		}
+	}
+	public MovesUserCredentials refreshCredentials(MovesUserCredentials oldCredentials, OhmageUser user) throws OAuthException, OhmageAuthenticationError, IOException{
+		logger.info("Try to Refresh Moves OAuth Token For {}", user);
+		UserMovesAuthentication newAuth = authClient.refreshAuthentication(oldCredentials);
+		logger.info("Received new OAuth Token For {}", user);
+		MovesCredentialsData data = MovesCredentialsData.createMovesCredentialsFor(newAuth, user);
+		StreamRecord<MovesCredentialsData> rec = new StreamRecord<MovesCredentialsData>(user, new DateTime(), null, data);
+		new OhmageStreamClient(getRequester()).upload(movesCredentialsStream, rec.toObserverDataPoint());
+		logger.info("Upload new OAuth Token For {} to requester's Moves Credential Stream", user);
+		// create MovesUserCredentials based on it
+		MovesUserCredentials newCredentials = new MovesUserCredentials(
+												data.getAccessToken()
+											  , data.getRefreshToken());
+		return newCredentials;
+	}
+	public MovesInfo getMovesInfo(MovesUserCredentials credentials, OhmageUser ohmageUser){
+		try{
+			while(true){
+				try {
+					// if it is not a valid credential, try to refresh it
+					if(!authClient.validateAuthentication(credentials)){
+						credentials = refreshCredentials(credentials, ohmageUser);
+					}
+					MovesUser user =  userClient.getUser(credentials);		
+					return new MovesInfo(user, credentials);
+				} catch(java.lang.IllegalArgumentException e){
+					// Moves returns null since we query too fast, sleep for a while and retry
+					Thread.sleep(10000);
+				}
+			}
+		}
+		catch (Exception e) {
+				logger.error("Credential for user {} not working. Error: {}", ohmageUser, e.toString());
+				return null;
+		}
+	}
+
+	public List<StreamRecord<MovesSegment>> getMovesData(MovesInfo moves, OhmageUser ohmageUser, DateTime start) {
+
+		MovesUserProfile movesProfile = moves.user.getProfile();
 		// get the current time in the user's timezone
 		DateTimeZone zone = DateTimeZone.forTimeZone(movesProfile.getCurrentTimeZone());
 		
 		// get the user's first day with Moves
-		MutableDateTime firstDateWithMoves = new MutableDateTime(movesProfile.getFirstDate());
+		DateTime firstDateWithMoves = new MutableDateTime(movesProfile.getFirstDate()).toDateTime();
+		// set start time to be the user's first date with Moves or the checkpoint of this user. Whichever is later.
+		DateTime startTime =  firstDateWithMoves.isAfter(start)? firstDateWithMoves: start;
+		// get the current date at the user's timezone
+		DateTime today = DateTime.now(DateTimeZone.forTimeZone(movesProfile.getCurrentTimeZone()));
 
-		
-		// get data til yesterday
-		DateTime yesterday = DateTime.now(DateTimeZone.forTimeZone(movesProfile.getCurrentTimeZone())).minusDays(1);
-		
-		
 		// get all storylines from Moves
 		List<MovesStoryline> storylines = new ArrayList<MovesStoryline>();
 		
-		// get the start time
 
-		DateTime start = firstDateWithMoves.toDateTime();
-		
+		// get moves data til yesterday
+		for(DateTime pointer=new DateTime(startTime); pointer.isBefore(today); pointer = pointer.plusDays(7)){
+			// query 7 day's data at once
+			DateTime end =  pointer.plusDays(6).isBefore(today) ? pointer.plusDays(6) : today;
+			try{
+				while(true){
+					// try til we successfuly get the data from moves without timeout
+					try {
 
-		for(; start.isBefore(yesterday); start = start.plusDays(7)){
-
-				try {
-					DateTime end =  start.plusDays(6).isAfter(yesterday) ? yesterday : start.plusDays(6);
-					MovesStoryline[] sevenDaysStorylines;
-					sevenDaysStorylines = storylineClient.getUserStorylineForDates(
-								credentials, start.toDate(), end.toDate() );
-					Thread.sleep(1000);
-					storylines.addAll(Arrays.asList(sevenDaysStorylines));
-				} catch(java.lang.IllegalArgumentException e){
-					// Moves returns null. it maybe because we query too fast, so sleep for a while
-					throw new  MovesQueryTooFastException();
-				} catch (Exception e) {
-					throw new RuntimeException(e);
+						MovesStoryline[] sevenDaysStorylines;
+						sevenDaysStorylines = storylineClient.getUserStorylineForDates(
+									moves.credentials, pointer.toDate(), end.toDate() );
+						Thread.sleep(1000);
+						storylines.addAll(Arrays.asList(sevenDaysStorylines));
+						break;
+					} catch(java.lang.IllegalArgumentException e){
+						// Moves returns null. it maybe because we query too fast, so sleep for a while
+						Thread.sleep(10000);	
+					}
 				}
+			}catch (Exception e) {
+				// some error happened. skip this user.
+				logger.error("Fetch data error for {} from {} to {}", ohmageUser, pointer, end);
+				logger.error("Trace:", e);
+			}
 		}
-		// set start = now, so that, next time, we will query the current day's data again
-		// emit all the segments
+		DateTime lastSegmentTime = null;
+		// create stream records based on the received segments
+		List<StreamRecord<MovesSegment>> recs = new ArrayList<StreamRecord<MovesSegment>>(); 
+		
 		for(MovesStoryline storyline: storylines){
 			if(storyline != null && storyline.getSegments()!=null){
 				LocalDate date = new LocalDate(storyline.getDate());
@@ -121,81 +258,62 @@ public class MovesSpout extends OhmageStreamSpout{
 					rec.setData(segment);
 					rec.setTimestamp(segment.getEndTime());
 					rec.setUser(ohmageUser);
-					this.emitRecord(rec);
+					lastSegmentTime = rec.getTimestamp();
+					recs.add(rec);
 				}
-
-				
 			}
 		}
-		return true;
+
+		List<StreamRecord<MovesSegment>> validRecs = new ArrayList<StreamRecord<MovesSegment>>(); 
+		// add the records to the queue 
+		for(StreamRecord<MovesSegment> rec: recs){
+			if(rec.getTimestamp().compareTo(start) >= 0){
+				// only add those records whose timestamp is after the checkpoint (inclusive)
+				validRecs.add(rec);
+			}
+		}
+		logger.info("Get {} Moves Segments For User {} from {} to {}", recs.size(), ohmageUser, startTime, lastSegmentTime);
+		return validRecs;
+
 	}
+
+	private void initMovesAPI(){
+		MovesClient client = new MovesClient(new RequestTokenConvertor(), new MovesOAuthService(new MovesServiceBuilder(new MovesApi(), movesSecurityManger), new MovesResponseHandler(),
+			    new MovesResourceRequestConstructor(), new MovesAuthenticationRequestConstructor()));
+		userClient = new MovesUserClient(client);
+		storylineClient = new MovesUserStorylineClient(new MovesUserStorylineResourceClient(client,new MovesDatesRequestParametersCreator()));
+		authClient = new MovesAuthenticationClient(client, movesSecurityManger);
 		
-	public MovesSpout(OhmageStream stream,  DateTime startDate) {
-		super(stream, startDate, MovesCredentials.class, false, null);
-	}
-
-	@Override
-	public void nextTuple() {
-		try{
-			// sync with Moves if we have not sync for more than 12 hours
-			if(lastSyncTime == null || lastSyncTime.plusHours(12).isBefore(DateTime.now())){
-				// fetch the moves data for each user with a Moves credentials
-				for(OhmageUser user: userMapping.keySet()){
-					while(true){
-						try {
-							fetchMovesData(user, userMapping.get(user));
-						} catch (MovesQueryTooFastException e) {
-								logger.info("MovesSpout going too fast.. slow dow...");
-								Thread.sleep(10000);
-								continue;
-						}
-						break;
-					}
-					Thread.sleep(1000);
-				}
-				lastSyncTime = DateTime.now();
-			}
-			// if ohmage returns some new Moves oauth credentials
-			while(!this.getReturnedStreamRecordQueue().isEmpty()){
-				try {
-					// get a new Moves credential object
-					StreamRecord<MovesCredentials> rec = this.getReturnedStreamRecordQueue().take();
-					// create MovesUserCredentials based on it
-					MovesUserCredentials credentials = new MovesUserCredentials(rec.d().getAccessToken(), rec.d().getRefreshToken());
-					// fetch the moves data
-					boolean success = false;
-					while(true){
-						try {
-							success = fetchMovesData(rec.getUser(), credentials);
-						} catch (MovesQueryTooFastException e) {
-							logger.info("MovesSpout going too fast.. slow dow...");
-							Thread.sleep(10000);
-							continue;
-						}
-						break;
-					}
-					if(success){
-						// add this to user mapping, so that it will be synced in the future
-						userMapping.put(rec.getUser(), new MovesUserCredentials(rec.d().getAccessToken(), rec.d().getRefreshToken()));
-					}
-				} catch (InterruptedException e) {
-					return;
-				}
-			}
-			Thread.sleep(5000);
-		}catch(InterruptedException e){
-			return;
-		}
 	}
 	@Override
 	public void open(Map conf, TopologyContext context,
 			SpoutOutputCollector collector) {
 		super.open(conf, context, collector);
-		MovesClient client = new MovesClient(new RequestTokenConvertor(), new MovesOAuthService(new MovesServiceBuilder(new MovesApi(), movesSecurityManger), new MovesResponseHandler(),
-			    new MovesResourceRequestConstructor(), new MovesAuthenticationRequestConstructor()));
-		userClient = new MovesUserClient(client);
-		storylineClient = new MovesUserStorylineClient(new MovesUserStorylineResourceClient(client,new MovesDatesRequestParametersCreator()));
+		initMovesAPI();
+	}
+	public MovesSpout(OhmageStream movesCredentialsStream) {
+		super(2, TimeUnit.HOURS);
+		this.movesCredentialsStream = movesCredentialsStream;
+	}
 
+
+	@Override
+	protected Iterator<StreamRecord<MovesSegment>> getIteratorFor(OhmageUser user,
+			DateTime since) {
+		try {
+			MovesUserCredentials credentials = this.getStoredMovesCredentialsFor(user);
+			if(credentials != null){
+				// try to see if it is a valid credentials
+				MovesInfo info = getMovesInfo(credentials, user);
+				if( info != null){
+					List<StreamRecord<MovesSegment>> recs = getMovesData(info, user, since);
+					return recs.iterator();
+				}
+			}
+		} catch (Exception e) {
+			logger.error("Fetch MovesSegmentError", e);
+		}
+		return null;
 	}
 
 }

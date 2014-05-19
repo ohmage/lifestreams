@@ -7,54 +7,33 @@ import java.util.Set;
 
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
+import org.ohmage.lifestreams.tuples.RecordTuple;
 
 import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.tuple.Tuple;
 
 public class PendingBuffer {
 	// we keep a buffer for each data stream
-
-	static public class RecordAndSource {
-		public final Tuple data;
-		public final GlobalStreamId source;
-		public final DateTime time;
-		public RecordAndSource(Tuple data, DateTime time, GlobalStreamId source) {
-			this.data = data;
-			this.source = source;
-			this.time = time;
-		}
-
-		public Tuple getData() {
-			return data;
-		}
-		public DateTime getTime(){
-			return time;
-		}
-		public GlobalStreamId getSource() {
-			return source;
-		}
-	}
-
-	private List<RecordAndSource> buffer = new LinkedList<RecordAndSource>();
+	private List<RecordTuple> buffer = new LinkedList<RecordTuple>();
+	
 	private Set<GlobalStreamId> pendingStreams = new HashSet<GlobalStreamId>();
 
 	// put into the buffer ordered by time
-	public void put(Tuple input, DateTime time, GlobalStreamId source) {
-		pendingStreams.add(source);
+	public void put(RecordTuple tuple) {
+		pendingStreams.add(tuple.getSource());
 		for (int i = 0; i < buffer.size(); i++) {
-			if (time.isBefore(buffer.get(i).getTime())) {
-				buffer.add(i, new RecordAndSource(input, time, source));
+			if (tuple.getTimestamp().isBefore(buffer.get(i).getTimestamp())) {
+				buffer.add(i, tuple);
 				return;
 			}
 		}
-		buffer.add(new RecordAndSource(input, time, source));
+		buffer.add(tuple);
 	}
 
 	public Set<GlobalStreamId> getPendingStreams() {
 		return pendingStreams;
 	}
 
-	public List<RecordAndSource> getBuffer() {
+	public List<RecordTuple> getBuffer() {
 		return buffer;
 	}
 

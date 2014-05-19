@@ -5,14 +5,16 @@ import java.util.EnumMap;
 import java.util.List;
 
 import org.joda.time.DateTime;
-import org.ohmage.lifestreams.bolts.TimeWindow;
-import org.ohmage.lifestreams.bolts.TimeWindowBolt;
+import org.joda.time.Days;
+import org.joda.time.base.BaseSingleFieldPeriod;
+import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.ActivityEpisode;
 import org.ohmage.lifestreams.models.data.ActivitySummaryData;
 import org.ohmage.lifestreams.models.data.IMobilityData;
-import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.lifestreams.utils.ActivityEpisodeAccumulator;
 import org.ohmage.models.OhmageUser;
 import org.springframework.stereotype.Component;
@@ -24,19 +26,23 @@ import org.springframework.stereotype.Component;
  * 
  */
 @Component
-public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
+public class MobilityActivitySummarizer extends SimpleTimeWindowTask<IMobilityData> {
 
 	private static final int MAXIMUN_NON_ACTIVE_GAP = 2 * 60 * 1000; // in millisec
 	private static final Double MAXIMUN_SAMPLING_GAP = 5.5 * 60; // in seconds
 
 
-	EnumMap<MobilityState, Double> activityTimeAccumulator;
-	ActivityEpisodeAccumulator activityEpisodeAccumulator;
-	List<ActivityEpisode> activityInstances;
-	StreamRecord<IMobilityData> last_dp;
+	transient EnumMap<MobilityState, Double> activityTimeAccumulator;
+	transient ActivityEpisodeAccumulator activityEpisodeAccumulator;
+	transient List<ActivityEpisode> activityInstances;
+	transient StreamRecord<IMobilityData> last_dp;
 	
-	public void init(OhmageUser user, TimeWindowBolt bolt) {
-		super.init(user, bolt);
+	public void init() {
+		super.init();
+		initAccumulators();
+	}
+	public void recover() {
+		super.recover();
 		initAccumulators();
 	}
 	private void initAccumulators() {
@@ -111,14 +117,14 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 	@Override
 	public void executeDataPoint(StreamRecord<IMobilityData> dp, TimeWindow window) {
 		if (last_dp == null	|| dp.getTimestamp().isAfter(last_dp.getTimestamp())){
-			// make sure we does not go back in time, then update the summaries
+			// make sure we do not go back in time, then update the summaries
 			updateSummary(dp);
 		}
 		// update the last record
 		last_dp = dp;
 	}
 
-	private void computeSummaryDataPoint(TimeWindow window, boolean isSnapshot) {
+	private void computeSummaryDataPoint(TimeWindow window) {
 		// check if there is an activity episode still being accumulated
 		if (activityEpisodeAccumulator.isInitialized()) {
 			// get the accumulated activity instance
@@ -138,11 +144,6 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 		double totalTime = totalActiveTime + totalSedentaryTime;
 		double totalTransportationTime =  
 				activityTimeAccumulator.get(MobilityState.DRIVE);
-		double distance = 0;
-		for(ActivityEpisode instance: activityInstances){
-			distance += instance.getDistanceInMiles();
-		}
-		getLogger().info("Distance: {} miles", distance);
 		ActivitySummaryData data = new ActivitySummaryData(window, this)
 				.setTotalActiveTimeInSeconds(totalActiveTime)
 				.setTotalSedentaryTimeInSeconds(totalSedentaryTime)
@@ -153,7 +154,6 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 		this.createRecord()
 				.setData(data)
 				.setTimestamp(window.getFirstInstant())
-				.setIsSnapshot(isSnapshot)
 				.emit();
 	}
 
@@ -161,15 +161,12 @@ public class MobilityActivitySummarizer extends SimpleTask<IMobilityData> {
 	@Override
 	public void finishWindow(TimeWindow window) {
 		// emit the summary
-		computeSummaryDataPoint(window, false);
+		computeSummaryDataPoint(window);
 		// re-initialize the accumulators
 		initAccumulators();
+		checkpoint(window.getTimeWindowEndTime());
 		
 	}
 
-	@Override
-	public void snapshotWindow(TimeWindow window) {
-		computeSummaryDataPoint(window, true);
-	}
 
 }

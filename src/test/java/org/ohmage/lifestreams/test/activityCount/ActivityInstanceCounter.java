@@ -1,9 +1,10 @@
 package org.ohmage.lifestreams.test.activityCount;
 
-import org.ohmage.lifestreams.bolts.TimeWindow;
+import org.joda.time.Days;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.MobilityData;
-import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.springframework.stereotype.Component;
 
 /**
@@ -12,7 +13,11 @@ import org.springframework.stereotype.Component;
  *         ActivityInstanceCountData.        
  */
 @Component											
-public class ActivityInstanceCounter extends SimpleTask<MobilityData>{ // input data type = MobilityData
+public class ActivityInstanceCounter extends SimpleTimeWindowTask<MobilityData>{ // input data type = MobilityData
+	public ActivityInstanceCounter() {
+		super(Days.ONE);
+	}
+
 	// counter for activity instances
 	int activityInstanceCount = 0;
 	@Override
@@ -22,7 +27,7 @@ public class ActivityInstanceCounter extends SimpleTask<MobilityData>{ // input 
 			// increment the counter if the mobility state of this data point is active
 			activityInstanceCount ++;
 		}
-		
+		 
 	}
 
 	@Override
@@ -31,24 +36,14 @@ public class ActivityInstanceCounter extends SimpleTask<MobilityData>{ // input 
 		ActivityInstanceCountData data = new ActivityInstanceCountData(window, this);
 		this.createRecord()
 				.setTimestamp(window.getFirstInstant())
-				.setIsSnapshot(false)
 				.setData(data)
 				.emit();
 		// restart the counter
 		activityInstanceCount = 0;
+		checkpoint(window.getTimeWindowEndTime());
 		
 	}
 
-	@Override
-	public void snapshotWindow(TimeWindow window) {
-		// do the same thing as in finishWindow, but without restarting the counter
-		ActivityInstanceCountData data = new ActivityInstanceCountData(window, this);
-		this.createRecord()
-				.setTimestamp(window.getFirstInstant())
-				.setIsSnapshot(true)
-				.setData(data)
-				.emit();
-	}
 		
 	
 }

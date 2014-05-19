@@ -3,7 +3,7 @@ package org.ohmage.lifestreams.models.data;
 import java.util.Set;
 
 import org.ohmage.lifestreams.bolts.IGenerator;
-import org.ohmage.lifestreams.bolts.TimeWindow;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -38,7 +38,6 @@ public class LifestreamsData {
 
 	}
 
-	boolean isSnapshot;
 	GeneratorInfo generator;
 	TimeWindow timeWindow;
 
@@ -52,13 +51,6 @@ public class LifestreamsData {
 					, this.getGenerator().getComponentId()
 					, this.getTimeWindow().getTimeWindowBeginTime()
 					, this.getTimeWindow().getTimeWindowEndTime());
-	}
-	public boolean isSnapshot() {
-		return isSnapshot;
-	}
-
-	public void setSnapshot(boolean isSnapshot) {
-		this.isSnapshot = isSnapshot;
 	}
 
 	@JsonProperty

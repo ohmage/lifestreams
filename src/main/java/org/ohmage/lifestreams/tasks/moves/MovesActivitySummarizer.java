@@ -2,13 +2,15 @@ package org.ohmage.lifestreams.tasks.moves;
 
 import java.util.ArrayList;
 
+import org.joda.time.Days;
 import org.joda.time.Interval;
-import org.ohmage.lifestreams.bolts.TimeWindow;
+import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.ActivityEpisode;
 import org.ohmage.lifestreams.models.data.ActivitySummaryData;
-import org.ohmage.lifestreams.tasks.SimpleTask;
+import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
+import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.springframework.stereotype.Component;
 
 import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
@@ -22,7 +24,7 @@ import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
  * 
  */
 @Component
-public class MovesActivitySummarizer extends SimpleTask<MovesSegment> {
+public class MovesActivitySummarizer extends SimpleTimeWindowTask<MovesSegment> {
 	ArrayList<MovesSegment> segments = new ArrayList<MovesSegment>();
 
 	@Override
@@ -32,7 +34,7 @@ public class MovesActivitySummarizer extends SimpleTask<MovesSegment> {
 	}
 
 	// this function computes the activity summary from the Moves segment we have received so far.
-	private void computeAndEmitSummary(TimeWindow window, boolean isSnapshot) {
+	private void computeAndEmitSummary(TimeWindow window) {
 		double totalActiveTime = 0;
 		double totalTime = 0;
 		double totalTransportationTime = 0;
@@ -47,7 +49,7 @@ public class MovesActivitySummarizer extends SimpleTask<MovesSegment> {
 				// if there is activity in this segment
 				for (MovesActivity activity : segment.getActivities()) {
 					if(activity.getGroup() == null){
-						this.getLogger().error("Encourter a activity without group: {}. Assign it to walk for now.", activity.getActivity());
+						this.getLogger().error("Encounter a activity without group: {}. Assign it to walk for now.", activity.getActivity());
 						activity.setGroup(MovesActivityEnum.Walking);
 					}
 					// go over each activity
@@ -80,21 +82,15 @@ public class MovesActivitySummarizer extends SimpleTask<MovesSegment> {
 		this.createRecord()
 					.setData(data)
 					.setTimestamp(window.getFirstInstant())
-					.setIsSnapshot(isSnapshot)
 					.emit();
 	}
 
 	@Override
 	public void finishWindow(TimeWindow window) {
-		computeAndEmitSummary(window, false);
+		computeAndEmitSummary(window);
 		// clear the segements for this timewindow
 		segments.clear();
-	}
-
-	@Override
-	public void snapshotWindow(TimeWindow window) {
-		computeAndEmitSummary(window, true);
-
+		checkpoint(window.getTimeWindowEndTime());
 	}
 
 }
