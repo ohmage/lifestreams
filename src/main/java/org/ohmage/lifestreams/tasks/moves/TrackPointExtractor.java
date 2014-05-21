@@ -2,7 +2,7 @@ package org.ohmage.lifestreams.tasks.moves;
 
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.models.data.LifestreamsData;
+import org.ohmage.lifestreams.models.data.TimeWindowData;
 import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +21,7 @@ import com.javadocmd.simplelatlng.LatLng;
  */
 @Component
 public class TrackPointExtractor extends SimpleTask<MovesSegment> {
-	class DummyMovesTrackPointData extends LifestreamsData {
+	class DummyMovesTrackPointData extends TimeWindowData {
 		public DummyMovesTrackPointData(TrackPointExtractor generator) {
 			super(null, generator);
 		}

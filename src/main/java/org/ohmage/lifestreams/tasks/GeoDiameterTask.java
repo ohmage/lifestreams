@@ -27,24 +27,24 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 
 	private static final long serialVersionUID = 5133741379346160935L;
 
-	private static final int UNPROCESSED_POINTS_BUFFER_SIZE = 10;
+	private static final int POINTS_BUFFER_SIZE = 10;
 
-	List<StreamRecord> unprocessedPoints = new ArrayList<StreamRecord>(
-			UNPROCESSED_POINTS_BUFFER_SIZE);
-	List<StreamRecord> currentConexHull = new ArrayList<StreamRecord>();
+	List<StreamRecord> pointBuffer = new ArrayList<StreamRecord>(
+			POINTS_BUFFER_SIZE);
+	List<StreamRecord> currentConvexHull = new ArrayList<StreamRecord>();
 
 	private void updateCovexHull() {
-		if (unprocessedPoints.size() == 0) {
+		if (pointBuffer.size() == 0) {
 			// do nothing if no unprocessed point
 			return;
 		}
 
 		// combine the unprocessed points with the points on the current convex
 		// hull
-		unprocessedPoints.addAll(currentConexHull);
-		// prepare an geolocation array for computing convex hull
+		pointBuffer.addAll(currentConvexHull);
+		// prepare the geolocation array for computing convex hull
 		List<Geo> geoPoints = new LinkedList<Geo>();
-		for (StreamRecord point : unprocessedPoints) {
+		for (StreamRecord point : pointBuffer) {
 			geoPoints.add(new Geo(point.getLocation().getCoordinates().getLatitude(),
 					point.getLocation().getCoordinates().getLongitude()));
 		}
@@ -54,13 +54,13 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 				.hull(geoPoints.toArray(new Geo[geoPoints.size()]));
 
 		// record the updated convex hull by storing the vertexes of the hull
-		currentConexHull.clear();
+		currentConvexHull.clear();
 		for (Geo vertex : hull) {
 			// get the geolocation of each vertex
-			currentConexHull.add(unprocessedPoints.get(geoPoints.indexOf(vertex)));
+			currentConvexHull.add(pointBuffer.get(geoPoints.indexOf(vertex)));
 		}
 		// clear the unprocessed points buffer
-		unprocessedPoints.clear();
+		pointBuffer.clear();
 	}
 
 	@Override
@@ -68,10 +68,10 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 		if (dp.getLocation() == null || dp.getLocation().getAccuracy() > 100)
 			return;
 		// compute the current convex hull every 10 data points
-		if (unprocessedPoints.size() >= UNPROCESSED_POINTS_BUFFER_SIZE) {
+		if (pointBuffer.size() >= POINTS_BUFFER_SIZE) {
 			updateCovexHull();
 		} else {
-			unprocessedPoints.add(dp);
+			pointBuffer.add(dp);
 		}
 	}
 
@@ -79,7 +79,7 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 		// first add all the unprocessed data points to generate the new convex
 		// hull
 		updateCovexHull();
-		List<StreamRecord> hull_points = this.currentConexHull;
+		List<StreamRecord> hull_points = this.currentConvexHull;
 		if (hull_points.size() < 2) {
 			// return nothing if we don't have a convex hull...
 			return;
@@ -121,7 +121,7 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 	public void finishWindow(TimeWindow window) {
 		computeGeoDistance(window);
 		// clear convex hull points
-		currentConexHull.clear();
+		currentConvexHull.clear();
 		this.checkpoint(window.getTimeWindowEndTime());
 	}
 }

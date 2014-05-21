@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 import java.util.Timer;
@@ -29,8 +30,9 @@ import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.StreamRecord.StreamRecordFactory;
 import org.ohmage.lifestreams.tuples.BaseTuple;
 import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
-import org.ohmage.lifestreams.tuples.MsgId;
 import org.ohmage.lifestreams.tuples.RecordTuple;
+import org.ohmage.lifestreams.tuples.SpoutRecordTuple;
+import org.ohmage.lifestreams.tuples.SpoutRecordTuple.RecordTupleMsgId;
 import org.ohmage.lifestreams.tuples.StreamStatusTuple;
 import org.ohmage.lifestreams.tuples.StreamStatusTuple.StreamStatus;
 import org.ohmage.models.OhmageStream;
@@ -71,8 +73,7 @@ abstract public class BaseOhmageSpout<T>  extends BaseRichSpout  {
 	// thread  pool for committing checkpoint
 	private ScheduledExecutorService _checkpointScheduler;
 	// checkpoint of each user
-	private Map<OhmageUser, DateTime> checkpoints = new HashMap<OhmageUser, DateTime>(); 
-	private Set<OhmageUser> failFlag = Collections.newSetFromMap(new ConcurrentHashMap<OhmageUser, Boolean>());
+	private Map<OhmageUser, UserSpoutState> states = new HashMap<OhmageUser, UserSpoutState>();
 	private TimeUnit retryDelayTimeUnit;
 	private int retryDelay;
 	public List<OhmageUser> getRequestees() {
@@ -113,29 +114,33 @@ abstract public class BaseOhmageSpout<T>  extends BaseRichSpout  {
 		public void run() {
 
 			long batchId = new DateTime().getMillis();
-				logger.info("Start getting next batch for {}", user);
-				// clear failed flag
-				failFlag.remove(user);
-				// get the checkpoint left by the previous batch
-				DateTime checkpoint = checkpoints.get(user);
-				// set start time = the next millisecond of the checkpoint or the global start time
-				// defined in {DateTime since}, whichever is ahead of the other
-				DateTime start = checkpoint != null && checkpoint.plus(1).isAfter(since) ?
-									checkpoint.plus(1) : since;
-				// get a new iterator 
-				Iterator<StreamRecord<T>> iter = getIteratorFor(user, start);
-				queue.add(new StreamStatusTuple(user, batchId, StreamStatus.HEAD));
-				
-				while(!failFlag.contains(user) && iter.hasNext()){
-					queue.add(new RecordTuple(iter.next(), batchId));
+			logger.info("Start getting next batch for {}", user);
+			// clear and update user state with new batch id
+			UserSpoutState state = states.get(user);
+			state.newBatch(batchId);
+			// get the checkpoint left by the previous batch
+			DateTime checkpoint = state.getCheckpoint();
+			// set start time = the next millisecond of the checkpoint or the global start time
+			// defined in {DateTime since}, whichever is ahead of the other
+			DateTime start = (checkpoint != null && checkpoint.plus(1).isAfter(since)) ?
+								checkpoint.plus(1) : since;
+			// get a new iterator 
+			Iterator<StreamRecord<T>> iter = getIteratorFor(user, start);
+			queue.add(new StreamStatusTuple(user, batchId, StreamStatus.HEAD));
+			long serialId = 0;
+			while(!state.isFailed() && iter.hasNext()){
+				try {
+					Thread.sleep(1);
+				} catch (InterruptedException e) {
+					return;
 				}
-				queue.add(new StreamStatusTuple(user, batchId, StreamStatus.END));
-				
-				if(failFlag.contains(user)){
-					 logger.info("Failed {}", user);
-					failureTimes ++;
-					failFlag.remove(user);
-				}
+				queue.add(new SpoutRecordTuple(iter.next(), batchId, serialId++));
+			}
+			queue.add(new StreamStatusTuple(user, batchId, StreamStatus.END));
+			
+			if(state.isFailed()){
+				 logger.info("Failed {}", user);
+			}
 					
 		}
 		
@@ -203,69 +208,42 @@ abstract public class BaseOhmageSpout<T>  extends BaseRichSpout  {
 				// use hash of user name to distribute the  requestees to each spout
 				OhmageUser requestee = new OhmageUser(requester.getServer(), requesteeName, null );
 				this.requestees.add(requestee);
-				// init the checkpoint map
-				if( this.getCommittedCheckpointFor(requestee) != null){
-					logger.info("Get previous checkpoint {} for {}", 
-							this.getCommittedCheckpointFor(requestee), 
-							requesteeName);
-					this.checkpoints.put(requestee, this.getCommittedCheckpointFor(requestee));
-				}
+				// init the user state
+				UserSpoutState state =  new UserSpoutState(this.getCommittedCheckpointFor(requestee));
+				states.put(requestee, state);
 				this._scheduler.scheduleWithFixedDelay(new Fetcher(requestee, 0), 0, 
 										this.retryDelay, this.retryDelayTimeUnit);
 			}
 			
 		}
-		
-		_checkpointScheduler = 
-				  Executors.newSingleThreadScheduledExecutor();
-		_checkpointScheduler.scheduleWithFixedDelay(new CommitCheckpointWorker(), 5, 1, TimeUnit.SECONDS);
 
 	}
 	@Override
 	public void ack(Object id){
-		 MsgId msg = (MsgId)id;
-		 OhmageUser user = msg.getUser();
-		 // call different ack function for different tuple types
-		 if(msg.getTupleClass().equals(RecordTuple.class)){
-			 ackRecordTuple(user, (DateTime) msg.getId());
-		 }else if(msg.getTupleClass().equals(GlobalCheckpointTuple.class)){
-			 ackCheckpointTuple(user, (DateTime) msg.getId());
-		 }
+		if(id instanceof SpoutRecordTuple.RecordTupleMsgId ){
+			RecordTupleMsgId msg = (RecordTupleMsgId) id;
+			OhmageUser user = msg.getUser();
+			UserSpoutState state = states.get(user);
+			DateTime newCheckpoint = state.ackMsgId(msg);
+			if(newCheckpoint != null && state.getAckedSerialId() % 1000 == 0){
+				GlobalCheckpointTuple t = new GlobalCheckpointTuple(user, newCheckpoint);
+				 logger.info("Emit Checkpoint {} for {}", state.getCheckpoint(), user);
+				 commitCheckpointFor(user, newCheckpoint);
+				 queue.add(t);
+			}
+			 
+		}
 	}
 	public void ackCheckpointTuple(OhmageUser user, DateTime receivedCheckpoint){
 		logger.info("Receive checkpoint tuple ack {} for user {}", receivedCheckpoint, user);
 	}
-	class CommitCheckpointWorker implements Runnable{
-		public void run(){
-			for(OhmageUser user: getRequestees()){
-				if(checkpoints.get(user) != null){
-					DateTime commitedCheckpoint = getCommittedCheckpointFor(user);
-					if( commitedCheckpoint == null || commitedCheckpoint.isBefore(checkpoints.get(user))){
-						DateTime checkpoint = checkpoints.get(user);
-						 GlobalCheckpointTuple t = new GlobalCheckpointTuple(user, checkpoint);
-						 logger.info("Emit Checkpoint {} for {}", checkpoint, user);
-						 commitCheckpointFor(user, checkpoint);
-						 queue.add(t);
-					}
-				}
-				
-			}
-		}
-	};
-
-	public void ackRecordTuple(OhmageUser user, DateTime timestamp){
-		 if(checkpoints.get(user) == null || timestamp.isAfter(checkpoints.get(user))){
-			 checkpoints.put(user, timestamp);
-		 }
-	}
 	@Override
 	public void fail(Object id){
-		 MsgId msg = (MsgId)id;
-		 OhmageUser user = msg.getUser();
-		 if(msg.getTupleClass().equals(RecordTuple.class)){
-			 DateTime receivedCheckpoint = (DateTime) msg.getId();
-			 failFlag.add(user);
-		 }
+		if(id instanceof SpoutRecordTuple.RecordTupleMsgId ){
+			RecordTupleMsgId msg =(SpoutRecordTuple.RecordTupleMsgId) id;
+			UserSpoutState state = states.get(msg.getUser());
+			state.setFailedWithBatchId(msg.getBatchId());
+		}
 	}
 	@Override
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {

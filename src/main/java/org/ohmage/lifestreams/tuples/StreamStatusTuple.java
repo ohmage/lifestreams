@@ -55,4 +55,9 @@ public class StreamStatusTuple extends BaseTuple {
 		this.batchId = (Long) f2;
 	}
 
+	@Override
+	public Object getMessageId() {
+		return null;
+	}
+
 }

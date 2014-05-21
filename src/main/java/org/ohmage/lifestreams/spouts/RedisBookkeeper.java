@@ -12,7 +12,8 @@ import java.util.zip.InflaterInputStream;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.joda.time.DateTime;
-import org.ohmage.lifestreams.bolts.UserState;
+import org.joda.time.format.ISODateTimeFormat;
+import org.ohmage.lifestreams.bolts.UserTaskState;
 import org.ohmage.lifestreams.stores.RedisStreamStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.utils.KryoSerializer;
@@ -59,7 +60,7 @@ public class RedisBookkeeper implements IBookkeeper, Serializable {
 		String ret = jedis.hget(key, "" + stream + user);
 		redisStore.getPool().returnResource(jedis);
 		if(ret != null){
-			return new DateTime(ret);
+			return ISODateTimeFormat.dateTime().withOffsetParsed().parseDateTime(ret);
 		}else{
 			return null;
 		}
@@ -83,7 +84,7 @@ public class RedisBookkeeper implements IBookkeeper, Serializable {
 		return getTimestamp(CHECKPOINT, spout, user);
 	}
 	@Override
-	public void snapshotUserState(UserState state, Kryo serializer) {
+	public void snapshotUserState(UserTaskState state, Kryo serializer) {
 		
 		Jedis jedis = redisStore.getPool().getResource();
 		Output output = new Output(1024, 1024*1024*3);
@@ -98,15 +99,15 @@ public class RedisBookkeeper implements IBookkeeper, Serializable {
 		
 	}
 	@Override
-	public UserState recoverUserStateSnapshot(String componentId, OhmageUser user, Kryo serializer) {
+	public UserTaskState recoverUserStateSnapshot(String componentId, OhmageUser user, Kryo serializer) {
 		Jedis jedis = redisStore.getPool().getResource();
-		UserState state = null;
-		String key = UserState.getKey(componentId, user);
+		UserTaskState state = null;
+		String key = UserTaskState.getKey(componentId, user);
 		byte[] bytes = jedis.hget(SNAPSHOT.getBytes(), key.getBytes());
 		if(bytes != null){
 		
 			Input input = new Input(bytes);
-			state = (UserState) serializer.readClassAndObject(input);
+			state = (UserTaskState) serializer.readClassAndObject(input);
 			logger.info("Recover a snapshot of {} of {} KB", state.getTask().getClass(), bytes.length / 1024.0);
 			input.close();
 		}

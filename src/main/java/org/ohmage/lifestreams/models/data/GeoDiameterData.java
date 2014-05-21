@@ -4,7 +4,7 @@ import org.ohmage.lifestreams.bolts.IGenerator;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 
-public class GeoDiameterData extends LifestreamsData {
+public class GeoDiameterData extends TimeWindowData {
 
 	double diameter;
 	GeoLocation earlierPointOnDiameter;

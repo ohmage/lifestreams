@@ -13,6 +13,7 @@ import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.models.data.RectifiedMobilityData;
+import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.models.OhmageUser;
@@ -42,7 +43,7 @@ import com.javadocmd.simplelatlng.util.LengthUnit;
  *         errors.
  */
 @Component
-public class HMMMobilityRectifier extends SimpleTimeWindowTask<MobilityData> {
+public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 	
 
 	private static final int DRIVE_VERIFICATION_TIMEFRAME_SIZE = 10 * 60; // in seconds
@@ -63,7 +64,7 @@ public class HMMMobilityRectifier extends SimpleTimeWindowTask<MobilityData> {
 	}
 	int consectiveStill = 0; 
 	@Override
-	public void executeDataPoint(StreamRecord<MobilityData> dp,	TimeWindow window) {
+	public void executeDataPoint(StreamRecord<MobilityData> dp) {
 		if(dp.getData().getMode() == MobilityState.UNKNOWN){
 			return;
 		}
@@ -77,13 +78,13 @@ public class HMMMobilityRectifier extends SimpleTimeWindowTask<MobilityData> {
 			else if(lastTime.plusSeconds(MAXIMUN_ALLOWABLE_SAMPLING_INTERVAL).isBefore(dp.getTimestamp())){
 				
 				// if the sampling gap is too large, perform the rectification on the previous samples
-				correctMobilityStates(window, data);
+				correctMobilityStates(data);
 				data.clear();
 				checkpoint(lastTime);
 				consectiveStill = 0;
 			}
 			else if(dp.getData().getMode() == MobilityState.STILL && consectiveStill >= 60){
-				correctMobilityStates(window, data);
+				correctMobilityStates(data);
 				data.clear();
 				checkpoint(lastTime);
 				consectiveStill = 0;
@@ -97,20 +98,20 @@ public class HMMMobilityRectifier extends SimpleTimeWindowTask<MobilityData> {
 			consectiveStill = 0;
 		}
 	}
-	private void emitNewRecord(StreamRecord<MobilityData> dp, MobilityState state, TimeWindow window){
-		RectifiedMobilityData rectifiedDp = new RectifiedMobilityData(window, this).setMode(state);
+	private void emitNewRecord(StreamRecord<MobilityData> dp, MobilityState state){
+		RectifiedMobilityData rectifiedDp = new RectifiedMobilityData(this).setMode(state);
 		this.createRecord()
-		.setData(rectifiedDp)
-		.setLocation(dp.getLocation())
-		.setTimestamp(dp.getTimestamp())
-		.emit();
+			.setData(rectifiedDp)
+			.setLocation(dp.getLocation())
+			.setTimestamp(dp.getTimestamp())
+			.emit();
 	}
-	public void correctMobilityStates(TimeWindow window, List<StreamRecord<MobilityData>> data){
+	public void correctMobilityStates(List<StreamRecord<MobilityData>> data){
 		
-		
+		// emit directly if we don't have enough data points
 		if(data.size() < 20){
 			for(StreamRecord<MobilityData> rec: data){
-				emitNewRecord(rec, rec.getData().getMode(), window);
+				emitNewRecord(rec, rec.getData().getMode());
 			}
 			return;
 		}
@@ -153,12 +154,8 @@ public class HMMMobilityRectifier extends SimpleTimeWindowTask<MobilityData> {
 		for (int i = 0; i < inferredStates.length; i++) {
 			MobilityState curState = MobilityState.values()[inferredStates[i]];
 			// create a new Mobility data point
-			emitNewRecord(data.get(i), curState, window);
+			emitNewRecord(data.get(i), curState);
 		}
-	}
-	@Override
-	public void finishWindow(TimeWindow window) {
-
 	}
 
 	public static Hmm<ObservationDiscrete<MobilityState>> createHmmModel() {

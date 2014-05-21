@@ -20,7 +20,7 @@ import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.ActivityEpisode;
 import org.ohmage.lifestreams.models.data.ActivitySummaryData;
 import org.ohmage.lifestreams.models.data.GeoDiameterData;
-import org.ohmage.lifestreams.models.data.LifestreamsData;
+import org.ohmage.lifestreams.models.data.TimeWindowData;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.models.data.RectifiedMobilityData;
 import org.ohmage.lifestreams.tasks.TimeWindow;
@@ -117,27 +117,13 @@ public class KryoSerializer  implements IKryoFactory {
 		kryo.register(GeoDiameterData.class);
 		kryo.register(ActivityEpisode.class);
 		kryo.register(ActivitySummaryData.class);
-		kryo.register(LifestreamsData.class);
+		kryo.register(TimeWindowData.class);
 		kryo.register(MobilityData.class);
 		kryo.register(RectifiedMobilityData.class);
 		kryo.register(MovesSegment.class);
 		return kryo;
 	}
-	public static void setRegistrationsForStormConfig(Config config){
-		Kryo kryo = getInstance();
-		// merge all the registered classes and serializers to the Storm Config.
-		for(int i=0; i<kryo.getNextRegistrationId(); i++){
-			if(kryo.getRegistration(i) != null){
-				Registration reg = kryo.getRegistration(i);
-				if(reg.getSerializer() != null){
-					config.registerSerialization(reg.getType(), reg.getSerializer().getClass());
-				}
-				else{
-					config.registerSerialization(reg.getType());
-				}
-			}
-		}
-	}
+
 	@Override
 	public Kryo getKryo(Map conf) {
 		// TODO Auto-generated method stub

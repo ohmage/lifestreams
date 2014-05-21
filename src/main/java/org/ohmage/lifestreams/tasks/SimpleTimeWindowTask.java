@@ -10,19 +10,32 @@ import org.slf4j.LoggerFactory;
 
 import backtype.storm.generated.GlobalStreamId;
 
+/**
+ * 
+ * A simplied version of TimeWindowTask which assumes that the input is always a
+ * stream record with data of type T
+ * 
+ * @author changun
+ * 
+ * @param <T>
+ *            the type of the data that input stream record contains
+ */
 public abstract class SimpleTimeWindowTask<T> extends TimeWindowTask {
 
-	public SimpleTimeWindowTask(){
+	public SimpleTimeWindowTask() {
 		super();
 	}
+
 	public SimpleTimeWindowTask(BaseSingleFieldPeriod timeWindowSize) {
 		super(timeWindowSize);
 	}
+
 	@Override
 	public void init() {
 		super.init();
-		if(this.getState().getBolt().getInputStreams().size() != 1){
-			throw new RuntimeException("SimpleTasks are only allowed to have one source stream.");
+		if (this.getState().getBolt().getInputStreams().size() != 1) {
+			throw new RuntimeException(
+					"SimpleTasks are only allowed to have one source stream.");
 		}
 	}
 
@@ -31,9 +44,8 @@ public abstract class SimpleTimeWindowTask<T> extends TimeWindowTask {
 	public void executeDataPoint(RecordTuple tuple, TimeWindow window) {
 		executeDataPoint(tuple.getStreamRecord(), window);
 	}
-	
-	abstract public void executeDataPoint(StreamRecord<T> record, TimeWindow window);
-	
-	
+
+	abstract public void executeDataPoint(StreamRecord<T> record,
+			TimeWindow window);
 
 }

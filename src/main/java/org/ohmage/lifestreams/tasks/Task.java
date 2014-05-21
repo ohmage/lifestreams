@@ -17,10 +17,10 @@ import org.joda.time.DateTime;
 import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.bolts.IGenerator;
 import org.ohmage.lifestreams.bolts.LifestreamsBolt;
-import org.ohmage.lifestreams.bolts.UserState;
+import org.ohmage.lifestreams.bolts.UserTaskState;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.models.data.LifestreamsData;
+import org.ohmage.lifestreams.models.data.TimeWindowData;
 import org.ohmage.lifestreams.spouts.IBookkeeper;
 import org.ohmage.lifestreams.tuples.BaseTuple;
 import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
@@ -39,146 +39,161 @@ import com.google.common.collect.ImmutableList;
 import backtype.storm.generated.GlobalStreamId;
 
 /**
- * @author changun
+ * Tasks are the main bulding blocks of a Lifestreams topology and is where the
+ * data processing/manipulation logic should be specified. When there are more
+ * than one user, multiple task instances will be created through the deep copy
+ * mechanism. Each task instance is only responsible for processing the data
+ * from a single user and will only receive the data from that user too.
+ * Lifestreams gurantees that a task will receive and process the data
+ * "in-order and just-once" without missing/skipping any data points.
  * 
- *         SimpleTask is the recommended way to implement a Lifestreams module.
- *         Each simple task instance performs a certain computation for one
- *         single user (i.e. it is guaranteed that the same simple task instance
- *         will only receive, and is the only one to receive, the same user's
- *         data. ). The computation is assumed to be performed on a fixed-sized
- *         time window (e.g. the "daily" geo-diameter, the weekly moving
- *         patterns etc.) The The Lifestreams framework will maintain a time
- *         window for each SimpleTask (see BasicLifestreamsBolt, and
- *         TimeWindowBolt).
+ * A typical Task should implement the following methods: The {@link #init()} or
+ * {@link #recover()} methods is called when a task is newly created or
+ * recovered from the previous state. {@link #executeDataPoint(RecordTuple)} is
+ * called when receiving a new data point.
  * 
- *         The init() method will be called when the task instance just created.
- *         It is the place where you can initialize the state of the
- *         computation.
+ * Please use the {@link #createRecord()} method to create a output record that
+ * will be emitted to the child task.
  * 
- *         The executeDataPoint() will be called when receiving a new record in the
- *         current time window. It is typical to update the computation state
- *         with the new data point in this method.
+ * In addition, a task can make a checkpoint by calling
+ * {@link #checkpoint(DateTime)} so that when crash/failure happens, the
+ * computation can and will be restored to the state when the checkpoint was
+ * made.
  * 
- *         The finishWindow() method will be called when we have received all
- *         the records for the current time window. It is typical to finalize
- *         the computation, emit the output record, and re-initialize the
- *         computation states for the next time window in this method.
+ * The timing of making a checkpoin is critical to the system performance.
+ * Making checkpoint too often makes the system slow as it incurs much overhead
+ * to make a checkpoint (including: serializing/saving the computation state).
+ * But, making checkpoint too rarely is also harmful as the system cannot
+ * reclaim the space taken up by the cached output tuples if no checkpoint is
+ * made. (The output cache is required to maintain the "just-once" gurantee. See
+ * {@link UserTaskState}.)
  * 
- *         In addition, the snapshotWindow() method will be called when we
- *         receive a "snapshot" command, which usually happens when the
- *         front-end applications need the partial computation results ASAP even
- *         before receiving all the data for the current time window from the
- *         user. A typical snapshotWindow() method would perform the same
- *         computation as in the finishWindow() method, but without
- *         reinitializing the computation states. emit() and emitSnapshot()
- *         method can be used to emit the output record to the next nodes in the
- *         topology or writeback to ohmage (if the target stream is specified when
- *         creating the topology).
- * @param <INPUT>
- *            the data type the task expects to receive.
+ * Potential timing to make checkpoint are: 1) after performing operations with
+ * external entities (e.g. after uploading the data to a remote server, or after
+ * pushing notification to a user). Making a checkpoint ensures that these
+ * operation won't be repeated. 2) after finish processing a certain number of
+ * tuples or after finishing all the tuple belonging to a certain timeframe.
  */
 @SuppressWarnings("rawtypes")
 public abstract class Task implements Serializable, IGenerator {
 
-	private static final String OUTPUT_CACHE_KEY = "output.cache";
 	private OhmageUser user;
 	private Logger logger;
-	
-	private transient UserState state;
-	public UserState getState(){
+
+	private transient UserTaskState state;
+
+	public UserTaskState getState() {
 		return state;
 	}
-	// a map between the DateTime of the input tuple that triggered the output, and the output records 
-	transient private TwoLayeredCacheMap outputCache;
-	
-	private void initUtility(OhmageUser user, UserState state){
+
+	private void initUtility(OhmageUser user, UserTaskState state) {
 		this.user = user;
 		this.state = state;
 		this.logger = LoggerFactory.getLogger(this.getClass());
 	}
-	public void init(OhmageUser user, UserState state) {
+
+	public void init(OhmageUser user, UserTaskState state) {
 		initUtility(user, state);
 		init();
 	}
-	public void recover(OhmageUser user, UserState state) {
+
+	public void recover(OhmageUser user, UserTaskState state) {
 		initUtility(user, state);
 		recover();
 	}
-	
-	protected void init(){};
-	protected void recover(){};
 
+	protected void init() {
+	};
 
-	
-	public void execute(RecordTuple input){
-			executeDataPoint(input);
+	protected void recover() {
+	};
+
+	public void execute(RecordTuple input) {
+		executeDataPoint(input);
 	}
 
 	protected abstract void executeDataPoint(RecordTuple tuple);
 
-	protected class RecordBuilder{
+	protected class RecordBuilder {
 		GeoLocation location;
 		DateTime timestamp;
 		Object data;
+
 		public GeoLocation getLocation() {
 			return location;
 		}
+
 		public RecordBuilder setLocation(GeoLocation location) {
 			this.location = location;
 			return this;
 		}
+
 		public DateTime getTimestamp() {
 			return timestamp;
 		}
+
 		public RecordBuilder setTimestamp(DateTime timestamp) {
 			this.timestamp = timestamp;
 			return this;
 		}
+
 		public Object getData() {
 			return data;
 		}
+
 		public RecordBuilder setData(Object data) {
 			this.data = data;
 			return this;
 		}
-		public void emit(){
-			if(timestamp == null || data ==null ){
-				throw new RuntimeException("The required filed: data, timestamp are missing");
+
+		public void emit() {
+			if (timestamp == null || data == null) {
+				throw new RuntimeException(
+						"The required filed: data, timestamp are missing");
 			}
 			StreamRecord rec = new StreamRecord(user, timestamp, location, data);
 			state.emit(rec);
 		}
 	}
-	protected void checkpoint(DateTime checkpoint){
-			state.commitCheckpoint(checkpoint);
+
+	protected void checkpoint(DateTime checkpoint) {
+		state.commitCheckpoint(checkpoint);
 	}
+
 	@Override
 	public String getGeneratorId() {
 		return this.getClass().getName();
 	}
+
 	@Override
 	public String getTopologyId() {
 		return state.getBolt().getTopologyId();
 	}
+
 	@Override
 	public Set<String> getSourceIds() {
 		return state.getBolt().getSourceIds();
 	}
-	protected RecordBuilder createRecord(){
+
+	protected RecordBuilder createRecord() {
 		return new RecordBuilder();
 	}
+
 	public Logger getLogger() {
 		return logger;
 	}
-	public OhmageUser getUser(){
+
+	public OhmageUser getUser() {
 		return user;
 	}
-	public String getComponentId(){
+
+	public String getComponentId() {
 		return state.getBolt().getComponentId();
 	}
+
 	@Override
-	public String toString(){
-		return state.getBolt().getComponentId()+this.getUser();
+	public String toString() {
+		return state.getBolt().getComponentId() + this.getUser();
 	}
 
 }

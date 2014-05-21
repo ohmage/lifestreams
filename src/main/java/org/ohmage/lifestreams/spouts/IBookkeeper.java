@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.joda.time.DateTime;
-import org.ohmage.lifestreams.bolts.UserState;
+import org.ohmage.lifestreams.bolts.UserTaskState;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
@@ -15,8 +15,8 @@ public interface IBookkeeper {
 	public void setCheckPoint(String spout, OhmageUser user, DateTime time);
 	public DateTime getCheckPoint(String spout, OhmageUser user);
 	
-	public void snapshotUserState(UserState state, Kryo serializer);
-	public UserState recoverUserStateSnapshot(String componentId, OhmageUser user, Kryo serializer);
+	public void snapshotUserState(UserTaskState state, Kryo serializer);
+	public UserTaskState recoverUserStateSnapshot(String componentId, OhmageUser user, Kryo serializer);
 	
 	public void putMap(String componentId, OhmageUser user, String name, Object key, Object value, Kryo serializer);
 	public <T> T getMap(String componentId, OhmageUser user, String name, Object key, Kryo serializer,  Class<T> c);

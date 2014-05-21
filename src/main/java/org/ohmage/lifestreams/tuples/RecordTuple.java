@@ -12,20 +12,14 @@ import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.TupleImpl;
 @SuppressWarnings("rawtypes")
 public class RecordTuple extends BaseTuple {
-	private StreamRecord rec; 
-	private Long batchId;
+	protected StreamRecord rec;
+
 	public RecordTuple(Tuple t){
 		super(t);
 	}
-	public RecordTuple(StreamRecord rec, long batchId) {
+	public RecordTuple(StreamRecord rec) {
 		super(rec.getUser());
 		this.rec = rec;
-		this.batchId = batchId;
-		if(batchId  < 0){
-			
-			throw new RuntimeException("BatchId  must >= 0");
-		}
-		
 	}
 	public StreamRecord getStreamRecord() {
 		return rec;
@@ -33,9 +27,7 @@ public class RecordTuple extends BaseTuple {
 	public DateTime getTimestamp(){
 		return rec.getTimestamp();
 	}
-	public Long getBatchId(){
-		return this.batchId;
-	}
+
 	@Override
 	protected Object getUniqueId() {
 		return rec.getTimestamp();
@@ -46,7 +38,7 @@ public class RecordTuple extends BaseTuple {
 	}
 	@Override
 	protected Object getField2() {
-		return batchId;
+		return null;
 	}
 	@Override
 	protected void setField1(Object f1) {
@@ -54,10 +46,10 @@ public class RecordTuple extends BaseTuple {
 	}
 	@Override
 	protected void setField2(Object f2) {
-		this.batchId = (Long) f2;
 	}
-	public static DateTime getTimestampFromRawTuple(Tuple t){
-		return ((StreamRecord)t.getValue(2)).getTimestamp();
+	@Override
+	public Object getMessageId() {
+		return null;
 	}
 	
 }

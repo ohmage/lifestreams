@@ -49,9 +49,7 @@ abstract public class BaseTuple {
 		return tuple.getSourceGlobalStreamid();
 	}
 
-	public MsgId getMessageId() {
-		return new MsgId(this.getClass(), this.getUser(), this.getUniqueId());
-	}
+	abstract public Object getMessageId();
 	abstract protected Object getUniqueId();
 	abstract protected Object getField1();
 	abstract protected Object getField2();

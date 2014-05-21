@@ -5,9 +5,9 @@ import org.joda.time.Days;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ohmage.lifestreams.LifestreamsConfig;
+import org.ohmage.lifestreams.LifestreamsTopologyBuilder;
 import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
 import org.ohmage.lifestreams.utils.KryoSerializer;
-import org.ohmage.lifestreams.utils.SimpleTopologyBuilder;
 import org.ohmage.lifestreams.test.activityCount.ActivityInstanceCounter;
 import org.ohmage.models.OhmageStream;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +19,7 @@ import backtype.storm.LocalCluster;
 
 
 
-@ContextConfiguration({"classpath*:/users.xml", "classpath*:/mainContext.xml", "classpath:/testContext.xml"})
+@ContextConfiguration({"classpath*:/mainContext.xml", "classpath:/testContext.xml"})
 @RunWith(SpringJUnit4ClassRunner.class)
 public class ActivityInstanceCountTopology {
 	@Autowired // output stream
@@ -31,6 +31,8 @@ public class ActivityInstanceCountTopology {
 	@Autowired // activityInstanceCounter
 	ActivityInstanceCounter activityInstanceCounter;
 	
+	@Autowired
+	LifestreamsTopologyBuilder builder;
 	@Test
 	public void run() throws InterruptedException{
 		// since when to perform the computation
@@ -38,7 +40,6 @@ public class ActivityInstanceCountTopology {
 		/** setup the input and output streams **/
 
 		/** setup the topology **/
-		SimpleTopologyBuilder builder = new SimpleTopologyBuilder();
 		
 		// set the number of parallelism for each task to be 5
 		int parallelismPerTask = 5;
@@ -52,24 +53,16 @@ public class ActivityInstanceCountTopology {
 					.setTargetStream(activityInstanceCountStream); //output data to ohmage
 		
 
-		Config conf = new Config();
-		conf.setDebug(false);
-		
-		// if it is a dryrun? if so, no data will be writeback to ohmage
-		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, true);
-		// keep the computation states in a local database or not.
-		conf.put(LifestreamsConfig.ENABLE_STATEFUL_FUNCTION, false);
-		
-		// register all the classes used in Lifestreams framework to the kryo serializer
-		KryoSerializer.setRegistrationsForStormConfig(conf);
+
 	
-		LocalCluster cluster = new LocalCluster();
-		// run the cluster locally
-		cluster.submitTopology("Lifestreams-on-storm", conf, builder.createTopology());
-		
-
-		Thread.sleep(1000 * 60 * 1);
-
+		builder.submitToLocalCluster("Activity-Count");
+		while (true){
+			try {
+				Thread.sleep(100000000);
+			} catch (InterruptedException e) {
+				return;
+			}
+		}
 	}
 
 	

@@ -5,7 +5,7 @@ import org.ohmage.lifestreams.bolts.IGenerator;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 
-public class LeaveReturnHomeTimeData extends LifestreamsData {
+public class LeaveReturnHomeTimeData extends TimeWindowData {
 	public LeaveReturnHomeTimeData(TimeWindow window, IGenerator generator) {
 		super(window, generator);
 	}

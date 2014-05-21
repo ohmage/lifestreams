@@ -128,20 +128,30 @@ public class OhmageStreamSpout<T> extends BaseOhmageSpout<T> {
 		try{
 			final OhmageStreamIterator iter = new OhmageStreamClient(getRequester())
 											.getOhmageStreamIteratorBuilder(stream, user)
-											.startDate(since)
+											.startDate(since.minusDays(1)) // to deal with ohmage stream api bug
 											.columnList(columnList)
 											.build();
-
+			
+			// move the iterator pointer to the location right before the record whose timestamp >= since
+			final PeekingIterator<ObjectNode> peekableIter = new PeekingIterator<ObjectNode>(iter);
+			while(iter.hasNext()){
+				StreamRecord<T> rec = factory.createRecord(peekableIter.peek(), user);
+				if(rec.getTimestamp().compareTo(since) >= 0){
+					break;
+				}else{
+					peekableIter.next();
+				}
+			}
 			return new Iterator<StreamRecord<T>>(){
-
 				@Override
 				public boolean hasNext() {
-					return iter.hasNext();
+					return peekableIter.hasNext();
+					
 				}
 
 				@Override
 				public StreamRecord<T> next() {
-					ObjectNode json = iter.next();
+					ObjectNode json = peekableIter.next();
 					try {
 						StreamRecord rec = factory.createRecord(json, user);
 						return rec;

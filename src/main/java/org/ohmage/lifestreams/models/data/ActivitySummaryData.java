@@ -6,7 +6,7 @@ import java.util.List;
 import org.ohmage.lifestreams.bolts.IGenerator;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 
-public class ActivitySummaryData extends LifestreamsData {
+public class ActivitySummaryData extends TimeWindowData {
 
 	public double getTotalTime() {
 		return totalTime;

@@ -37,4 +37,10 @@ public class GlobalCheckpointTuple extends BaseTuple {
 	@Override
 	protected void setField2(Object f2) {
 	}
+	@Override
+	public Object getMessageId() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

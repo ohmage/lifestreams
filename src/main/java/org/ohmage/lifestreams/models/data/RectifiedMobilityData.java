@@ -6,8 +6,8 @@ import org.ohmage.lifestreams.tasks.TimeWindow;
 
 public class RectifiedMobilityData extends LifestreamsData implements
 		IMobilityData {
-	public RectifiedMobilityData(TimeWindow window, IGenerator generator) {
-		super(window, generator);
+	public RectifiedMobilityData(IGenerator generator) {
+		super(generator);
 	}
 
 	private MobilityState mode;

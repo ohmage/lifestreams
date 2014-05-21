@@ -1,6 +1,7 @@
 package org.ohmage.lifestreams.tasks;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -8,6 +9,7 @@ import java.util.Set;
 
 import org.joda.time.DateTime;
 import org.joda.time.Days;
+import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.joda.time.Interval;
 import org.joda.time.Minutes;
@@ -19,13 +21,14 @@ import org.joda.time.Years;
 import org.joda.time.base.BaseSingleFieldPeriod;
 
 public class TimeWindow {
+	static final int minimunSamplingIntervalInSec = 30;
 	BaseSingleFieldPeriod windowDuration;
 	DateTime firstInstant;
 	DateTime lastInstant;
 	private DateTime epoch;
 	// the instants at which we have data point
 	// it is used to compute the median sampling period and missing data rate
-	transient Set<Long> instantSet = new HashSet<Long>();
+	transient BitSet instantSet; 
 	public TimeWindow(BaseSingleFieldPeriod duration, DateTime time) {
 		this.windowDuration = duration;
 		this.firstInstant = time;
@@ -36,8 +39,9 @@ public class TimeWindow {
 		start.setDate(0);
 		start.setTime(0);
 		this.epoch = new DateTime(start);
+		this.instantSet = new BitSet(windowDuration.toPeriod().toStandardSeconds().getSeconds() / minimunSamplingIntervalInSec);
 		
-		instantSet.add(time.getMillis()/1000);
+		instantSet.set((int) (new Duration(this.getTimeWindowBeginTime(), time).getStandardSeconds() / minimunSamplingIntervalInSec));
 	}
 
 	public void update(DateTime newTime) {
@@ -46,7 +50,7 @@ public class TimeWindow {
 		} else if (newTime.isAfter(lastInstant)) {
 			this.lastInstant = newTime;
 		}
-		instantSet.add(newTime.getMillis()/1000);
+		instantSet.set((int) (new Duration(this.getTimeWindowBeginTime(), newTime).getStandardSeconds() / minimunSamplingIntervalInSec));
 	}
 	private DateTime timeWindowBeginTime;
 	public DateTime getTimeWindowBeginTime(){
@@ -81,14 +85,15 @@ public class TimeWindow {
 		return lastInstant;
 	}
 	public long getMedianSamplingIntervalInSecond() {
-		if(instantSet.size() < 2)
+		if(instantSet.cardinality() < 2)
 			return windowDuration.toPeriod().toStandardSeconds().getSeconds();
-		List<Long> instants = new ArrayList<Long>(this.instantSet);
-		Collections.sort(instants);
 		List<Long> intervals = new ArrayList<Long>();
-		for(int i=1; i<instants.size(); i++){
-			intervals.add(Math.abs(instants.get(i) - instants.get(i-1)));
-		}
+		int prevSetBit = this.instantSet.nextSetBit(0);
+		 for (int i = this.instantSet.nextSetBit(prevSetBit); i >= 0; i = this.instantSet.nextSetBit(i+1)) {
+		     // operate on index i here
+			 intervals.add((long) ((i-prevSetBit) * minimunSamplingIntervalInSec));
+		 }
+
 		Collections.sort(intervals);
 		return intervals.get(intervals.size()/2);
 	}

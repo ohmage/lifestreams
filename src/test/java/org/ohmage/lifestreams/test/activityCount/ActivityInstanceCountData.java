@@ -1,7 +1,7 @@
 package org.ohmage.lifestreams.test.activityCount;
 
 import org.ohmage.lifestreams.bolts.IGenerator;
-import org.ohmage.lifestreams.models.data.LifestreamsData;
+import org.ohmage.lifestreams.models.data.TimeWindowData;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 
 /**
@@ -27,7 +27,7 @@ import org.ohmage.lifestreams.tasks.TimeWindow;
  *         }
  *         </schema>
  */
-public class ActivityInstanceCountData extends LifestreamsData{
+public class ActivityInstanceCountData extends TimeWindowData{
 	private int activityInstanceCount;
 
 	public int getActivityInstanceCount() {
