@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.spouts.BaseOhmageSpout;
+import org.ohmage.lifestreams.spouts.BaseLifestreamsSpout;
 import org.ohmage.models.OhmageUser;
 
 import backtype.storm.tuple.Tuple;

@@ -62,7 +62,7 @@ import co.nutrino.api.moves.impl.service.MovesSecurityManager;
 import co.nutrino.api.moves.impl.service.MovesServiceBuilder;
 import co.nutrino.api.moves.request.RequestTokenConvertor;
 
-public class MovesSpout extends BaseOhmageSpout<MovesSegment>{
+public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 	class MovesInfo{
 		public MovesInfo(MovesUser user, MovesUserCredentials credentials) {
 			this.user = user;

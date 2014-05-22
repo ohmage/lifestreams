@@ -49,7 +49,7 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
 import backtype.storm.tuple.Values;
 
-abstract public class BaseOhmageSpout<T>  extends BaseRichSpout  {
+abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 	// requester should have permission to query all the requestees' data
 	@Value("${ohmage.requestees}")
 	String requesteeStr;
@@ -225,11 +225,12 @@ abstract public class BaseOhmageSpout<T>  extends BaseRichSpout  {
 			OhmageUser user = msg.getUser();
 			UserSpoutState state = states.get(user);
 			DateTime newCheckpoint = state.ackMsgId(msg);
-			if(newCheckpoint != null && state.getAckedSerialId() % 1000 == 0){
+			if(state.getAckedSerialId() - state.getLastCommittedSerial() > 1000){
 				GlobalCheckpointTuple t = new GlobalCheckpointTuple(user, newCheckpoint);
 				 logger.info("Emit Checkpoint {} for {}", state.getCheckpoint(), user);
 				 commitCheckpointFor(user, newCheckpoint);
-				 queue.add(t);
+				 this.getCollector().emit(t.getValues());
+				 state.setLastCommittedSerial(state.getAckedSerialId());
 			}
 			 
 		}
@@ -250,7 +251,7 @@ abstract public class BaseOhmageSpout<T>  extends BaseRichSpout  {
 		declarer.declare(RecordTuple.getFields());
 
 	}
-	public BaseOhmageSpout(int retryDelay, TimeUnit unit){
+	public BaseLifestreamsSpout(int retryDelay, TimeUnit unit){
 		this.retryDelay = retryDelay;
 		this.retryDelayTimeUnit = unit;
 	}

@@ -56,7 +56,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  *            the schema of the "data" field of the ohmage stream, or it can
  *            be the Jacksson "ObjectNode".
  */
-public class OhmageStreamSpout<T> extends BaseOhmageSpout<T> {
+public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 	// stream to query
 	OhmageStream stream;
 	// data point factory
