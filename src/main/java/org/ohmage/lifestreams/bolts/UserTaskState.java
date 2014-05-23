@@ -116,7 +116,7 @@ public class UserTaskState {
 		@SuppressWarnings({ "unchecked", "rawtypes" })
 		List<StreamRecord> outputs = outputCache.get(inputTime);
 		if (outputs != null) {
-			logger.info(logPrefix() + "Replay {} outputs for input at {}",
+			logger.trace(logPrefix() + "Replay {} outputs for input at {}",
 					outputs.size(), inputTime);
 			for (StreamRecord output : outputs) {
 				bolt.emitRecord(output, Arrays.asList(tuple.getTuple()), false);
@@ -182,7 +182,7 @@ public class UserTaskState {
 				break;
 			}
 		}
-		logger.info(logPrefix() + "Flush {} output cache", count);
+		logger.trace(logPrefix() + "Flush {} output cache", count);
 		// TODO: Should be "Last removed output!"
 		return lastRemovedKey;
 	}
@@ -246,8 +246,7 @@ public class UserTaskState {
 	 * @param gTuple
 	 */
 	public void executeGlobalCheckpoint(GlobalCheckpointTuple gTuple) {
-		DateTime lastEvictedOutput = flushOutputCacheTil(gTuple
-				.getGlobalCheckpoint());
+		DateTime lastEvictedOutput = flushOutputCacheTil(gTuple.getGlobalCheckpoint());
 		if (lastEvictedOutput != null) {
 			bolt.emit(new GlobalCheckpointTuple(user, lastEvictedOutput),
 					Arrays.asList(gTuple.getTuple()));
@@ -262,10 +261,11 @@ public class UserTaskState {
 	 */
 	public void streamEnd() {
 		logger.info(logPrefix()
-				+ "Stream Ended, Fail all the unacked tuples and reclaim space from output cache.");
+				+ "Stream End. Checkpoint: {}. Fail all the unacked tuples.", this.checkpoint);
 		for (Tuple tuple : this.unackedTuples) {
 			bolt.collector.fail(tuple);
 		}
+		// reclaim memory space
 		curRecordTuple = null;
 		unackedTuples.clear();
 		outputCache.clearLocalCache();
@@ -276,7 +276,9 @@ public class UserTaskState {
 	public LifestreamsBolt getBolt() {
 		return bolt;
 	}
-
+	public boolean isEnded(){
+		return task == null;
+	}
 	static private void fillInTransientFields(UserTaskState state,
 			OhmageUser user, LifestreamsBolt bolt, IBookkeeper bookkeeper,
 			Kryo kryo) {

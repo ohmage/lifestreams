@@ -124,7 +124,6 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 				UserTaskState userState = getUserState(user);
 				if (userState != null) {
 					userState.streamEnd();
-					removeUserState(user);
 				}
 				break;
 			case MIDDLE:
@@ -134,14 +133,14 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 			return;
 		}
 		UserTaskState userState = getUserState(user);
-		if (userState == null) {
-			// the user state has not been created, ignore the tuple
-			return;
-		} else if (baseTuple instanceof RecordTuple) {
-			userState.execute((RecordTuple) baseTuple);
-		} else if (baseTuple instanceof GlobalCheckpointTuple) {
-			userState
-					.executeGlobalCheckpoint((GlobalCheckpointTuple) baseTuple);
+		
+		if (userState != null) {
+			
+			if (baseTuple instanceof GlobalCheckpointTuple) {
+				userState.executeGlobalCheckpoint((GlobalCheckpointTuple) baseTuple);
+			} else if (baseTuple instanceof RecordTuple && !userState.isEnded()) {
+				userState.execute((RecordTuple) baseTuple);
+			}
 		}
 	}
 

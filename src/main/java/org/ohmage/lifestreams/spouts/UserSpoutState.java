@@ -16,6 +16,7 @@ public class UserSpoutState {
 	private boolean failed = false;
 	private long ackedSerialId = -1;
 	private long curBatch = -1;
+	private boolean ended = false;
 	private PriorityQueue<RecordTupleMsgId> ackedSerialIdHeap = new PriorityQueue<RecordTupleMsgId>();
 	
 	public long getAckedSerialId() {
@@ -29,6 +30,12 @@ public class UserSpoutState {
 			failed = true;
 		}
 	}
+	public boolean isStreamEnded(){
+		return ended;
+	}
+	public void setStreamEnded(boolean ended){
+		this.ended = ended;
+	}
 	public boolean isFailed(){
 		return failed;
 	}
@@ -37,6 +44,7 @@ public class UserSpoutState {
 		this.ackedSerialId = -1;
 		this.curBatch = batchId;
 		this.failed = false;
+		this.ended = false;
 	}
 	public DateTime ackMsgId(RecordTupleMsgId msg){
 		if(msg.getBatchId() == curBatch){
@@ -65,7 +73,7 @@ public class UserSpoutState {
 	public void setLastCommittedSerial(long serial){
 		this.lastCommittedSerial = serial;
 	}
-	public long getLastCommittedSerial(){
+	public long getLastCommittedSerialId(){
 		return lastCommittedSerial;
 	}
 	public UserSpoutState(DateTime checkpoint){

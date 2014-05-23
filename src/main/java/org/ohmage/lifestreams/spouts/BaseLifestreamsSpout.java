@@ -114,7 +114,6 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 		public void run() {
 
 			long batchId = new DateTime().getMillis();
-			logger.info("Start getting next batch for {}", user);
 			// clear and update user state with new batch id
 			UserSpoutState state = states.get(user);
 			state.newBatch(batchId);
@@ -124,6 +123,7 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 			// defined in {DateTime since}, whichever is ahead of the other
 			DateTime start = (checkpoint != null && checkpoint.plus(1).isAfter(since)) ?
 								checkpoint.plus(1) : since;
+			logger.info("Resume process for {} from {}", user.getUsername(), start);
 			// get a new iterator 
 			Iterator<StreamRecord<T>> iter = getIteratorFor(user, start);
 			queue.add(new StreamStatusTuple(user, batchId, StreamStatus.HEAD));
@@ -136,11 +136,12 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 				}
 				queue.add(new SpoutRecordTuple(iter.next(), batchId, serialId++));
 			}
-			queue.add(new StreamStatusTuple(user, batchId, StreamStatus.END));
-			
 			if(state.isFailed()){
 				 logger.info("Failed {}", user);
 			}
+			queue.add(new StreamStatusTuple(user, batchId, StreamStatus.END));
+			state.setStreamEnded(true);
+
 					
 		}
 		
@@ -225,19 +226,22 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 			OhmageUser user = msg.getUser();
 			UserSpoutState state = states.get(user);
 			DateTime newCheckpoint = state.ackMsgId(msg);
-			if(state.getAckedSerialId() - state.getLastCommittedSerial() > 1000){
+			// how many consecutive records has been acked since last commit
+			long numOfRecords = state.getAckedSerialId() - state.getLastCommittedSerialId();
+			// only commit checkpoint every 1000 records or when the stream is ended
+			if(newCheckpoint != null && (state.isStreamEnded() || numOfRecords > 1000)){
 				GlobalCheckpointTuple t = new GlobalCheckpointTuple(user, newCheckpoint);
-				 logger.info("Emit Checkpoint {} for {}", state.getCheckpoint(), user);
+				 logger.trace("Emit Checkpoint {} for {}", newCheckpoint, user);
 				 commitCheckpointFor(user, newCheckpoint);
+				 // emit a GLobalCheckpoint tuple
 				 this.getCollector().emit(t.getValues());
+				 // update the last commited serial id 
 				 state.setLastCommittedSerial(state.getAckedSerialId());
 			}
 			 
 		}
 	}
-	public void ackCheckpointTuple(OhmageUser user, DateTime receivedCheckpoint){
-		logger.info("Receive checkpoint tuple ack {} for user {}", receivedCheckpoint, user);
-	}
+
 	@Override
 	public void fail(Object id){
 		if(id instanceof SpoutRecordTuple.RecordTupleMsgId ){
