@@ -2,9 +2,7 @@ package org.ohmage.lifestreams.tasks.moves;
 
 import java.util.ArrayList;
 
-import org.joda.time.Days;
 import org.joda.time.Interval;
-import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.ActivityEpisode;

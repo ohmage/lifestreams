@@ -1,14 +1,8 @@
 package org.ohmage.lifestreams.tasks;
 
 import org.joda.time.base.BaseSingleFieldPeriod;
-import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.tasks.Task.RecordBuilder;
 import org.ohmage.lifestreams.tuples.RecordTuple;
-import org.ohmage.models.OhmageUser;
-import org.slf4j.LoggerFactory;
-
-import backtype.storm.generated.GlobalStreamId;
 
 /**
  * 

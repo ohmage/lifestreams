@@ -1,15 +1,9 @@
 package org.ohmage.lifestreams.spouts;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.PriorityQueue;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
-import org.ohmage.lifestreams.tuples.SpoutRecordTuple.RecordTupleMsgId;
 import org.joda.time.DateTime;
-import org.ohmage.models.OhmageUser;
+import org.ohmage.lifestreams.tuples.SpoutRecordTuple.RecordTupleMsgId;
 
 public class UserSpoutState {
 	private DateTime checkpoint; 

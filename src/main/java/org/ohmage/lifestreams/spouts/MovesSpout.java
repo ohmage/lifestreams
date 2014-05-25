@@ -3,16 +3,9 @@ package org.ohmage.lifestreams.spouts;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.joda.time.DateTime;
@@ -22,25 +15,17 @@ import org.joda.time.MutableDateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.StreamRecord.StreamRecordFactory;
 import org.ohmage.lifestreams.models.data.MovesCredentialsData;
-import org.ohmage.lifestreams.tuples.RecordTuple;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
 import org.ohmage.models.OhmageUser.OhmageAuthenticationError;
 import org.ohmage.sdk.OhmageStreamClient;
 import org.ohmage.sdk.OhmageStreamIterator;
 import org.ohmage.sdk.OhmageStreamIterator.SortOrder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.tuple.Values;
 import co.nutrino.api.moves.exception.OAuthException;
-import co.nutrino.api.moves.exception.ResourceException;
 import co.nutrino.api.moves.impl.client.MovesClient;
 import co.nutrino.api.moves.impl.client.MovesUserCredentials;
 import co.nutrino.api.moves.impl.client.activity.MovesUserStorylineClient;
@@ -154,13 +139,13 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 		}
 	}
 	public MovesUserCredentials refreshCredentials(MovesUserCredentials oldCredentials, OhmageUser user) throws OAuthException, OhmageAuthenticationError, IOException{
-		logger.info("Try to Refresh Moves OAuth Token For {}", user);
+		logger.trace("Try to Refresh Moves OAuth Token For {}", user);
 		UserMovesAuthentication newAuth = authClient.refreshAuthentication(oldCredentials);
-		logger.info("Received new OAuth Token For {}", user);
+		logger.trace("Received new OAuth Token For {}", user);
 		MovesCredentialsData data = MovesCredentialsData.createMovesCredentialsFor(newAuth, user);
 		StreamRecord<MovesCredentialsData> rec = new StreamRecord<MovesCredentialsData>(user, new DateTime(), null, data);
 		new OhmageStreamClient(getRequester()).upload(movesCredentialsStream, rec.toObserverDataPoint());
-		logger.info("Upload new OAuth Token For {} to requester's Moves Credential Stream", user);
+		logger.trace("Upload new OAuth Token For {} to requester's Moves Credential Stream", user);
 		// create MovesUserCredentials based on it
 		MovesUserCredentials newCredentials = new MovesUserCredentials(
 												data.getAccessToken()
@@ -272,7 +257,7 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 				validRecs.add(rec);
 			}
 		}
-		logger.info("Get {} Moves Segments For User {} from {} to {}", recs.size(), ohmageUser, startTime, lastSegmentTime);
+		logger.trace("Get {} Moves Segments For User {} from {} to {}", recs.size(), ohmageUser, startTime, lastSegmentTime);
 		return validRecs;
 
 	}

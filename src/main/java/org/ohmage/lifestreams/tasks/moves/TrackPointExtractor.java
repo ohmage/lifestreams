@@ -10,7 +10,6 @@ import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
 import co.nutrino.api.moves.impl.dto.activity.TrackPoint;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 
-import com.bbn.openmap.geo.Geo;
 import com.javadocmd.simplelatlng.LatLng;
 
 /**

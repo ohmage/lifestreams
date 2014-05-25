@@ -1,15 +1,9 @@
 package org.ohmage.lifestreams.tuples;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.spouts.BaseLifestreamsSpout;
-import org.ohmage.models.OhmageUser;
 
 import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.TupleImpl;
 @SuppressWarnings("rawtypes")
 public class RecordTuple extends BaseTuple {
 	protected StreamRecord rec;

@@ -3,20 +3,11 @@ package org.ohmage.lifestreams.tasks;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.joda.time.base.BaseSingleFieldPeriod;
-import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.spouts.RedisBookkeeper;
-import org.ohmage.lifestreams.tasks.Task.RecordBuilder;
 import org.ohmage.lifestreams.tuples.RecordTuple;
 import org.ohmage.lifestreams.utils.PendingBuffer;
-import org.ohmage.models.OhmageUser;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import backtype.storm.generated.GlobalStreamId;
 
 /**
  * TimeWindowTask provides additional function for the tasks that aggregate the
@@ -54,7 +45,10 @@ public abstract class TimeWindowTask extends Task {
 		super.recover();
 		pendingBuf = new PendingBuffer();
 	}
-
+	@Override
+	protected void checkpoint(){
+		throw new UnsupportedOperationException("You  must commit a checkpoint with timestamp.");
+	}
 	@Override
 	public void executeDataPoint(RecordTuple tuple) {
 		StreamRecord rec = tuple.getStreamRecord();

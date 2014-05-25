@@ -1,19 +1,16 @@
 package org.ohmage.lifestreams.bolts;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
-import org.joda.time.DateTime;
 import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.spouts.IBookkeeper;
+import org.ohmage.lifestreams.spouts.IMapStore;
+import org.ohmage.lifestreams.spouts.PersistentMapFactory;
 import org.ohmage.lifestreams.stores.StreamStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tuples.BaseTuple;
@@ -27,8 +24,7 @@ import org.ohmage.sdk.OhmageStreamClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.esotericsoftware.kryo.Kryo;
-
+import backtype.storm.Config;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
 import backtype.storm.serialization.SerializationFactory;
@@ -36,9 +32,9 @@ import backtype.storm.task.OutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichBolt;
-import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
+
+import com.esotericsoftware.kryo.Kryo;
 
 /**
  * LifestreamsBolt is a implementation of Storm Bolt. Each Lifestreams Bolt is
@@ -87,17 +83,13 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	private StreamStore streamStore;
 	// the ohmage stream the processed records will be writeback to.
 	private OhmageStream targetStream;
-
-	protected Kryo serializer;
-	protected IBookkeeper bookkeeper;
+	private IMapStore mapStore;
+	protected PersistentMapFactory mapFactory;
 	final private Task templateTask;
 
 	private UserTaskState createUserState(OhmageUser user, Long batchId) {
-		UserTaskState userState;
-		userStateMap.put(user, UserTaskState.createOrRecoverUserState(user,
-				templateTask, this, bookkeeper, serializer));
-
-		userState = userStateMap.get(user);
+		UserTaskState userState = UserTaskState.createOrRecoverUserState(this, user, templateTask, mapFactory);
+		userStateMap.put(user, userState);
 		return userState;
 	}
 
@@ -108,7 +100,10 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	private void removeUserState(OhmageUser user) {
 		userStateMap.remove(user);
 	}
+	public Map<String, UserTaskState> getPersistentStateMap(){
+		 return mapFactory.getComponentMap(this.componentId, "userTaskState", String.class, UserTaskState.class);
 
+	}
 	@Override
 	public void execute(Tuple input) {
 		BaseTuple baseTuple = BaseTuple.createFromRawTuple(input);
@@ -210,11 +205,11 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	@Override
 	public void prepare(@SuppressWarnings("rawtypes") Map stormConf,
 			TopologyContext context, OutputCollector collector) {
-		serializer = new SerializationFactory().getKryo(stormConf);
+		Kryo kryo = new SerializationFactory().getKryo(stormConf);
+		this.mapFactory = new PersistentMapFactory((String) stormConf.get(Config.TOPOLOGY_NAME), mapStore, kryo);
 		// initialize the topology-wide arguments
 		if (stormConf.containsKey(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING)) {
-			isDryrun = (Boolean) stormConf
-					.get(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING);
+			isDryrun = (Boolean) stormConf.get(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING);
 		}
 		this.collector = collector;
 		// populate the names of this bolt and the topology
@@ -283,8 +278,8 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 		return topologyId;
 	}
 
-	public LifestreamsBolt(Task templateTask, IBookkeeper bookkeeper) {
-		this.bookkeeper = bookkeeper;
+	public LifestreamsBolt(Task templateTask, IMapStore mapStore) {
+		this.mapStore = mapStore;
 		this.templateTask = templateTask;
 	}
 

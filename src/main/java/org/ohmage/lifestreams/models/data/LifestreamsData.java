@@ -3,6 +3,7 @@ package org.ohmage.lifestreams.models.data;
 import java.util.Set;
 
 import org.ohmage.lifestreams.bolts.IGenerator;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 

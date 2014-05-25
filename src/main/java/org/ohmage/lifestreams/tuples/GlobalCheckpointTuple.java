@@ -4,7 +4,6 @@ import org.joda.time.DateTime;
 import org.ohmage.models.OhmageUser;
 
 import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
 
 public class GlobalCheckpointTuple extends BaseTuple {
 	private DateTime checkpoint;

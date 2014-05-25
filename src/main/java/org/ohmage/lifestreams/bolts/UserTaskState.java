@@ -4,18 +4,17 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.Map;
 
 import org.apache.commons.lang3.SerializationUtils;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.spouts.IBookkeeper;
+import org.ohmage.lifestreams.spouts.BaseLifestreamsSpout;
+import org.ohmage.lifestreams.spouts.IMapStore;
+import org.ohmage.lifestreams.spouts.PersistentMapFactory;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tasks.TwoLayeredCacheMap;
 import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
@@ -79,22 +78,19 @@ public class UserTaskState {
 	transient private LifestreamsBolt bolt;
 	transient private LinkedList<Tuple> unackedTuples;
 	transient private LinkedList<DateTime> unackedTupleTimes;
-	transient private TwoLayeredCacheMap<DateTime, List> outputCache;
+	transient private TwoLayeredCacheMap<DateTime, ArrayList> outputCache;
 	transient private Kryo kryo;
-	transient private IBookkeeper bookkeeper;
+	transient private IMapStore bookkeeper;
 	transient private Logger logger;
 	transient RecordTuple curRecordTuple;
+	transient private PersistentMapFactory mapFactory;
 
 	public Task getTask() {
 		return task;
 	}
 
-	public TwoLayeredCacheMap<DateTime, List> getOutputCache() {
+	public TwoLayeredCacheMap<DateTime, ArrayList> getOutputCache() {
 		return outputCache;
-	}
-
-	private List<Tuple> getAllUnackedTuples() {
-		return unackedTuples;
 	}
 
 	private void ackInputTuplesTil(DateTime time) {
@@ -155,8 +151,8 @@ public class UserTaskState {
 
 		Field field;
 		try {
-			// null the values field of the tuple object using reflection to
-			// save space
+			// null the "values" field of the tuple object to
+			// save memory space
 			field = TupleImpl.class.getDeclaredField("values");
 			field.setAccessible(true);
 			field.set(tuple.getTuple(), null);
@@ -171,20 +167,20 @@ public class UserTaskState {
 	private DateTime flushOutputCacheTil(DateTime gCheckpoint) {
 		ArrayList<DateTime> keys = new ArrayList<DateTime>(outputCache.keySet());
 		Collections.sort(keys);
-		DateTime lastRemovedKey = null;
+		DateTime lastRemovedOutputTime = null;
 		int count = 0;
 		for (DateTime key : keys) {
 			if (key.compareTo(gCheckpoint) <= 0) {
-				outputCache.remove(key);
+				ArrayList<StreamRecord> removedOutputArray = outputCache.remove(key);
 				count++;
-				lastRemovedKey = key;
+				lastRemovedOutputTime = removedOutputArray.get(removedOutputArray.size()-1).getTimestamp();
 			} else {
 				break;
 			}
 		}
 		logger.trace(logPrefix() + "Flush {} output cache", count);
 		// TODO: Should be "Last removed output!"
-		return lastRemovedKey;
+		return lastRemovedOutputTime;
 	}
 
 	public void execute(RecordTuple tuple) {
@@ -221,6 +217,9 @@ public class UserTaskState {
 		return bolt.getComponentId() + "{" + user.getUsername() + "}:";
 	}
 
+	private void makeSnapshot(){
+		bolt.getPersistentStateMap().put(user.getUsername(), this);
+	}
 	/**
 	 * Make a checkpoint. A task commits a checkpoint to ensure that the
 	 * computation will be resumed from current state. When specifing the
@@ -233,11 +232,17 @@ public class UserTaskState {
 	 */
 	public void commitCheckpoint(DateTime checkpoint) {
 		this.checkpoint = checkpoint;
-		outputCache.flushToPersistentStore();
-		bookkeeper.snapshotUserState(this, kryo);
+		outputCache.persist();
+		makeSnapshot();
 		this.ackInputTuplesTil(checkpoint);
 	}
-
+	/**
+	 * Make a checkpoint with the time of the currently executed tuple.
+	 * 
+	 */
+	public void commitCheckpoint() {
+		commitCheckpoint(this.curRecordTuple.getTimestamp());
+	}
 	/**
 	 * When receiving a global checkpoint. Flush the cached output whose source
 	 * input tuple is "before" the global checkpoint (I.e. its timestamp is
@@ -260,7 +265,7 @@ public class UserTaskState {
 	 * checkpoint.
 	 */
 	public void streamEnd() {
-		logger.info(logPrefix()
+		logger.trace(logPrefix()
 				+ "Stream End. Checkpoint: {}. Fail all the unacked tuples.", this.checkpoint);
 		for (Tuple tuple : this.unackedTuples) {
 			bolt.collector.fail(tuple);
@@ -280,59 +285,22 @@ public class UserTaskState {
 		return task == null;
 	}
 	static private void fillInTransientFields(UserTaskState state,
-			OhmageUser user, LifestreamsBolt bolt, IBookkeeper bookkeeper,
-			Kryo kryo) {
-		state.outputCache = new TwoLayeredCacheMap<DateTime, List>(
-				"output.cache", DateTime.class, List.class, user,
-				bolt.getComponentId(), bookkeeper, kryo);
+			PersistentMapFactory mapFactory, LifestreamsBolt bolt) {
+		Map<DateTime, ArrayList> pMap = mapFactory.getUserTaskMap(bolt.getComponentId(), 
+																 state.getUser(), 
+																 "output_cache", 
+																 DateTime.class, ArrayList.class);
+		
+		state.outputCache = new TwoLayeredCacheMap<DateTime, ArrayList>(pMap);
 		state.unackedTuples = new LinkedList<Tuple>();
 		state.unackedTupleTimes = new LinkedList<DateTime>();
-		state.bookkeeper = bookkeeper;
-		state.kryo = kryo;
+		state.mapFactory = mapFactory;
 		state.bolt = bolt;
 		state.logger = LoggerFactory.getLogger(UserTaskState.class);
-
 	}
 
-	/**
-	 * Create or recover the state (if exists) from the persistent storage.
-	 * 
-	 * @param user
-	 *            The user.
-	 * @param templateTask
-	 *            The task to perform.
-	 * @param bolt
-	 *            The bolt containing this state.
-	 * @param bookkeeper
-	 *            Helper functions to access persistent storage.
-	 * @param kryo
-	 *            Kryo Java object serializer.
-	 * @return
-	 */
-	static public UserTaskState createOrRecoverUserState(OhmageUser user,
-			Task templateTask, LifestreamsBolt bolt, IBookkeeper bookkeeper,
-			Kryo kryo) {
 
-		UserTaskState state = null;
-		UserTaskState recoveredState = bookkeeper.recoverUserStateSnapshot(
-				bolt.getComponentId(), user, kryo);
-		// try to recover the user state snapshot from the persistent store
-		if (recoveredState != null) {
-			fillInTransientFields(recoveredState, user, bolt, bookkeeper, kryo);
-			// call recover() method to recover a task from snapshot
-			recoveredState.task.recover(user, recoveredState);
-			state = recoveredState;
-		} else {
-			// no previous snapshot, create a new user state
-			UserTaskState newState = new UserTaskState();
-			fillInTransientFields(newState, user, bolt, bookkeeper, kryo);
-			newState.user = user;
-			newState.task = SerializationUtils.clone(templateTask);
-			newState.task.init(user, newState);
-			state = newState;
-		}
-		return state;
-	}
+
 
 	public String toString() {
 		return "" + bolt.getComponentId() + "." + user.getUsername();
@@ -348,6 +316,44 @@ public class UserTaskState {
 
 	public OhmageUser getUser() {
 		return user;
+	}
+	
+	/**
+	 * Create or recover the state (if exists) from the persistent storage.
+	 * 
+	 * @param user
+	 *            The user.
+	 * @param templateTask
+	 *            The task to perform.
+	 * @param bolt
+	 *            The bolt containing this state.
+	 * @param bookkeeper
+	 *            Helper functions to access persistent storage.
+	 * @param kryo
+	 *            Kryo Java object serializer.
+	 * @return
+	 */
+	public static UserTaskState createOrRecoverUserState(
+			LifestreamsBolt bolt, OhmageUser user, Task templateTask,
+			PersistentMapFactory mapFactory) {
+		UserTaskState state = null;
+		UserTaskState recoveredState = bolt.getPersistentStateMap().get(user.getUsername());
+		// try to recover the user state snapshot from the persistent store
+		if (recoveredState != null) {
+			fillInTransientFields(recoveredState, mapFactory, bolt);
+			// call recover() method to recover a task from snapshot
+			recoveredState.task.recover(user, recoveredState, mapFactory);
+			state = recoveredState;
+		} else {
+			// no previous snapshot, create a new user state
+			UserTaskState newState = new UserTaskState();
+			newState.user = user;
+			fillInTransientFields(newState, mapFactory, bolt);
+			newState.task = SerializationUtils.clone(templateTask);
+			newState.task.init(user, newState, mapFactory);
+			state = newState;
+		}
+		return state;
 	}
 
 }

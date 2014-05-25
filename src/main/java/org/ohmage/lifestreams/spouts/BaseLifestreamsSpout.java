@@ -2,32 +2,20 @@ package org.ohmage.lifestreams.spouts;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.PriorityQueue;
-import java.util.Queue;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.annotation.Resource;
-
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.models.StreamRecord.StreamRecordFactory;
 import org.ohmage.lifestreams.tuples.BaseTuple;
 import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
 import org.ohmage.lifestreams.tuples.RecordTuple;
@@ -35,19 +23,20 @@ import org.ohmage.lifestreams.tuples.SpoutRecordTuple;
 import org.ohmage.lifestreams.tuples.SpoutRecordTuple.RecordTupleMsgId;
 import org.ohmage.lifestreams.tuples.StreamStatusTuple;
 import org.ohmage.lifestreams.tuples.StreamStatusTuple.StreamStatus;
-import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 
+import com.esotericsoftware.kryo.Kryo;
+
+import backtype.storm.Config;
+import backtype.storm.serialization.SerializationFactory;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
-import backtype.storm.tuple.Values;
 
 abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 	// requester should have permission to query all the requestees' data
@@ -56,7 +45,7 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 	@Autowired
 	OhmageUser requester;
 	@Autowired
-	RedisBookkeeper bookkeeper;
+	RedisMapStore bookkeeper;
 	// from when to start the data query
 	@Autowired	DateTime since;
 	
@@ -76,6 +65,8 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 	private Map<OhmageUser, UserSpoutState> states = new HashMap<OhmageUser, UserSpoutState>();
 	private TimeUnit retryDelayTimeUnit;
 	private int retryDelay;
+	private PersistentMapFactory mapFactory;
+	@Autowired IMapStore mapStore;
 	public List<OhmageUser> getRequestees() {
 		return requestees;
 	}
@@ -91,10 +82,10 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 		return _collector;
 	}
 	public DateTime getCommittedCheckpointFor(OhmageUser user){
-		return bookkeeper.getCheckPoint(this.getComponentId(), user);
+		return this.mapFactory.getComponentMap(this.getComponentId(), "checkpoint", String.class, DateTime.class).get(user.getUsername());
 	}
 	public void commitCheckpointFor(OhmageUser user, DateTime checkpoint){
-		bookkeeper.setCheckPoint(this.getComponentId(), user, checkpoint);
+		this.mapFactory.getComponentMap(this.getComponentId(), "checkpoint", String.class, DateTime.class).put(user.getUsername(), checkpoint);
 	}
 	public TopologyContext geTopologyContext(){
 		return context;
@@ -123,11 +114,13 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 			// defined in {DateTime since}, whichever is ahead of the other
 			DateTime start = (checkpoint != null && checkpoint.plus(1).isAfter(since)) ?
 								checkpoint.plus(1) : since;
-			logger.info("Resume process for {} from {}", user.getUsername(), start);
 			// get a new iterator 
 			Iterator<StreamRecord<T>> iter = getIteratorFor(user, start);
 			queue.add(new StreamStatusTuple(user, batchId, StreamStatus.HEAD));
 			long serialId = 0;
+			if(iter.hasNext()){
+				logger.info("Resume process for {} from {}", user.getUsername(), start);
+			}
 			while(!state.isFailed() && iter.hasNext()){
 				try {
 					Thread.sleep(1);
@@ -136,8 +129,13 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 				}
 				queue.add(new SpoutRecordTuple(iter.next(), batchId, serialId++));
 			}
-			if(state.isFailed()){
-				 logger.info("Failed {}", user);
+			if(serialId > 0){
+				// only print log if we emit at least one record
+				if(state.isFailed()){
+					 logger.info("Failed {} Checkpoint: {}", user.getUsername(), state.getCheckpoint());
+				}else{
+					logger.info("Finished {} Checkpoint: {}", user.getUsername(), state.getCheckpoint());
+				}
 			}
 			queue.add(new StreamStatusTuple(user, batchId, StreamStatus.END));
 			state.setStreamEnded(true);
@@ -166,6 +164,9 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 	@Override
 	public void open(Map conf, TopologyContext context,
 			SpoutOutputCollector collector) {
+		
+		Kryo kryo = new SerializationFactory().getKryo(conf);
+		this.mapFactory = new PersistentMapFactory((String) conf.get(Config.TOPOLOGY_NAME), mapStore, kryo);
 		
 		this.componentId = context.getThisComponentId();
 		logger = LoggerFactory.getLogger(componentId);
@@ -226,17 +227,20 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 			OhmageUser user = msg.getUser();
 			UserSpoutState state = states.get(user);
 			DateTime newCheckpoint = state.ackMsgId(msg);
-			// how many consecutive records has been acked since last commit
-			long numOfRecords = state.getAckedSerialId() - state.getLastCommittedSerialId();
-			// only commit checkpoint every 1000 records or when the stream is ended
-			if(newCheckpoint != null && (state.isStreamEnded() || numOfRecords > 1000)){
-				GlobalCheckpointTuple t = new GlobalCheckpointTuple(user, newCheckpoint);
-				 logger.trace("Emit Checkpoint {} for {}", newCheckpoint, user);
-				 commitCheckpointFor(user, newCheckpoint);
-				 // emit a GLobalCheckpoint tuple
-				 this.getCollector().emit(t.getValues());
-				 // update the last commited serial id 
-				 state.setLastCommittedSerial(state.getAckedSerialId());
+			
+			if(newCheckpoint != null){
+				commitCheckpointFor(user, newCheckpoint);
+				// how many consecutive records has been acked since last commit
+				long numOfRecords = state.getAckedSerialId() - state.getLastCommittedSerialId();
+				// only emit global checkpoint every 1000 records or when the stream is ended
+				 if(state.isStreamEnded() || numOfRecords > 1000){
+					 GlobalCheckpointTuple t = new GlobalCheckpointTuple(user, newCheckpoint);
+					 logger.trace("Emit Checkpoint {} for {}", newCheckpoint, user);
+					 // emit a GLobalCheckpoint tuple
+					 this.getCollector().emit(t.getValues());
+					 // update the last commited serial id 
+					 state.setLastCommittedSerial(state.getAckedSerialId());
+				 }
 			}
 			 
 		}

@@ -1,52 +1,22 @@
 package org.ohmage.lifestreams.spouts;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Resource;
 
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.StreamRecord.StreamRecordFactory;
-import org.ohmage.lifestreams.stores.RedisStreamStore;
 import org.ohmage.lifestreams.tuples.RecordTuple;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
-import org.ohmage.models.OhmageUser.OhmageAuthenticationError;
-import org.ohmage.sdk.OhmageHttpRequestException;
 import org.ohmage.sdk.OhmageStreamClient;
 import org.ohmage.sdk.OhmageStreamIterator;
-import org.ohmage.sdk.OhmageStreamIterator.SortOrder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.GenericTypeResolver;
 
-import redis.clients.jedis.Jedis;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichSpout;
-import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -121,7 +91,7 @@ public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 	@Override
 	protected Iterator<StreamRecord<T>> getIteratorFor(final OhmageUser user,
 			DateTime since) {
-		logger.info("Fetch data for user {} from {}({}) since {}!", user.getUsername(), 
+		logger.trace("Fetch data for user {} from {}({}) since {}!", user.getUsername(), 
 				stream.getObserverId(), 
 				stream.getStreamId(), 
 				since);

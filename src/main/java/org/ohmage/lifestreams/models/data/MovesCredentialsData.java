@@ -4,7 +4,6 @@ import org.ohmage.models.OhmageUser;
 
 import co.nutrino.api.moves.impl.dto.authentication.UserMovesAuthentication;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class MovesCredentialsData{

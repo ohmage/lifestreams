@@ -3,10 +3,9 @@ package org.ohmage.lifestreams.test;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Assert;
 import org.joda.time.DateTime;
-import org.joda.time.Days;
 import org.joda.time.Hours;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ohmage.lifestreams.LifestreamsTopologyBuilder;
@@ -123,8 +122,8 @@ public class ReliabilityTest {
 				builder.setTask("Counter", new CountTask(), "Filter").setTimeWindowSize(Hours.ONE);
 
 				builder.setColdStart(false);
-				LocalCluster cluster = builder.submitToLocalCluster("Activity-Count");
-				Thread.sleep(600000);
+				//LocalCluster cluster = builder.submitToLocalCluster("Activity-Count");
+				//Thread.sleep(6000);
 
 				
 		

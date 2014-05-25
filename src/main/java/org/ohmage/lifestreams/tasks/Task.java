@@ -1,42 +1,18 @@
 package org.ohmage.lifestreams.tasks;
 
 import java.io.Serializable;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.joda.time.DateTime;
-import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.bolts.IGenerator;
-import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.bolts.UserTaskState;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.models.data.TimeWindowData;
-import org.ohmage.lifestreams.spouts.IBookkeeper;
-import org.ohmage.lifestreams.tuples.BaseTuple;
-import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
+import org.ohmage.lifestreams.spouts.PersistentMapFactory;
 import org.ohmage.lifestreams.tuples.RecordTuple;
-import org.ohmage.lifestreams.tuples.StreamStatusTuple;
-import org.ohmage.lifestreams.tuples.StreamStatusTuple.StreamStatus;
-import org.ohmage.lifestreams.utils.KryoSerializer;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
-import com.esotericsoftware.kryo.io.Output;
-import com.google.common.collect.ImmutableList;
-
-import backtype.storm.generated.GlobalStreamId;
 
 /**
  * Tasks are the main bulding blocks of a Lifestreams topology and is where the
@@ -77,28 +53,34 @@ import backtype.storm.generated.GlobalStreamId;
 @SuppressWarnings("rawtypes")
 public abstract class Task implements Serializable, IGenerator {
 
-	private OhmageUser user;
-	private Logger logger;
+	private transient OhmageUser user;
+	private transient Logger logger;
 
 	private transient UserTaskState state;
+	private transient PersistentMapFactory mapFactory;
+
+	public PersistentMapFactory getMapFactory() {
+		return mapFactory;
+	}
 
 	public UserTaskState getState() {
 		return state;
 	}
 
-	private void initUtility(OhmageUser user, UserTaskState state) {
+	private void initUtility(OhmageUser user, UserTaskState state, PersistentMapFactory factory) {
 		this.user = user;
 		this.state = state;
+		this.mapFactory = factory;
 		this.logger = LoggerFactory.getLogger(this.getClass());
 	}
 
-	public void init(OhmageUser user, UserTaskState state) {
-		initUtility(user, state);
+	public void init(OhmageUser user, UserTaskState state, PersistentMapFactory factory) {
+		initUtility(user, state, factory);
 		init();
 	}
 
-	public void recover(OhmageUser user, UserTaskState state) {
-		initUtility(user, state);
+	public void recover(OhmageUser user, UserTaskState state, PersistentMapFactory factory) {
+		initUtility(user, state, factory);
 		recover();
 	}
 
@@ -158,6 +140,9 @@ public abstract class Task implements Serializable, IGenerator {
 
 	protected void checkpoint(DateTime checkpoint) {
 		state.commitCheckpoint(checkpoint);
+	}
+	protected void checkpoint() {
+		state.commitCheckpoint();
 	}
 
 	@Override

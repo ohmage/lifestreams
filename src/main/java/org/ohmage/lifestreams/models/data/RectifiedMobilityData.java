@@ -2,7 +2,6 @@ package org.ohmage.lifestreams.models.data;
 
 import org.ohmage.lifestreams.bolts.IGenerator;
 import org.ohmage.lifestreams.models.MobilityState;
-import org.ohmage.lifestreams.tasks.TimeWindow;
 
 public class RectifiedMobilityData extends LifestreamsData implements
 		IMobilityData {

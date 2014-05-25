@@ -1,16 +1,7 @@
 package org.ohmage.lifestreams.tasks.moves;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.joda.time.Days;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.tasks.SimpleTask;
-import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
-import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.springframework.stereotype.Component;
 
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;

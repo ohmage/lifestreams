@@ -1,20 +1,13 @@
 package org.ohmage.lifestreams.tasks;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
-import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.GeoDiameterData;
-import org.ohmage.lifestreams.utils.UnitConversion;
 import org.springframework.stereotype.Component;
 
-import com.bbn.openmap.geo.ConvexHull;
-import com.bbn.openmap.geo.Geo;
-import com.javadocmd.simplelatlng.LatLng;
-import com.javadocmd.simplelatlng.LatLngTool;
 import com.javadocmd.simplelatlng.util.LengthUnit;
 
 /**
@@ -42,23 +35,8 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 		// combine the unprocessed points with the points on the current convex
 		// hull
 		pointBuffer.addAll(currentConvexHull);
-		// prepare the geolocation array for computing convex hull
-		List<Geo> geoPoints = new LinkedList<Geo>();
-		for (StreamRecord point : pointBuffer) {
-			geoPoints.add(new Geo(point.getLocation().getCoordinates().getLatitude(),
-					point.getLocation().getCoordinates().getLongitude()));
-		}
-
-		// get the combined convex hull
-		Geo[] hull = ConvexHull
-				.hull(geoPoints.toArray(new Geo[geoPoints.size()]));
-
-		// record the updated convex hull by storing the vertexes of the hull
-		currentConvexHull.clear();
-		for (Geo vertex : hull) {
-			// get the geolocation of each vertex
-			currentConvexHull.add(pointBuffer.get(geoPoints.indexOf(vertex)));
-		}
+		// get convex hull
+		currentConvexHull = ConvexHull.getHull(pointBuffer, 50);
 		// clear the unprocessed points buffer
 		pointBuffer.clear();
 	}
@@ -88,7 +66,8 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 		StreamRecord earlierPointOnDiameter = null;
 		StreamRecord laterPointOnDiameter = null;
 		double longestDistanceInHull = 0;
-		// compute the pairwise distance between each pair of vertexes to find the
+		// compute the pairwise distance between each pair of vertexes to find
+		// the
 		// longest distance
 		for (int i = 0; i < hull_points.size() - 1; i++) {
 			for (int j = i + 1; j < hull_points.size(); j++) {
@@ -110,13 +89,11 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 				.setEarlierPointOnDiameter(earlierPointOnDiameter.getLocation())
 				.setLaterPointOnDiameter(laterPointOnDiameter.getLocation());
 		// emit data
-		this.createRecord()
-			.setData(data)
-			.setTimestamp(window.getFirstInstant())
-			.emit();
+		this.createRecord().setData(data)
+				.setTimestamp(window.getFirstInstant()).emit();
 
 	}
- 
+
 	@Override
 	public void finishWindow(TimeWindow window) {
 		computeGeoDistance(window);

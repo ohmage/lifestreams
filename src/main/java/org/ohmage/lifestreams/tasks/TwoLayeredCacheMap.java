@@ -6,47 +6,32 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.ohmage.lifestreams.spouts.IBookkeeper;
-import org.ohmage.lifestreams.utils.KryoSerializer;
+import org.ohmage.lifestreams.spouts.IMapStore;
 import org.ohmage.models.OhmageUser;
 
 import com.esotericsoftware.kryo.Kryo;
 
 
 public class TwoLayeredCacheMap<KEY, VALUE> implements Map<KEY, VALUE>{
-	private Map<KEY, VALUE> localCache = new HashMap<KEY, VALUE>();
-	final IBookkeeper bookkeeper;
-	final String cId;
-	final String name;
-	final OhmageUser user;
-	final Kryo serializer;
-	final Class<KEY> keyClass;
-	final Class<VALUE> valClass;
-	public TwoLayeredCacheMap(String name, Class<KEY> keyClass, Class<VALUE> valClass, OhmageUser user, String componentId, IBookkeeper bookkeeper, Kryo serializer){
-		this.bookkeeper = bookkeeper;
-		this.cId = componentId;
-		this.name = name;
-		this.user = user;
-		this.serializer = serializer;
-		this.keyClass = keyClass;
-		this.valClass = valClass;
+	private Map<KEY, VALUE> volatileMap = new HashMap<KEY, VALUE>();
+	private Map<KEY, VALUE> persistentMapMirror = new HashMap<KEY, VALUE>();
+	final Map<KEY, VALUE> persistentMap;
+	public TwoLayeredCacheMap(Map<KEY, VALUE> persistentMap){
+		this.persistentMap = persistentMap;
+		this.persistentMapMirror.putAll(persistentMap);
 	}
 	@Override
 	public void clear() {
-		localCache.clear();
-		// TODO support clear more natively
-		for(KEY key:bookkeeper.getKeySet(cId, user, name, serializer, keyClass)){
-			bookkeeper.removeFromMap(cId, user, name, key, serializer);
-		}
-		
+		volatileMap.clear();
+		persistentMapMirror.clear();
+		this.persistentMap.clear();
 	}
 
 	@Override
 	public boolean containsKey(Object key) {
-		boolean ret = false;
-		if(localCache.containsKey(key)){
+		if(volatileMap.containsKey(key)){
 			return true;
-		}else if(bookkeeper.getKeySet(cId, user, name, serializer, keyClass).contains(key)){
+		}else if(persistentMapMirror.containsKey(key)){
 			return true;
 		}
 		return false;
@@ -65,12 +50,11 @@ public class TwoLayeredCacheMap<KEY, VALUE> implements Map<KEY, VALUE>{
 
 	@Override
 	public VALUE get(Object key) {
-		if(localCache.containsKey(key)){
-			return localCache.get(key);
+		if(volatileMap.containsKey(key)){
+			return volatileMap.get(key);
 		}
-		VALUE val = bookkeeper.getMap(cId, user, name, key, serializer, valClass);
-		if(val != null){
-			return val;
+		if(persistentMapMirror.containsKey(key)){
+			return persistentMapMirror.get(key);
 		}
 		return null;
 	}
@@ -83,31 +67,30 @@ public class TwoLayeredCacheMap<KEY, VALUE> implements Map<KEY, VALUE>{
 	@Override
 	public Set<KEY> keySet() {
 		Set<KEY> finalSet = new HashSet<KEY>();
-		finalSet.addAll(localCache.keySet());
-		Set<KEY> persistentSet = bookkeeper.getKeySet(cId, user, name, serializer, keyClass);
-		if(persistentSet != null){
-			finalSet.addAll(persistentSet);
-		}
+		finalSet.addAll(volatileMap.keySet());
+		finalSet.addAll(persistentMapMirror.keySet());
 		return finalSet;
 	}
 
 	@Override
 	public VALUE put(KEY key, VALUE value) {
-		localCache.put(key, value);
+		volatileMap.put(key, value);
 		return null;
 	}
 
 	@Override
 	public void putAll(Map<? extends KEY, ? extends VALUE> m) {
-		throw new UnsupportedOperationException();
-		
+		volatileMap.putAll(m);
 	}
 
 	@Override
 	public VALUE remove(Object key) {
-		VALUE val = localCache.remove(key);
+		VALUE val = volatileMap.remove(key);
 		if(val == null){
-			bookkeeper.removeFromMap(cId, user, name, key, serializer);
+			val = this.persistentMapMirror.remove(key);
+			if(val != null){
+				this.persistentMap.remove(key);
+			}
 		}
 		return val;
 	}
@@ -122,14 +105,13 @@ public class TwoLayeredCacheMap<KEY, VALUE> implements Map<KEY, VALUE>{
 		throw new UnsupportedOperationException();
 	}
 	
-	public void flushToPersistentStore(){
-		for(KEY key: localCache.keySet()){
-			bookkeeper.putMap(cId, user, name, key, localCache.get(key), serializer);
-		}
-		localCache.clear();
+	public void persist(){
+		this.persistentMap.putAll(volatileMap);
+		persistentMapMirror.putAll(volatileMap);
+		volatileMap.clear();
 	}
 	public void clearLocalCache(){
-		localCache.clear();
+		volatileMap.clear();
 	}
 	
 

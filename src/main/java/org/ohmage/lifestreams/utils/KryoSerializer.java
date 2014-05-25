@@ -20,24 +20,17 @@ import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.ActivityEpisode;
 import org.ohmage.lifestreams.models.data.ActivitySummaryData;
 import org.ohmage.lifestreams.models.data.GeoDiameterData;
-import org.ohmage.lifestreams.models.data.TimeWindowData;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.models.data.RectifiedMobilityData;
+import org.ohmage.lifestreams.models.data.TimeWindowData;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.models.OhmageServer;
 import org.ohmage.models.OhmageUser;
 
-import backtype.storm.Config;
 import backtype.storm.serialization.IKryoFactory;
-import backtype.storm.serialization.KryoTupleSerializer;
-import backtype.storm.serialization.SerializableSerializer;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.utils.IndifferentAccessMap;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Registration;
-import com.esotericsoftware.shaded.org.objenesis.strategy.SerializingInstantiatorStrategy;
 import com.esotericsoftware.shaded.org.objenesis.strategy.StdInstantiatorStrategy;
 
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;

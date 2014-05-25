@@ -1,22 +1,15 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
 import org.joda.time.DateTime;
-import org.joda.time.Days;
-import org.joda.time.base.BaseSingleFieldPeriod;
-import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.models.data.RectifiedMobilityData;
 import org.ohmage.lifestreams.tasks.SimpleTask;
-import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
-import org.ohmage.lifestreams.tasks.TimeWindow;
-import org.ohmage.models.OhmageUser;
 import org.springframework.stereotype.Component;
 
 import be.ac.ulg.montefiore.run.jahmm.Hmm;
@@ -24,7 +17,6 @@ import be.ac.ulg.montefiore.run.jahmm.ObservationDiscrete;
 import be.ac.ulg.montefiore.run.jahmm.OpdfDiscrete;
 import be.ac.ulg.montefiore.run.jahmm.OpdfDiscreteFactory;
 
-import com.bbn.openmap.geo.Geo;
 import com.javadocmd.simplelatlng.LatLng;
 import com.javadocmd.simplelatlng.LatLngTool;
 import com.javadocmd.simplelatlng.util.LengthUnit;

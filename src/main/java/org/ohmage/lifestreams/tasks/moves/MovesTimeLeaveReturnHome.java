@@ -3,7 +3,6 @@ package org.ohmage.lifestreams.tasks.moves;
 import java.util.ArrayList;
 
 import org.joda.time.DateTime;
-import org.joda.time.Days;
 import org.joda.time.Interval;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
@@ -17,7 +16,6 @@ import co.nutrino.api.moves.impl.dto.storyline.MovesPlace;
 import co.nutrino.api.moves.impl.dto.storyline.MovesPlaceTypeEnum;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 
-import com.bbn.openmap.geo.Geo;
 import com.javadocmd.simplelatlng.LatLng;
 
 @Component

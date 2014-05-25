@@ -1,8 +1,5 @@
 package org.ohmage.lifestreams.tuples;
 
-import java.lang.reflect.InvocationTargetException;
-
-import org.joda.time.DateTime;
 import org.ohmage.models.OhmageUser;
 
 import backtype.storm.generated.GlobalStreamId;

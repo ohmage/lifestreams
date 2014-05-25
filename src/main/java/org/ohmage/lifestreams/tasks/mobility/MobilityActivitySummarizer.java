@@ -5,9 +5,6 @@ import java.util.EnumMap;
 import java.util.List;
 
 import org.joda.time.DateTime;
-import org.joda.time.Days;
-import org.joda.time.base.BaseSingleFieldPeriod;
-import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.ActivityEpisode;
@@ -16,7 +13,6 @@ import org.ohmage.lifestreams.models.data.IMobilityData;
 import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.lifestreams.utils.ActivityEpisodeAccumulator;
-import org.ohmage.models.OhmageUser;
 import org.springframework.stereotype.Component;
 
 /**

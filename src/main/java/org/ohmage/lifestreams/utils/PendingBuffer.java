@@ -5,8 +5,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import org.joda.time.DateTime;
-import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.tuples.RecordTuple;
 
 import backtype.storm.generated.GlobalStreamId;

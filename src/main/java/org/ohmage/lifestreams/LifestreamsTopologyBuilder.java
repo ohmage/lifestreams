@@ -3,11 +3,11 @@ package org.ohmage.lifestreams;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.joda.time.Days;
 import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.bolts.LifestreamsBolt;
-import org.ohmage.lifestreams.spouts.RedisBookkeeper;
-import org.ohmage.lifestreams.stores.RedisStreamStore;
+import org.ohmage.lifestreams.spouts.IMapStore;
+import org.ohmage.lifestreams.spouts.PersistentMapFactory;
+import org.ohmage.lifestreams.spouts.RedisMapStore;
 import org.ohmage.lifestreams.stores.StreamStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tasks.TimeWindowTask;
@@ -59,7 +59,7 @@ public class LifestreamsTopologyBuilder {
 	int msgTimeout;
 
 	@Autowired
-	RedisBookkeeper bookkeeper;
+	IMapStore mapStore;
 
 	public boolean isDryRun() {
 		return dryRun;
@@ -114,7 +114,7 @@ public class LifestreamsTopologyBuilder {
 		}
 
 		private void buildBolt() {
-			LifestreamsBolt bolt = new LifestreamsBolt(task, bookkeeper);
+			LifestreamsBolt bolt = new LifestreamsBolt(task, mapStore);
 			bolt.setTargetStream(targetStream);
 			bolt.setStreamStore(defaultStreamStore);
 			BoltDeclarer declarer = builder.setBolt(id, bolt, parallelism_hint)
@@ -148,6 +148,10 @@ public class LifestreamsTopologyBuilder {
 	 * @return A local cluster instance
 	 */
 	public LocalCluster submitToLocalCluster(String topologyName) {
+		
+		if (coldStart) {
+			new PersistentMapFactory(topologyName, mapStore, null).clearAll();
+		}
 		LocalCluster cluster = new LocalCluster();
 		cluster.submitTopology(topologyName, this.getConfiguration(),
 				this.createTopology());
@@ -163,9 +167,7 @@ public class LifestreamsTopologyBuilder {
 		for (BoltConfig config : boltConfigs) {
 			config.buildBolt();
 		}
-		if (coldStart) {
-			this.bookkeeper.clearAll();
-		}
+
 		return builder.createTopology();
 	}
 

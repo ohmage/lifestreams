@@ -4,18 +4,12 @@ import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.LifestreamsTopologyBuilder;
 import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
-import org.ohmage.lifestreams.utils.KryoSerializer;
-import org.ohmage.lifestreams.test.activityCount.ActivityInstanceCounter;
 import org.ohmage.models.OhmageStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import backtype.storm.Config;
-import backtype.storm.LocalCluster;
 
 
 

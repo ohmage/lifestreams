@@ -7,6 +7,7 @@ import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
 import org.ohmage.lifestreams.tasks.GeoDiameterTask;
 import org.ohmage.lifestreams.tasks.mobility.HMMMobilityRectifier;
 import org.ohmage.lifestreams.tasks.mobility.MobilityActivitySummarizer;
+import org.ohmage.lifestreams.tasks.mobility.PlaceDetection;
 import org.ohmage.lifestreams.tasks.mobility.TimeLeaveReturnHome;
 import org.ohmage.lifestreams.tasks.moves.FilterDuplicatedSegment;
 import org.ohmage.lifestreams.tasks.moves.MovesActivitySummarizer;
@@ -62,7 +63,8 @@ public class MobilityMovesTopology {
 	HMMMobilityRectifier HMMMobilityRectifier;
 	@Autowired
 	MobilityActivitySummarizer mobilityActivitySummarizer;
-
+	@Autowired
+	PlaceDetection placeDetection;
 	// ** Moves components ** //
 	@Autowired
 	FilterDuplicatedSegment filterDuplicatedSegment;
@@ -103,11 +105,13 @@ public class MobilityMovesTopology {
 			builder.setSpout("MobilityDataStream", mobilitySpout,
 					mobility_spout_number);
 
-			builder.setTask("PlaceDetection", timeLeaveReturnHome, "MobilityDataStream")
-					.setParallelismHint(parallelismPerTask)
-					.setTimeWindowSize(Days.ONE)
-					.setTargetStream(leaveArriveHomeStream);
+			builder.setTask("PlaceDetection", placeDetection, "MobilityDataStream")
+					.setParallelismHint(parallelismPerTask);
 
+			builder.setTask("MobilityTimeLeaveReturnHome", timeLeaveReturnHome, "PlaceDetection")
+			.setParallelismHint(parallelismPerTask)
+			.setTargetStream(leaveArriveHomeStream);
+			
 			// compute daily geodiameter from Mobility data
 			builder.setTask("GeoDistanceBolt", geoDiameterTask,	"MobilityDataStream")
 					.setTargetStream(geodiameterStream)
