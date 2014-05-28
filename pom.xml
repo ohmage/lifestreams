@@ -120,15 +120,15 @@
       <!-- Ohmage Stream SDK -->
       <!-- Please checkout the code from: https://github.com/changun/OhmageStreamSDK -->
       <dependency>
-         <groupId>org.ohmage</groupId>
-         <artifactId>streamSDK</artifactId>
-         <version>0.0.1-SNAPSHOT</version>
+		  <groupId>org.ohmage</groupId>
+		  <artifactId>streamSDK</artifactId>
+		  <version>0.0.1</version>
       </dependency>
        <!-- Openmap -->
       <dependency>
-         <groupId>bnn</groupId>
+         <groupId>com.bbn</groupId>
          <artifactId>openmap</artifactId>
-         <version>5.0.3</version>
+         <version>5.0.4</version>
       </dependency>
       <!-- Sparse Matrix -->
       <dependency>
