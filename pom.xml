@@ -163,7 +163,22 @@
    <properties>
       <start-class>org.ohmage.lifestreams.Application</start-class>
    </properties>
+   
+     <distributionManagement>
+    <repository>
+      <id>ssh-repository</id>
+      <url>scpexe://apollo.ohmage.org/home/changun/public_html/maven_repo</url>
+    </repository>
+  </distributionManagement>
    <build>
+           <extensions>
+      <!-- Enabling the use of FTP -->
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+         <artifactId>wagon-ssh-external</artifactId>
+         <version>1.0-beta-6</version>
+      </extension>
+    </extensions>
       <plugins>
          <plugin>
             <groupId>org.springframework.boot</groupId>
@@ -229,6 +244,12 @@
          <id>Jahmm</id>
          <name>Jahmm HMM library repository</name>
          <url>http://jahmm.googlecode.com/svn/repo</url>
+      </repository>
+      <!-- Lifestreams repo -->
+       <repository>
+         <id>Lifestreams</id>
+         <name>changun's Lifestreams repo</name>
+         <url>https://web.ohmage.org/~changun/maven_repo</url>
       </repository>
    </repositories>
    <pluginRepositories>
