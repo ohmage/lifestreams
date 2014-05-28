@@ -184,13 +184,10 @@ public class PlaceDetection extends SimpleTask<MobilityData> {
 			// don't include the data point if it does not have location info
 			return;
 		}else if(data.size() > 0){
-			 // skip out-of-order and too frequent records
+			 // skip out-of-order records
 			DateTime lastTime = data.getLast().getLocation().getTimestamp();
 			DateTime newTime = newRec.getLocation().getTimestamp();
 			if(lastTime.isAfter(newTime)){
-				 return;
-			}
-			if(new Interval(lastTime, newTime).toDurationMillis() < 30 * 1000){
 				 return;
 			}
 		}

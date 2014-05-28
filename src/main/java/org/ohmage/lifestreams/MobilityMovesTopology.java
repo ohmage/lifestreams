@@ -1,9 +1,11 @@
 package org.ohmage.lifestreams;
 
 import org.joda.time.Days;
+import org.joda.time.Duration;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.spouts.MovesSpout;
 import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
+import org.ohmage.lifestreams.tasks.DataRateLimiter;
 import org.ohmage.lifestreams.tasks.GeoDiameterTask;
 import org.ohmage.lifestreams.tasks.mobility.HMMMobilityRectifier;
 import org.ohmage.lifestreams.tasks.mobility.MobilityActivitySummarizer;
@@ -104,8 +106,10 @@ public class MobilityMovesTopology {
 		if (enableMobility) {
 			builder.setSpout("MobilityDataStream", mobilitySpout,
 					mobility_spout_number);
+			builder.setTask("ThrottledMobilityDataStream", new DataRateLimiter(Duration.standardSeconds(30)), "MobilityDataStream")
+					.setParallelismHint(parallelismPerTask);
 
-			builder.setTask("PlaceDetection", placeDetection, "MobilityDataStream")
+			builder.setTask("PlaceDetection", placeDetection, "ThrottledMobilityDataStream")
 					.setParallelismHint(parallelismPerTask);
 
 			builder.setTask("MobilityTimeLeaveReturnHome", timeLeaveReturnHome, "PlaceDetection")
@@ -113,13 +117,13 @@ public class MobilityMovesTopology {
 			.setTargetStream(leaveArriveHomeStream);
 			
 			// compute daily geodiameter from Mobility data
-			builder.setTask("GeoDistanceBolt", geoDiameterTask,	"MobilityDataStream")
+			builder.setTask("GeoDistanceBolt", geoDiameterTask,	"ThrottledMobilityDataStream")
 					.setTargetStream(geodiameterStream)
 					.setParallelismHint(parallelismPerTask)
 					.setTimeWindowSize(Days.ONE);
 
 			// HMM model to correct shor-term errors in Mobility
-			builder.setTask("HMMMobilityStateRectifier", HMMMobilityRectifier, "MobilityDataStream")
+			builder.setTask("HMMMobilityStateRectifier", HMMMobilityRectifier, "ThrottledMobilityDataStream")
 					.setParallelismHint(parallelismPerTask);
 			// based on the corrected Mobility data, compute daily activity
 			// summary

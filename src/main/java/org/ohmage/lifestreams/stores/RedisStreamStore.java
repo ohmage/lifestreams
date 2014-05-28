@@ -8,6 +8,8 @@ import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.StreamRecord.StreamRecordFactory;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -22,6 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 @Component
 public class RedisStreamStore implements StreamStore {
 	private ObjectMapper mapper = new ObjectMapper();
+	private Logger logger = LoggerFactory.getLogger(RedisStreamStore.class);
 	@Value("${redis.host}")
 	String host;
 
@@ -40,7 +43,7 @@ public class RedisStreamStore implements StreamStore {
 	public void upload(OhmageStream stream, StreamRecord rec) {
 		Jedis jedis = getPool().getResource();
 		jedis.select(0);
-		String key = rec.getData().toString();
+		String key = rec.getData().toString() + rec.getTimestamp();
 		String value;
 		try {
 			value = mapper.writeValueAsString(rec.toObserverDataPoint());
@@ -64,6 +67,7 @@ public class RedisStreamStore implements StreamStore {
 			try {
 				records.add(recFactory.createRecord((ObjectNode) mapper.readTree(string), user));
 			} catch (Exception e) {
+				logger.error("Node string: {}", string);
 				throw new RuntimeException(e);
 			}
 		}

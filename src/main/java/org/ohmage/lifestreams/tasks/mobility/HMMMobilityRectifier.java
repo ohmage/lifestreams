@@ -40,7 +40,6 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 
 	private static final int DRIVE_VERIFICATION_TIMEFRAME_SIZE = 10 * 60; // in seconds
 	private static final int MAXIMUN_ALLOWABLE_SAMPLING_INTERVAL =  3 * 60; // in seconds
-	private static final int MINIMUN_SAMPLING_INTERVAL =  30; // in seconds
 	transient Hmm<ObservationDiscrete<MobilityState>> hmmModel;
 	List<StreamRecord<MobilityData>> data = new ArrayList<StreamRecord<MobilityData>>(100);
 
@@ -63,11 +62,7 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 		if(data.size() > 0){
 			DateTime lastTime = data.get(data.size()-1).getTimestamp();
 			MobilityState lastState = data.get(data.size()-1).getData().getMode();
-			if(lastTime.plusSeconds(MINIMUN_SAMPLING_INTERVAL).isAfter(dp.getTimestamp())){
-				// skip too frequent samples
-				return;
-			}
-			else if(lastTime.plusSeconds(MAXIMUN_ALLOWABLE_SAMPLING_INTERVAL).isBefore(dp.getTimestamp())){
+			if(lastTime.plusSeconds(MAXIMUN_ALLOWABLE_SAMPLING_INTERVAL).isBefore(dp.getTimestamp())){
 				
 				// if the sampling gap is too large, perform the rectification on the previous samples
 				correctMobilityStates(data);

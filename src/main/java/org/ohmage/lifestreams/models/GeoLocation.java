@@ -93,6 +93,7 @@ public class GeoLocation {
 			jgen.writeStringField("provider", value.provider);
 			jgen.writeStringField("timestamp", value.timestamp.toString());
 			jgen.writeNumberField("accuracy", value.accuracy);
+		    jgen.writeEndObject();
 
 		}
 	}

@@ -1,5 +1,7 @@
 package org.ohmage.lifestreams.spouts;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -112,7 +114,7 @@ public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 					peekableIter.next();
 				}
 			}
-			return new Iterator<StreamRecord<T>>(){
+			return new ICloseableIterator<StreamRecord<T>>() {
 				@Override
 				public boolean hasNext() {
 					return peekableIter.hasNext();
@@ -135,6 +137,11 @@ public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 				public void remove() {
 					throw new UnsupportedOperationException();
 					
+				}
+
+				@Override
+				public void close() throws IOException {
+						iter.close();
 				}
 				
 			};

@@ -1,5 +1,7 @@
 package org.ohmage.lifestreams.spouts;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -59,17 +61,12 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 	private  LinkedBlockingQueue<BaseTuple> queue = new LinkedBlockingQueue<BaseTuple>();
 	// thread pool
 	private ScheduledExecutorService  _scheduler;
-	// thread  pool for committing checkpoint
-	private ScheduledExecutorService _checkpointScheduler;
 	// checkpoint of each user
 	private Map<OhmageUser, UserSpoutState> states = new HashMap<OhmageUser, UserSpoutState>();
 	private TimeUnit retryDelayTimeUnit;
 	private int retryDelay;
 	private PersistentMapFactory mapFactory;
 	@Autowired IMapStore mapStore;
-	public List<OhmageUser> getRequestees() {
-		return requestees;
-	}
 
 	public OhmageUser getRequester() {
 		return requester;
@@ -107,19 +104,14 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 			long batchId = new DateTime().getMillis();
 			// clear and update user state with new batch id
 			UserSpoutState state = states.get(user);
-			state.newBatch(batchId);
 			// get the checkpoint left by the previous batch
 			DateTime checkpoint = state.getCheckpoint();
-			// set start time = the next millisecond of the checkpoint or the global start time
-			// defined in {DateTime since}, whichever is ahead of the other
-			DateTime start = (checkpoint != null && checkpoint.plus(1).isAfter(since)) ?
-								checkpoint.plus(1) : since;
 			// get a new iterator 
-			Iterator<StreamRecord<T>> iter = getIteratorFor(user, start);
+			Iterator<StreamRecord<T>> iter = getIteratorFor(user, checkpoint);
 			queue.add(new StreamStatusTuple(user, batchId, StreamStatus.HEAD));
 			long serialId = 0;
 			if(iter.hasNext()){
-				logger.info("Resume process for {} from {}", user.getUsername(), start);
+				state.newBatch(batchId);
 			}
 			while(!state.isFailed() && iter.hasNext()){
 				try {
@@ -128,19 +120,19 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 					return;
 				}
 				queue.add(new SpoutRecordTuple(iter.next(), batchId, serialId++));
+				state.setLastExpectedSerialId(batchId, serialId);
 			}
-			if(serialId > 0){
-				// only print log if we emit at least one record
-				if(state.isFailed()){
-					 logger.info("Failed {} Checkpoint: {}", user.getUsername(), state.getCheckpoint());
-				}else{
-					logger.info("Finished {} Checkpoint: {}", user.getUsername(), state.getCheckpoint());
+			if(iter instanceof Closeable){
+				try {
+					((Closeable) iter).close();
+				} catch (IOException e) {
+					logger.error("Iterator close error", e);
 				}
 			}
+			
 			queue.add(new StreamStatusTuple(user, batchId, StreamStatus.END));
 			state.setStreamEnded(true);
 
-					
 		}
 		
 	}
@@ -195,7 +187,7 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 		}
 		Arrays.sort(requesteeNames);
 		
-		logger.info("Final requestees list: {}", StringUtils.join(requesteeNames));
+		logger.info("Final requestees list: {}", StringUtils.join(requesteeNames, ','));
 		// ** Setup the requestee list for this spout instance** //
 		
 		// parameters for distributing the work among multiple spouts
@@ -210,8 +202,13 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 				// use hash of user name to distribute the  requestees to each spout
 				OhmageUser requestee = new OhmageUser(requester.getServer(), requesteeName, null );
 				this.requestees.add(requestee);
+				// set start time = the next millisecond of the checkpoint or the global start time
+				// defined in {DateTime since}, whichever is ahead of the other
+				DateTime checkpoint = getCommittedCheckpointFor(requestee);
+				DateTime start = (checkpoint != null && checkpoint.plus(1).isAfter(since)) ?
+									checkpoint.plus(1) : since;
 				// init the user state
-				UserSpoutState state =  new UserSpoutState(this.getCommittedCheckpointFor(requestee));
+				UserSpoutState state =  new UserSpoutState(requestee, this, start);
 				states.put(requestee, state);
 				this._scheduler.scheduleWithFixedDelay(new Fetcher(requestee, 0), 0, 
 										this.retryDelay, this.retryDelayTimeUnit);
@@ -226,22 +223,20 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 			RecordTupleMsgId msg = (RecordTupleMsgId) id;
 			OhmageUser user = msg.getUser();
 			UserSpoutState state = states.get(user);
-			DateTime newCheckpoint = state.ackMsgId(msg);
+			state.ackMsgId(msg);
 			
-			if(newCheckpoint != null){
-				commitCheckpointFor(user, newCheckpoint);
-				// how many consecutive records has been acked since last commit
-				long numOfRecords = state.getAckedSerialId() - state.getLastCommittedSerialId();
-				// only emit global checkpoint every 1000 records or when the stream is ended
-				 if(state.isStreamEnded() || numOfRecords > 1000){
-					 GlobalCheckpointTuple t = new GlobalCheckpointTuple(user, newCheckpoint);
-					 logger.trace("Emit Checkpoint {} for {}", newCheckpoint, user);
-					 // emit a GLobalCheckpoint tuple
-					 this.getCollector().emit(t.getValues());
-					 // update the last commited serial id 
-					 state.setLastCommittedSerial(state.getAckedSerialId());
-				 }
-			}
+			// how many consecutive records has been acked since last commit
+			long numOfRecords = state.getAckedSerialId() - state.getLastCommittedSerialId();
+			// only emit global checkpoint every 1000 records or when the stream is ended
+			 if(state.isStreamEnded() || numOfRecords > 1000){
+				 GlobalCheckpointTuple t = new GlobalCheckpointTuple(user, state.getCheckpoint());
+				 logger.trace("Emit Global Checkpoint {} for {}", state.getCheckpoint(), user);
+				 // emit a GLobalCheckpoint tuple
+				 this.getCollector().emit(t.getValues());
+				 // update the last commited serial id 
+				 state.setLastCommittedSerial(state.getAckedSerialId());
+			 }
+			
 			 
 		}
 	}
@@ -251,7 +246,7 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 		if(id instanceof SpoutRecordTuple.RecordTupleMsgId ){
 			RecordTupleMsgId msg =(SpoutRecordTuple.RecordTupleMsgId) id;
 			UserSpoutState state = states.get(msg.getUser());
-			state.setFailedWithBatchId(msg.getBatchId());
+			state.setFailed(msg.getBatchId(), msg.getSerialId());
 		}
 	}
 	@Override

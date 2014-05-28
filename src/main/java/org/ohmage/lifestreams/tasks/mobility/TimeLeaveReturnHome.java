@@ -75,10 +75,9 @@ public class TimeLeaveReturnHome extends SimpleTimeWindowTask<MobilitySegment>{
 													.setTimeReturnHome(timeReturnHome)
 													.setHomeLocation(homeLocation);
 			createRecord().setData(data)
-						  .setLocation(homeLocation)
 						  .setTimestamp(last.getEnd())
 						  .emit();
-			
+			 
 		}
 		// clean up
 		homeLocation = null;
