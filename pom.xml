@@ -115,7 +115,7 @@
       <dependency>
          <artifactId>moves-api</artifactId>
          <groupId>com.moves</groupId>
-         <version>0.2</version>
+         <version>0.3</version>
       </dependency>
       <!-- Ohmage Stream SDK -->
       <!-- Please checkout the code from: https://github.com/changun/OhmageStreamSDK -->
