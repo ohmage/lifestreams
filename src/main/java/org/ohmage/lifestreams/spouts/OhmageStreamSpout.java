@@ -1,6 +1,5 @@
 package org.ohmage.lifestreams.spouts;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;

@@ -21,8 +21,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import backtype.storm.LocalCluster;
-
 @ContextConfiguration({"classpath*:/mainContext.xml", "classpath:/testContext.xml"})
 @RunWith(SpringJUnit4ClassRunner.class)
 public class ReliabilityTest {

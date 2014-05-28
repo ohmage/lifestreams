@@ -1,25 +1,19 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.models.data.MobilitySegment;
-import org.ohmage.lifestreams.models.data.MobilitySegment.*;
+import org.ohmage.lifestreams.models.data.MobilitySegment.MoveSegment;
+import org.ohmage.lifestreams.models.data.MobilitySegment.PlaceSegment;
+import org.ohmage.lifestreams.models.data.MobilitySegment.State;
 import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.ohmage.lifestreams.utils.DivideInterval;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,11 +21,8 @@ import org.springframework.stereotype.Component;
 
 import com.javadocmd.simplelatlng.LatLng;
 import com.javadocmd.simplelatlng.LatLngTool;
-import com.javadocmd.simplelatlng.util.LatLngConfig;
 import com.javadocmd.simplelatlng.util.LengthUnit;
-import com.jcabi.aspects.RetryOnFailure;
 
-import fr.dudie.nominatim.client.JsonNominatimClient;
 import fr.dudie.nominatim.model.Address;
 
 /**

@@ -6,11 +6,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.ohmage.lifestreams.spouts.IMapStore;
-import org.ohmage.models.OhmageUser;
-
-import com.esotericsoftware.kryo.Kryo;
-
 
 public class TwoLayeredCacheMap<KEY, VALUE> implements Map<KEY, VALUE>{
 	private Map<KEY, VALUE> volatileMap = new HashMap<KEY, VALUE>();

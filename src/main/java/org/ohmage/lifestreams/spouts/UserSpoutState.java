@@ -49,11 +49,16 @@ public class UserSpoutState {
 		return failed;
 	}
 	public void setFailed(long batchId, long failedSerialId){
+		
 		if(this.curBatch == batchId){
-			failed = true;
 			if(lastExpectedSerialId > failedSerialId-1){
 				lastExpectedSerialId = failedSerialId - 1;
 				log();
+			}
+			if(!ended){
+				// receive fail msg when we are at the middle of the stream
+				// it means something is wrong (e.g. Task crashed)
+				this.failed = true;
 			}
 		}
 	}

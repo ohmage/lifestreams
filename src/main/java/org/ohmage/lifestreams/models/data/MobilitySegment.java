@@ -1,11 +1,8 @@
 package org.ohmage.lifestreams.models.data;
 
 import java.util.List;
-import java.util.Map.Entry;
 
 import org.joda.time.DateTime;
-import org.ohmage.lifestreams.models.GeoLocation;
-import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
 
 import com.javadocmd.simplelatlng.LatLng;

@@ -7,7 +7,6 @@ import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.spouts.IMapStore;
 import org.ohmage.lifestreams.spouts.PersistentMapFactory;
-import org.ohmage.lifestreams.spouts.RedisMapStore;
 import org.ohmage.lifestreams.stores.StreamStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tasks.TimeWindowTask;

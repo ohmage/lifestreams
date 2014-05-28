@@ -1,7 +1,6 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
 import java.util.LinkedList;
-import java.util.List;
 
 import org.joda.time.DateTime;
 import org.joda.time.Days;

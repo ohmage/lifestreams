@@ -12,21 +12,14 @@ import java.util.zip.DeflaterOutputStream;
 import java.util.zip.InflaterInputStream;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
-import org.joda.time.DateTime;
-import org.joda.time.format.ISODateTimeFormat;
-import org.ohmage.lifestreams.bolts.UserTaskState;
-import org.ohmage.lifestreams.stores.RedisStreamStore;
-import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.exceptions.JedisConnectionException;
 import redis.clients.jedis.exceptions.JedisException;
 
 import com.esotericsoftware.kryo.Kryo;

@@ -31,14 +31,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
-import com.esotericsoftware.kryo.Kryo;
-
 import backtype.storm.Config;
 import backtype.storm.serialization.SerializationFactory;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
+
+import com.esotericsoftware.kryo.Kryo;
 
 abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 	// requester should have permission to query all the requestees' data

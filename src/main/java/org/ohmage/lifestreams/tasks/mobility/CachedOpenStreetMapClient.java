@@ -1,9 +1,7 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.client.HttpClient;
