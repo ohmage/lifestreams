@@ -90,18 +90,18 @@
          <artifactId>jahmm</artifactId>
          <version>0.6.2</version>
       </dependency>
-      <!-- Apache Math (for DBSCAN) -->
+      <!-- Apache Math (for computing Median) -->
       <dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-math3</artifactId>
 			<version>3.2</version>
 	  </dependency>
-	        <!-- Apache Lang (for Deep Copy) -->
+	  <!-- Apache Lang (for Deep Copy) -->
 	   <dependency>
-       <groupId>org.apache.commons</groupId>
-  <artifactId>commons-lang3</artifactId>
-  <version>3.3.2</version>
-    </dependency>
+	       <groupId>org.apache.commons</groupId>
+		  <artifactId>commons-lang3</artifactId>
+		  <version>3.3.2</version>
+      </dependency>
       <!-- Redis -->
       <dependency>
          <groupId>redis.clients</groupId>
@@ -130,18 +130,13 @@
          <artifactId>openmap</artifactId>
          <version>5.0.4</version>
       </dependency>
-      <!-- Sparse Matrix -->
-      <dependency>
-  			<groupId>org.la4j</groupId>
-  			<artifactId>la4j</artifactId>
-  			<version>0.4.9</version>
-	   </dependency>
+      <!-- Simple GPS coordinates -->
 	   <dependency>
   			<groupId>com.javadocmd</groupId>
   			<artifactId>simplelatlng</artifactId>
   			<version>RELEASE</version>
 		</dependency>
-		<!-- Openmap api -->
+		<!-- OpenStreetMap api -->
 		<dependency>
 		  <groupId>fr.dudie</groupId>
 		  <artifactId>nominatim-api</artifactId>
@@ -156,7 +151,6 @@
 		<dependency>
 		  <groupId>org.aspectj</groupId>
 		  <artifactId>aspectjrt</artifactId>
-		  <version>1.6.12</version>
 		  <scope>runtime</scope>
 		</dependency>
    </dependencies>
@@ -218,7 +212,6 @@
       </plugins>
    </build>
 
-   
    <repositories>
       <repository>
          <id>spring-snapshots</id>
