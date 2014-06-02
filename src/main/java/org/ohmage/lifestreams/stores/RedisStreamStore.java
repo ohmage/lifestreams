@@ -21,12 +21,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-@Component
-public class RedisStreamStore implements StreamStore {
-	private ObjectMapper mapper = new ObjectMapper();
+
+public class RedisStreamStore implements IStreamStore {
+
 	private Logger logger = LoggerFactory.getLogger(RedisStreamStore.class);
-	@Value("${redis.host}")
-	String host;
+	String host = "localhost";
 
 	transient private JedisPool pool;
 	public JedisPool getPool(){
@@ -46,6 +45,7 @@ public class RedisStreamStore implements StreamStore {
 		String key = rec.getData().toString() + rec.getTimestamp();
 		String value;
 		try {
+			ObjectMapper mapper = new ObjectMapper();
 			value = mapper.writeValueAsString(rec.toObserverDataPoint());
 			jedis.hset(rec.getUser().toString() + stream.toString(), key, value);
 		} catch (JsonProcessingException e) {
@@ -65,6 +65,7 @@ public class RedisStreamStore implements StreamStore {
 
 		for(String string:stringStream){
 			try {
+				ObjectMapper mapper = new ObjectMapper();
 				records.add(recFactory.createRecord((ObjectNode) mapper.readTree(string), user));
 			} catch (Exception e) {
 				logger.error("Node string: {}", string);

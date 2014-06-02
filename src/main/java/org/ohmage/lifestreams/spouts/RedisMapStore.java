@@ -26,27 +26,34 @@ import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 
-@Component
 public class RedisMapStore implements IMapStore, Serializable {
-	private static final String PREFIX = "lifestreams.";
-
-	private static final String CHECKPOINT = PREFIX + "checkpoint";
-	private static final String SNAPSHOT = PREFIX + "snapshot";
-	private static final String MAP = PREFIX + "maps.";
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -4830683070362165286L;
+	final private String host;
+	final private JedisPoolConfig config;
 	
-	@Value("${redis.host}")
-	String host;
-
 	transient private JedisPool pool;
 	public JedisPool getPool(){
 		if(pool == null){
-			pool = new JedisPool(new JedisPoolConfig(), host);
+			pool = new JedisPool(config, host);
 		}
 		return pool;
 	}
 	
 	private Logger logger = LoggerFactory.getLogger(RedisMapStore.class);
+	public RedisMapStore(){
+		this("localhost", new JedisPoolConfig());
+	}
+	public RedisMapStore(String host){
+		this(host, new JedisPoolConfig());
+	}
 	
+	public RedisMapStore(String host, JedisPoolConfig config){
+		this.config = config;
+		this.host = host;
+	}
 	
 	
 	public class RMap<K,V> implements Map<K,V>{

@@ -6,7 +6,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ImportResource;
 
-@ImportResource({"classpath:/users.xml", "classpath*:/mainContext.xml"})
+@ImportResource({"classpath*:/mainContext.xml"})
 @ComponentScan
 @EnableAutoConfiguration
 public class Application {

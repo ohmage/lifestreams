@@ -1,20 +1,34 @@
 package org.ohmage.lifestreams;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
 import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.spouts.IMapStore;
 import org.ohmage.lifestreams.spouts.PersistentMapFactory;
-import org.ohmage.lifestreams.stores.StreamStore;
+import org.ohmage.lifestreams.spouts.RedisMapStore;
+import org.ohmage.lifestreams.stores.RedisStreamStore;
+import org.ohmage.lifestreams.stores.IStreamStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tasks.TimeWindowTask;
 import org.ohmage.lifestreams.utils.KryoSerializer;
 import org.ohmage.models.OhmageStream;
+import org.ohmage.models.OhmageUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.SerializationUtils;
+
+import com.esotericsoftware.kryo.io.Output;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
@@ -36,48 +50,169 @@ import backtype.storm.tuple.Fields;
  */
 /**
  * @author changun
- *
+ * 
  */
-/**
- * @author changun
- *
- */
-@Component
+
 public class LifestreamsTopologyBuilder {
-	@Autowired(required = false)
-	StreamStore defaultStreamStore;
-
-	// Lifestreams Configuration
+	
+	/*
 	@Value("${global.config.dryrun}")
-	boolean dryRun;
 	@Value("${lifestreams.cold.start}")
-	boolean coldStart;
 	@Value("${topology.max.spout.pending}")
-	int maxSpoutPeding;
-	@Value("${topology.message.timeout.secs}")
-	int msgTimeout;
+	@Value("${topology.message.timeout.secs}")*/
+	
+	/*** Lifestreams Configuration ***/
+	IStreamStore streamStore = new RedisStreamStore();
+	IMapStore mapStore = new RedisMapStore();
+	boolean dryRun = false;
+	boolean coldStart = false;
+	int maxSpoutPeding = 100000;
+	int msgTimeout = 10 * 60;
+	// the requester used to query ohmage stream data
+	private OhmageUser requester;
+	// a comma-separated list of user names
+	private String requestees;
 
-	@Autowired
-	IMapStore mapStore;
+	
+	/*** internal fields ***/
+	private Logger logger = LoggerFactory.getLogger(LifestreamsTopologyBuilder.class);
+	private TopologyBuilder builder = new TopologyBuilder();
+	private List<BoltConfig> boltConfigs = new ArrayList<BoltConfig>();
 
+	
+	
 	public boolean isDryRun() {
 		return dryRun;
 	}
 
-	public void setDryRun(boolean dryRun) {
+	public LifestreamsTopologyBuilder setDryRun(boolean dryRun) {
 		this.dryRun = dryRun;
+		return this;
 	}
 
 	public boolean isColdStart() {
 		return coldStart;
 	}
 
-	public void setColdStart(boolean coldStart) {
+	public LifestreamsTopologyBuilder setColdStart(boolean coldStart) {
 		this.coldStart = coldStart;
+		return this;
 	}
 
-	TopologyBuilder builder = new TopologyBuilder();
-	List<BoltConfig> boltConfigs = new ArrayList<BoltConfig>();
+	/**
+	 * Get the persistent stream storage (e.g. RedisStreamStore) will be used in
+	 * the topology.
+	 * 
+	 * @return the streamStore
+	 */
+	public IStreamStore getStreamStore() {
+		return streamStore;
+	}
+
+	/**
+	 * Set the persistent stream storage, that is where the Task with
+	 * targetStream will output data to.
+	 * 
+	 * @param streamStore
+	 *            the streamStore to set
+	 */
+	public LifestreamsTopologyBuilder setStreamStore(IStreamStore streamStore) {
+		this.streamStore = streamStore;
+		return this;
+	}
+
+	/**
+	 * Get the persistent Map storage will be used in the topology.
+	 * 
+	 * @return the mapStore
+	 */
+	public IMapStore getMapStore() {
+		return mapStore;
+	}
+
+	/**
+	 * Set the persistent map storage, that is where Spout and Task store the
+	 * checkpoints and the computation states.
+	 * 
+	 * @param mapStore
+	 *            the mapStore to set
+	 */
+	public LifestreamsTopologyBuilder setMapStore(IMapStore mapStore) {
+		this.mapStore = mapStore;
+		return this;
+	}
+
+	/**
+	 * @return the maxSpoutPeding
+	 */
+	public int getMaxSpoutPeding() {
+		return maxSpoutPeding;
+	}
+
+	/**
+	 * @param maxSpoutPeding
+	 *            the maxSpoutPeding to set
+	 */
+	public LifestreamsTopologyBuilder setMaxSpoutPeding(int maxSpoutPeding) {
+		this.maxSpoutPeding = maxSpoutPeding;
+		return this;
+	}
+
+	/**
+	 * The timeout time for tuples
+	 * 
+	 * @return the msgTimeout
+	 */
+	public int getMsgTimeout() {
+		return msgTimeout;
+	}
+
+	/**
+	 * Set the timeout time for tuple. It should be set to the longest possible
+	 * time it will take for a tuple and its derivatives to be fully processed.
+	 * 
+	 * @param msgTimeout
+	 *            the msgTimeout to set
+	 */
+	public LifestreamsTopologyBuilder setMsgTimeout(int msgTimeout) {
+		this.msgTimeout = msgTimeout;
+		return this;
+	}
+
+	/**
+	 * The requester ohmage user.
+	 * 
+	 * @return the requester
+	 */
+	public OhmageUser getRequester() {
+		return requester;
+	}
+
+	/**
+	 * Set the ohmage data requester. The requester should have access to the
+	 * data of every requestee. If requestee is not set, the topology will query
+	 * all the user's data that are accessible to the requester.
+	 * 
+	 * @param requester
+	 *            the requester to set
+	 */
+	public LifestreamsTopologyBuilder setRequester(OhmageUser requester) {
+		this.requester = requester;
+		return this;
+	}
+
+	/**
+	 * A comma-separated list of the requestees ohmage user name. If requestees
+	 * is not set, all the users whose data are accessible by the requester will
+	 * be processed.
+	 * 
+	 * @param requestees
+	 *            the requestees to set
+	 */
+	public LifestreamsTopologyBuilder setRequestees(String requestees) {
+		this.requestees = requestees;
+		return this;
+	}
 
 	public class BoltConfig {
 		final String id;
@@ -113,11 +248,11 @@ public class LifestreamsTopologyBuilder {
 		}
 
 		private void buildBolt() {
-			LifestreamsBolt bolt = new LifestreamsBolt(task, mapStore);
+			LifestreamsBolt bolt = new LifestreamsBolt(task);
 			bolt.setTargetStream(targetStream);
-			bolt.setStreamStore(defaultStreamStore);
-			BoltDeclarer declarer = builder.setBolt(id, bolt, parallelism_hint)
-					.fieldsGrouping(source, new Fields("user"));
+
+			builder.setBolt(id, bolt, parallelism_hint).fieldsGrouping(source,
+					new Fields("user"));
 		}
 	}
 
@@ -147,7 +282,7 @@ public class LifestreamsTopologyBuilder {
 	 * @return A local cluster instance
 	 */
 	public LocalCluster submitToLocalCluster(String topologyName) {
-		
+
 		if (coldStart) {
 			new PersistentMapFactory(topologyName, mapStore, null).clearAll();
 		}
@@ -160,26 +295,57 @@ public class LifestreamsTopologyBuilder {
 
 	/**
 	 * Create a storm topology based on the defined spouts/tasks.
-	 * @return a new instance of storm topology 
+	 * 
+	 * @return a new instance of storm topology
 	 */
 	public StormTopology createTopology() {
+		
+		// create LifestreamsBolts containing specified Tasks
 		for (BoltConfig config : boltConfigs) {
 			config.buildBolt();
 		}
-
 		return builder.createTopology();
 	}
 
+	private String getRequestees() {
+		if (requestees == null || requestees.length() == 0) {
+			logger.info(
+					"Requestee list is not defined. Try to query"
+							+ "all the users whose data is accessible to the requester {}",
+					requester);
+
+			// if the requestees are not given, use all the users that are
+			// accessible to the requester
+			Set<String> requesteeSet = new HashSet<String>();
+			for (List<String> userList : requester.getAccessibleUsers()
+					.values()) {
+				for (String user : userList) {
+					requesteeSet.add(user);
+				}
+			}
+			this.requestees = StringUtils.join(requesteeSet, ",");
+		}
+		return this.requestees;
+	}
+
 	/**
-	 * Get configuration defined in application properties, which can be overrided by console arguments 
+	 * Get configuration defined in application properties, which can be
+	 * overrided by console arguments
+	 * 
 	 * @return
 	 */
 	public Config getConfiguration() {
 		Config conf = new Config();
 		conf.setDebug(false);
-
-		// if it is a dryrun, no data will be writeback to ohmage (or the
-		// defined stream output store)
+		// ohmage data requester
+		LifestreamsConfig.serializeAndPutObject(conf, LifestreamsConfig.LIFESTREAMS_REQUESTER, requester);
+		// a list of users whose data we are going to process
+		conf.put(LifestreamsConfig.LIFESTREAMS_REQUESTEES,this.getRequestees());
+		// serialize the persistent map store instance to be used in the topology
+		LifestreamsConfig.serializeAndPutObject(conf, LifestreamsConfig.MAP_STORE_INSTANCE, this.getMapStore());
+		// serialize the persistent stream store instance to be used in the topology
+		LifestreamsConfig.serializeAndPutObject(conf, LifestreamsConfig.STREAM_STORE_INSTANCE, this.getStreamStore());
+		// if it is a dryrun, no data will be writeback to ohmage
 		conf.put(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING, dryRun);
 		// how long a tuple can live in topology without being acked. when a
 		// tuple timeout, the fail() function will be called
@@ -189,8 +355,6 @@ public class LifestreamsTopologyBuilder {
 		// how many pending spouts (i.e. spouts in the topology) can be submit
 		// for a spout task
 		conf.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, maxSpoutPeding);
-
 		return conf;
-
 	}
 }

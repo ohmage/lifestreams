@@ -61,8 +61,7 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 	MovesUserClient userClient;
 	MovesUserStorylineClient storylineClient;
 	MovesAuthenticationClient authClient;
-	@Autowired
-	MovesSecurityManager movesSecurityManger;
+	
 	
 	// the ohmage stream that stores the moves credentials
 	OhmageStream movesCredentialsStream;
@@ -263,6 +262,7 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 	}
 
 	private void initMovesAPI(){
+		
 		MovesClient client = new MovesClient(new RequestTokenConvertor(), new MovesOAuthService(new MovesServiceBuilder(new MovesApi(), movesSecurityManger), new MovesResponseHandler(),
 			    new MovesResourceRequestConstructor(), new MovesAuthenticationRequestConstructor()));
 		userClient = new MovesUserClient(client);
@@ -276,8 +276,10 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 		super.open(conf, context, collector);
 		initMovesAPI();
 	}
-	public MovesSpout(OhmageStream movesCredentialsStream) {
-		super(2, TimeUnit.HOURS);
+	MovesSecurityManager movesSecurityManger;
+	public MovesSpout(DateTime since, OhmageStream movesCredentialsStream, String movesApiKey, String movesApiSecret) {
+		super(since, 2, TimeUnit.HOURS);
+		this.movesSecurityManger = new MovesSecurityManager(movesApiKey, movesApiSecret, "location activity");
 		this.movesCredentialsStream = movesCredentialsStream;
 	}
 

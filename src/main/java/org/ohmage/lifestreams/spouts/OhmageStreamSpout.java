@@ -55,6 +55,7 @@ public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 	}
 	
 
+
 	/**
 	 * @param stream
 	 *            the ohmage stream to be queried
@@ -66,26 +67,11 @@ public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 	 *            the schema of the "data" field of the ohmage stream, or it can
 	 *            be the Jackason "ObjectNode".
 	 */
-	public OhmageStreamSpout(Class<T> c, OhmageStream stream,  String columnList) {
-		this(c, stream,  columnList, -1);
-	}
-	/**
-	 * @param stream
-	 *            the ohmage stream to be queried
-	 *            a list of ohmage users we will get the data from
-	 * @param startDate
-	 *            the start date of the query
-	 * @param dataPointClass
-	 *            the class of the returned data point. This class must follow
-	 *            the schema of the "data" field of the ohmage stream, or it can
-	 *            be the Jackason "ObjectNode".
-	 */
-	public OhmageStreamSpout(Class<T> c, OhmageStream stream,  String columnList, int rateLimit) {
-		super(10, TimeUnit.MINUTES);
+	public OhmageStreamSpout(DateTime since, Class<T> c, OhmageStream stream,  String columnList) {
+		super(since, 10, TimeUnit.MINUTES);
 		this.c = c;
 		this.stream = stream;
 		this.columnList = columnList;
-		this.rateLimit = rateLimit;
 	}
 
 

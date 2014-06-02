@@ -15,14 +15,6 @@
 		<constructor-arg value="${lifestreams.username}"/>
 		<constructor-arg value="${lifestreams.password}"/>
 	</bean>
-
-	
-	<bean id="movesSegmentStream" class="org.ohmage.models.OhmageStream">
-		<constructor-arg value="org.ohmage.Moves"/>
-		<constructor-arg value="segments"/>
-		<constructor-arg value="20140224"/>
-		<constructor-arg value="20140224"/>
-	</bean>	
 	
 	<bean id="movesCredentialStream" class="org.ohmage.models.OhmageStream">
 		<constructor-arg value="org.ohmage.Moves"/>
@@ -58,8 +50,11 @@
 	</bean>  
 	
 	<!-- Moves Spout -->
-	<bean id="movesSpout" class="org.ohmage.lifestreams.spouts.MovesSpout">  
+	<bean id="movesSpout" class="org.ohmage.lifestreams.spouts.MovesSpout">
+	    	<constructor-arg ref="since"/>
 			<constructor-arg ref="movesCredentialStream"/>
+			<constructor-arg value="${com.moves.api.key}"/>  
+			<constructor-arg value="${com.moves.api.secret}"/>  
 	</bean>
 	
 	<!-- Mobility Spout -->
@@ -67,15 +62,12 @@
 		<constructor-arg value="${since}"/>
 	</bean>	
 	<bean id="mobilitySpout" class="org.ohmage.lifestreams.spouts.OhmageStreamSpout">
+	    	<constructor-arg ref="since"/>
 	    	<constructor-arg>
 				<value>org.ohmage.lifestreams.models.data.MobilityData</value>
 			</constructor-arg>
 			<constructor-arg ref="mobilityStream"/>
-			<constructor-arg value="wifi_data,mode"/>
-			<constructor-arg value="1000"/>
+			<constructor-arg value="mode"/>
 	</bean>
-	
-	<!-- Load and inject component -->
-	<context:component-scan base-package="co.nutrino.api.moves" />
-	<context:component-scan base-package="com.moves.api" />
+
 </beans>

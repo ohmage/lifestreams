@@ -7,7 +7,7 @@ import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
 
-public class OhmageStreamStore implements StreamStore {
+public class OhmageStreamStore implements IStreamStore {
 
 	@Override
 	public void upload(OhmageStream stream, StreamRecord rec) {

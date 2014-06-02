@@ -13,16 +13,19 @@ import org.ohmage.lifestreams.tasks.mobility.PlaceDetection;
 import org.ohmage.lifestreams.tasks.mobility.TimeLeaveReturnHome;
 import org.ohmage.lifestreams.tasks.moves.FilterDuplicatedSegment;
 import org.ohmage.lifestreams.tasks.moves.MovesActivitySummarizer;
+import org.ohmage.lifestreams.tasks.moves.MovesTimeLeaveReturnHome;
 import org.ohmage.lifestreams.tasks.moves.TrackPointExtractor;
 import org.ohmage.models.OhmageStream;
+import org.ohmage.models.OhmageUser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import co.nutrino.api.moves.impl.service.MovesSecurityManager;
 
 /**
- * This topology can process Mobility and Moves data and generate daily
+ * This topology processes Mobility and Moves data and generate daily
  * summaries including: daily activity summaries, daily geodiameter, and time
  * leave/return home.
  * 
@@ -33,22 +36,22 @@ import co.nutrino.api.moves.impl.service.MovesSecurityManager;
 public class MobilityMovesTopology {
 	// ** Input Streams **//
 	@Autowired
+	@Qualifier("mobilityStream")
 	OhmageStream mobilityStream;
 	@Autowired
-	OhmageStream movesSegmentStream;
-	@Autowired
+	@Qualifier("movesCredentialStream")
 	OhmageStream movesCredentialStream;
 
 	// ** Output streams **//
 	@Autowired
+	@Qualifier("activitySummaryStream")
 	OhmageStream activitySummaryStream;
 	@Autowired
+	@Qualifier("geodiameterStream")
 	OhmageStream geodiameterStream;
 	@Autowired
+	@Qualifier("leaveArriveHomeStream")
 	OhmageStream leaveArriveHomeStream;
-
-	@Autowired
-	MovesSecurityManager movesSecurityManger;
 
 	// ** Spouts ** //
 	@Autowired
@@ -73,7 +76,7 @@ public class MobilityMovesTopology {
 	@Autowired
 	TrackPointExtractor trackPointExtractor;
 	@Autowired
-	org.ohmage.lifestreams.tasks.moves.MovesTimeLeaveReturnHome movesTimeLEaveReturnHome;
+	MovesTimeLeaveReturnHome movesTimeLEaveReturnHome;
 	@Autowired
 	MovesActivitySummarizer movesActivitySummarizer;
 
@@ -92,13 +95,20 @@ public class MobilityMovesTopology {
 
 	@Value("${enable.moves.topology}")
 	boolean enableMoves;
-
+	
 	@Autowired
-	LifestreamsTopologyBuilder builder;
+	OhmageUser requester;
+	
+	@Value("${ohmage.requestees}")
+	String requestees;
 
 	public void run() {
 		/** setup the topology **/
-
+		LifestreamsTopologyBuilder builder = new LifestreamsTopologyBuilder();
+		builder
+			.setRequester(requester)
+			.setRequestees(requestees)
+			.setColdStart(true);
 		/**
 		 * Topology part 1. create a spout that gets mobility data and the tasks
 		 * that consume the data
@@ -143,8 +153,7 @@ public class MobilityMovesTopology {
 
 			// segments from the ohmage or the local Moves fetcher may contain
 			// duplication. Filter them out.
-			builder.setTask("MovesDataStream", filterDuplicatedSegment,	"RawMovesDataStream")
-					.setTargetStream(movesSegmentStream);
+			builder.setTask("MovesDataStream", filterDuplicatedSegment,	"RawMovesDataStream");
 
 			// extract track points from moves segments
 			builder.setTask("MovesTrackPointExtractor", trackPointExtractor,

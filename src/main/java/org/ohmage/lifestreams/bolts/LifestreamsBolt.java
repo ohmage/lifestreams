@@ -11,7 +11,7 @@ import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.spouts.IMapStore;
 import org.ohmage.lifestreams.spouts.PersistentMapFactory;
-import org.ohmage.lifestreams.stores.StreamStore;
+import org.ohmage.lifestreams.stores.IStreamStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tuples.BaseTuple;
 import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
@@ -35,6 +35,7 @@ import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
 
 /**
  * LifestreamsBolt is a implementation of Storm Bolt. Each Lifestreams Bolt is
@@ -80,7 +81,7 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	// whether to write back the processed records to the ohmage stream.
 	private boolean isDryrun = false;
 	// the stream store, where the processed data being output to
-	private StreamStore streamStore;
+	private IStreamStore streamStore;
 	// the ohmage stream the processed records will be writeback to.
 	private OhmageStream targetStream;
 	private IMapStore mapStore;
@@ -205,8 +206,12 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	@Override
 	public void prepare(@SuppressWarnings("rawtypes") Map stormConf,
 			TopologyContext context, OutputCollector collector) {
-		Kryo kryo = new SerializationFactory().getKryo(stormConf);
+		Kryo kryo = SerializationFactory.getKryo(stormConf);
+		// create map factory using map store instance specified in the config
+		IMapStore mapStore = (IMapStore) LifestreamsConfig.getAndDeserializeObject(stormConf, LifestreamsConfig.MAP_STORE_INSTANCE);
 		this.mapFactory = new PersistentMapFactory((String) stormConf.get(Config.TOPOLOGY_NAME), mapStore, kryo);
+		
+		this.streamStore = (IStreamStore) LifestreamsConfig.getAndDeserializeObject(stormConf, LifestreamsConfig.STREAM_STORE_INSTANCE);
 		// initialize the topology-wide arguments
 		if (stormConf.containsKey(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING)) {
 			isDryrun = (Boolean) stormConf.get(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING);
@@ -235,11 +240,11 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 		}
 	}
 
-	public StreamStore getStreamStore() {
+	public IStreamStore getStreamStore() {
 		return streamStore;
 	}
 
-	public void setStreamStore(StreamStore streamStore) {
+	public void setStreamStore(IStreamStore streamStore) {
 		this.streamStore = streamStore;
 	}
 
@@ -278,8 +283,7 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 		return topologyId;
 	}
 
-	public LifestreamsBolt(Task templateTask, IMapStore mapStore) {
-		this.mapStore = mapStore;
+	public LifestreamsBolt(Task templateTask) {
 		this.templateTask = templateTask;
 	}
 

@@ -8,7 +8,7 @@ import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
 
-public interface StreamStore extends Serializable {
+public interface IStreamStore extends Serializable {
 	void upload(OhmageStream stream, StreamRecord rec);
 	<T> List<StreamRecord<T>> queryAll(OhmageStream stream, OhmageUser user, Class<T> dataType);
 	<T> List<StreamRecord<T>> queryByTimeInterval(OhmageStream stream, OhmageUser user, Interval interval, Class<T> dataType);

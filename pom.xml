@@ -23,23 +23,22 @@
          <artifactId>kryo-serializers</artifactId>
          <version>0.26</version>
       </dependency>
-      
       <dependency>
          <groupId>org.springframework.boot</groupId>
          <artifactId>spring-boot-starter</artifactId>
          <exclusions>
-         	<exclusion>
-         		<artifactId>log4j-over-slf4j</artifactId>
-         		<groupId>org.slf4j</groupId>
-         	</exclusion>
-         	<exclusion>
-         		<artifactId>logback-classic</artifactId>
-         		<groupId>ch.qos.logback</groupId>
-         	</exclusion>
-         	<exclusion>
-         		<artifactId>logback-core</artifactId>
-         		<groupId>ch.qos.logback</groupId>
-         	</exclusion>
+            <exclusion>
+               <artifactId>log4j-over-slf4j</artifactId>
+               <groupId>org.slf4j</groupId>
+            </exclusion>
+            <exclusion>
+               <artifactId>logback-classic</artifactId>
+               <groupId>ch.qos.logback</groupId>
+            </exclusion>
+            <exclusion>
+               <artifactId>logback-core</artifactId>
+               <groupId>ch.qos.logback</groupId>
+            </exclusion>
          </exclusions>
       </dependency>
       <dependency>
@@ -65,16 +64,16 @@
          <version>0.9.1-incubating</version>
          <exclusions>
             <exclusion>
-            	<artifactId>logback-core</artifactId>
-            	<groupId>ch.qos.logback</groupId>
+               <artifactId>logback-core</artifactId>
+               <groupId>ch.qos.logback</groupId>
             </exclusion>
             <exclusion>
-            	<artifactId>logback-classic</artifactId>
-            	<groupId>ch.qos.logback</groupId>
+               <artifactId>logback-classic</artifactId>
+               <groupId>ch.qos.logback</groupId>
             </exclusion>
             <exclusion>
-            	<artifactId>log4j-over-slf4j</artifactId>
-            	<groupId>org.slf4j</groupId>
+               <artifactId>log4j-over-slf4j</artifactId>
+               <groupId>org.slf4j</groupId>
             </exclusion>
          </exclusions>
       </dependency>
@@ -92,15 +91,15 @@
       </dependency>
       <!-- Apache Math (for computing Median) -->
       <dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-math3</artifactId>
-			<version>3.2</version>
-	  </dependency>
-	  <!-- Apache Lang (for Deep Copy) -->
-	   <dependency>
-	       <groupId>org.apache.commons</groupId>
-		  <artifactId>commons-lang3</artifactId>
-		  <version>3.3.2</version>
+         <groupId>org.apache.commons</groupId>
+         <artifactId>commons-math3</artifactId>
+         <version>3.2</version>
+      </dependency>
+      <!-- Apache Lang (for Deep Copy) -->
+      <dependency>
+         <groupId>org.apache.commons</groupId>
+         <artifactId>commons-lang3</artifactId>
+         <version>3.3.2</version>
       </dependency>
       <!-- Redis -->
       <dependency>
@@ -120,59 +119,58 @@
       <!-- Ohmage Stream SDK -->
       <!-- Please checkout the code from: https://github.com/changun/OhmageStreamSDK -->
       <dependency>
-		  <groupId>org.ohmage</groupId>
-		  <artifactId>streamSDK</artifactId>
-		  <version>0.0.1</version>
+         <groupId>org.ohmage</groupId>
+         <artifactId>streamSDK</artifactId>
+         <version>0.0.1</version>
       </dependency>
-       <!-- Openmap -->
+      <!-- Openmap -->
       <dependency>
          <groupId>com.bbn</groupId>
          <artifactId>openmap</artifactId>
          <version>5.0.4</version>
       </dependency>
       <!-- Simple GPS coordinates -->
-	   <dependency>
-  			<groupId>com.javadocmd</groupId>
-  			<artifactId>simplelatlng</artifactId>
-  			<version>RELEASE</version>
-		</dependency>
-		<!-- OpenStreetMap api -->
-		<dependency>
-		  <groupId>fr.dudie</groupId>
-		  <artifactId>nominatim-api</artifactId>
-		  <version>2.0.2</version>
-		</dependency>
-		<!-- Retry on fail -->
-		<dependency>
-		  <groupId>com.jcabi</groupId>
-		  <artifactId>jcabi-aspects</artifactId>
-		  <version>0.12</version>
-		</dependency>
-		<dependency>
-		  <groupId>org.aspectj</groupId>
-		  <artifactId>aspectjrt</artifactId>
-		  <scope>runtime</scope>
-		</dependency>
+      <dependency>
+         <groupId>com.javadocmd</groupId>
+         <artifactId>simplelatlng</artifactId>
+         <version>RELEASE</version>
+      </dependency>
+      <!-- OpenStreetMap api -->
+      <dependency>
+         <groupId>fr.dudie</groupId>
+         <artifactId>nominatim-api</artifactId>
+         <version>2.0.2</version>
+      </dependency>
+      <!-- Retry on fail -->
+      <dependency>
+         <groupId>com.jcabi</groupId>
+         <artifactId>jcabi-aspects</artifactId>
+         <version>0.12</version>
+      </dependency>
+      <dependency>
+         <groupId>org.aspectj</groupId>
+         <artifactId>aspectjrt</artifactId>
+         <scope>runtime</scope>
+      </dependency>
    </dependencies>
    <properties>
       <start-class>org.ohmage.lifestreams.Application</start-class>
    </properties>
-   
-     <distributionManagement>
-    <repository>
-      <id>ssh-repository</id>
-      <url>scpexe://apollo.ohmage.org/home/changun/public_html/maven_repo</url>
-    </repository>
-  </distributionManagement>
+   <distributionManagement>
+      <repository>
+         <id>ssh-repository</id>
+         <url>scpexe://apollo.ohmage.org/home/changun/public_html/maven_repo</url>
+      </repository>
+   </distributionManagement>
    <build>
-           <extensions>
-      <!-- Enabling the use of FTP -->
-      <extension>
-        <groupId>org.apache.maven.wagon</groupId>
-         <artifactId>wagon-ssh-external</artifactId>
-         <version>1.0-beta-6</version>
-      </extension>
-    </extensions>
+      <extensions>
+         <!-- Enabling the use of FTP -->
+         <extension>
+            <groupId>org.apache.maven.wagon</groupId>
+            <artifactId>wagon-ssh-external</artifactId>
+            <version>1.0-beta-6</version>
+         </extension>
+      </extensions>
       <plugins>
          <plugin>
             <groupId>org.springframework.boot</groupId>
@@ -186,32 +184,30 @@
                <downloadJavadocs>true</downloadJavadocs>
             </configuration>
          </plugin>
-          <plugin>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <configuration>
-                   <executions>
-                <execution>
-                    <id>assemble-all</id>
-                    <phase>package</phase>
-                    <goals>
+         <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <configuration>
+               <executions>
+                  <execution>
+                     <id>assemble-all</id>
+                     <phase>package</phase>
+                     <goals>
                         <goal>single</goal>
-                    </goals>
-                </execution>
-            </executions>
-          
-            <archive>
-              <manifest>
-                <mainClass>org.ohmage.lifestreams.Application</mainClass>
-              </manifest>
-            </archive>
-            <descriptorRefs>
-              <descriptorRef>jar-with-dependencies</descriptorRef>
-            </descriptorRefs>
-          </configuration>
-        </plugin>
+                     </goals>
+                  </execution>
+               </executions>
+               <archive>
+                  <manifest>
+                     <mainClass>org.ohmage.lifestreams.Application</mainClass>
+                  </manifest>
+               </archive>
+               <descriptorRefs>
+                  <descriptorRef>jar-with-dependencies</descriptorRef>
+               </descriptorRefs>
+            </configuration>
+         </plugin>
       </plugins>
    </build>
-
    <repositories>
       <repository>
          <id>spring-snapshots</id>
@@ -239,7 +235,7 @@
          <url>http://jahmm.googlecode.com/svn/repo</url>
       </repository>
       <!-- Lifestreams repo -->
-       <repository>
+      <repository>
          <id>Lifestreams</id>
          <name>changun's Lifestreams repo</name>
          <url>https://web.ohmage.org/~changun/maven_repo</url>

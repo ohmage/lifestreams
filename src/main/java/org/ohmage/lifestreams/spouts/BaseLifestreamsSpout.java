@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
+import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.tuples.BaseTuple;
 import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
@@ -39,34 +40,38 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
 
 import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
-	// requester should have permission to query all the requestees' data
-	@Value("${ohmage.requestees}")
-	String requesteeStr;
-	@Autowired
-	OhmageUser requester;
-	@Autowired
-	RedisMapStore bookkeeper;
+
+	/*** the following fields are initialized in constructor ***/
+	private TimeUnit retryDelayTimeUnit;
+	private int retryDelay;
 	// from when to start the data query
-	@Autowired	DateTime since;
+	private DateTime since;
 	
+	/*** the following fields are initialized in open() method ***/
+	
+	// the ohmage user with which we will use to query the data
+	private OhmageUser requester;
 	private List<OhmageUser> requestees;
-	private SpoutOutputCollector _collector;
+	private SpoutOutputCollector collector;
 	private TopologyContext context;
 	private String componentId;
 	protected Logger logger;
+	private PersistentMapFactory mapFactory;
 	
+	/*** the following fields are initialized by default ***/
 	// the queue stores the fetched data points
 	private  LinkedBlockingQueue<BaseTuple> queue = new LinkedBlockingQueue<BaseTuple>();
 	// thread pool
 	private ScheduledExecutorService  _scheduler;
 	// checkpoint of each user
 	private Map<OhmageUser, UserSpoutState> states = new HashMap<OhmageUser, UserSpoutState>();
-	private TimeUnit retryDelayTimeUnit;
-	private int retryDelay;
-	private PersistentMapFactory mapFactory;
-	@Autowired IMapStore mapStore;
+	
 
 	public OhmageUser getRequester() {
 		return requester;
@@ -76,7 +81,7 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 		return componentId;
 	}
 	public SpoutOutputCollector getCollector() {
-		return _collector;
+		return collector;
 	}
 	public DateTime getCommittedCheckpointFor(OhmageUser user){
 		return this.mapFactory.getComponentMap(this.getComponentId(), "checkpoint", String.class, DateTime.class).get(user.getUsername());
@@ -157,37 +162,25 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 	public void open(Map conf, TopologyContext context,
 			SpoutOutputCollector collector) {
 		
-		Kryo kryo = new SerializationFactory().getKryo(conf);
+		
+		// init logger, context, collector fields
+		this.componentId = context.getThisComponentId();
+		this.logger = LoggerFactory.getLogger(componentId);
+		this.context = context;
+		this.collector = collector;
+		
+		// get serializer from topology config
+		Kryo kryo = SerializationFactory.getKryo(conf);
+		
+		// create map factory using map store instance specified in the config
+		IMapStore mapStore = (IMapStore) LifestreamsConfig.getAndDeserializeObject(conf, LifestreamsConfig.MAP_STORE_INSTANCE);
 		this.mapFactory = new PersistentMapFactory((String) conf.get(Config.TOPOLOGY_NAME), mapStore, kryo);
 		
-		this.componentId = context.getThisComponentId();
-		logger = LoggerFactory.getLogger(componentId);
-		
-		this.context = context;
-		_collector = collector;
-		
-		// ** Setup the global requestee list ** //
-		String[] requesteeNames = null;
+		this.requester = (OhmageUser) LifestreamsConfig.getAndDeserializeObject(conf, LifestreamsConfig.LIFESTREAMS_REQUESTER);
+		// ** Setup requestee list ** //
+		String requesteeStr =  (String) conf.get(LifestreamsConfig.LIFESTREAMS_REQUESTEES);
 		// initialize requestee array 
-		if(requesteeStr == null || requesteeStr.length()==0){
-			logger.info("Requestee list is not defined. Try to query"
-					+   "all the users whose data is accessible to the requester {}", requester);
-			
-			// if the requestees are not given, use all the users that are accessible to the requester
-			Set<String>requesteeSet = new HashSet<String>();
-			for(List<String> userList: requester.getAccessibleUsers().values()){
-				for(String user: userList){
-					requesteeSet.add(user);
-				}
-			}
-			requesteeNames = requesteeSet.toArray(new String[]{});
-
-		}else{
-			requesteeNames = requesteeStr.split(",");
-		}
-		Arrays.sort(requesteeNames);
-		
-		logger.info("Final requestees list: {}", StringUtils.join(requesteeNames, ','));
+		String[] requesteeArray = requesteeStr.split(",");
 		// ** Setup the requestee list for this spout instance** //
 		
 		// parameters for distributing the work among multiple spouts
@@ -197,9 +190,9 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 		
 		_scheduler = Executors.newSingleThreadScheduledExecutor();
 		// initialize userTimePointerMap
-		for (String requesteeName : requesteeNames) {
+		for (String requesteeName : requesteeArray) {
 			if(requesteeName.hashCode() % numOfTask == taskIndex){
-				// use hash of user name to distribute the  requestees to each spout
+				// use hash of requestees user name to distribute the workload to each spout
 				OhmageUser requestee = new OhmageUser(requester.getServer(), requesteeName, null );
 				this.requestees.add(requestee);
 				// set start time = the next millisecond of the checkpoint or the global start time
@@ -254,9 +247,10 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 		declarer.declare(RecordTuple.getFields());
 
 	}
-	public BaseLifestreamsSpout(int retryDelay, TimeUnit unit){
+	public BaseLifestreamsSpout(DateTime since, int retryDelay, TimeUnit unit){
 		this.retryDelay = retryDelay;
 		this.retryDelayTimeUnit = unit;
+		this.since = since;
 	}
 
 }

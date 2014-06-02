@@ -25,14 +25,9 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 public class ReliabilityTest {
 
-	@Autowired
-	LifestreamsTopologyBuilder builder;
-	@Autowired
-	TickSpout tickSpout;
-	@Component
 	static class TickSpout extends BaseLifestreamsSpout<Long>{
-		public TickSpout() {
-			super(1, TimeUnit.SECONDS);
+		public TickSpout(DateTime since) {
+			super(since, 1, TimeUnit.SECONDS);
 		}
 
 		@Override
@@ -104,24 +99,29 @@ public class ReliabilityTest {
 		}
 		
 	}
+	
+	@Autowired
+	LifestreamsTopologyBuilder builder;
+
+	TickSpout tickSpout;
 	@Test
 	public void run() throws InterruptedException{
 		// since when to perform the computation
-				DateTime since = new DateTime("2013-1-1");
-				/** setup the input and output streams **/
+		DateTime since = new DateTime("2013-1-1");
+		/** setup the input and output streams **/
 
-				/** setup the topology **/
+		/** setup the topology **/
 
-				builder.setSpout("TickSpout", tickSpout);
-				
-				// filter odd number
-				builder.setTask("Filter", new OddNumberFilterTask(), "TickSpout");
-				
-				builder.setTask("Counter", new CountTask(), "Filter").setTimeWindowSize(Hours.ONE);
+		builder.setSpout("TickSpout", new TickSpout(since));
+		
+		// filter odd number
+		builder.setTask("Filter", new OddNumberFilterTask(), "TickSpout");
+		
+		builder.setTask("Counter", new CountTask(), "Filter").setTimeWindowSize(Hours.ONE);
 
-				builder.setColdStart(false);
-				//LocalCluster cluster = builder.submitToLocalCluster("Activity-Count");
-				//Thread.sleep(6000);
+		builder.setColdStart(false);
+		//LocalCluster cluster = builder.submitToLocalCluster("Activity-Count");
+		//Thread.sleep(6000);
 
 				
 		

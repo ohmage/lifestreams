@@ -1,5 +1,16 @@
 package org.ohmage.lifestreams;
 
+import java.util.Map;
+
+import org.apache.commons.codec.binary.Base64;
+import org.ohmage.lifestreams.spouts.IMapStore;
+import org.ohmage.lifestreams.utils.KryoSerializer;
+
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+
+import backtype.storm.Config;
+
 /**
  * This class contains lifestreams topology specific configuration.
  * @author changun
@@ -8,6 +19,21 @@ package org.ohmage.lifestreams;
 public class LifestreamsConfig {
 	// whether to write back the processed data to ohmage
 	public static String DRYRUN_WITHOUT_UPLOADING = "lifestreams.dryrun";
-	// whether to store the computation state in the local redis store 
-	public static String ENABLE_STATEFUL_FUNCTION = "lifestreams.enable_stateful";
+	// whether to write back the processed data to ohmage
+	public static String LIFESTREAMS_REQUESTER = "lifestreams.requester";
+	// whether to write back the processed data to ohmage
+	public static String LIFESTREAMS_REQUESTEES = "lifestreams.requestees";
+	// persistent map store to keep computation state
+	public static String MAP_STORE_INSTANCE = "lifestreams.mapStore";
+	// persistent stream store to write output data
+	public static String STREAM_STORE_INSTANCE = "lifestreams.streamStore";
+	public static void serializeAndPutObject(Config config, String key, Object obj){
+		Output output = new Output(10 * 1024);
+		KryoSerializer.getInstance().writeClassAndObject(output, obj);
+		config.put(key, Base64.encodeBase64String(output.getBuffer()));
+	}
+	public static Object getAndDeserializeObject(Map config, String key){
+		byte[] bin =org.apache.commons.codec.binary.Base64.decodeBase64((String) config.get(key));
+		return KryoSerializer.getInstance().readClassAndObject(new Input(bin));
+	}
 }
