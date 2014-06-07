@@ -112,7 +112,7 @@ public class AppConfig {
 				.setColdStart(
 						Boolean.parseBoolean(env.getProperty("lifestreams.cold.start")))
 				.setDryRun(
-						Boolean.parseBoolean(env.getProperty("lifestreams.cold.start")))
+						Boolean.parseBoolean(env.getProperty("lifestreams.dryrun")))
 				.setMaxSpoutPeding(
 						Integer.parseInt(env.getProperty("topology.max.spout.pending")))
 				.setMsgTimeout(
