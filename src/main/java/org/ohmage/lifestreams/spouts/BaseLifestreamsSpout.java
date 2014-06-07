@@ -3,22 +3,19 @@ package org.ohmage.lifestreams.spouts;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang.StringUtils;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.models.StreamRecord;
+import org.ohmage.lifestreams.stores.IMapStore;
 import org.ohmage.lifestreams.tuples.BaseTuple;
 import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
 import org.ohmage.lifestreams.tuples.RecordTuple;
@@ -29,8 +26,6 @@ import org.ohmage.lifestreams.tuples.StreamStatusTuple.StreamStatus;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 
 import backtype.storm.Config;
 import backtype.storm.serialization.SerializationFactory;
@@ -40,10 +35,6 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 
@@ -113,18 +104,27 @@ abstract public class BaseLifestreamsSpout<T>  extends BaseRichSpout  {
 			DateTime checkpoint = state.getCheckpoint();
 			// get a new iterator 
 			Iterator<StreamRecord<T>> iter = getIteratorFor(user, checkpoint);
-			queue.add(new StreamStatusTuple(user, batchId, StreamStatus.HEAD));
-			long serialId = 0;
-			if(iter.hasNext()){
-				state.newBatch(batchId);
+			if(!iter.hasNext()){
+				// no new records. return;
+				return;
 			}
+			
+			long serialId = 0;
+			// emit the Head of Stream tuple
+			queue.add(new StreamStatusTuple(user, batchId, StreamStatus.HEAD));
+			// restart the user state
+			state.newBatch(batchId);
 			while(!state.isFailed() && iter.hasNext()){
 				try {
 					Thread.sleep(1);
 				} catch (InterruptedException e) {
 					return;
 				}
-				queue.add(new SpoutRecordTuple(iter.next(), batchId, serialId++));
+				StreamRecord<T> record = iter.next();
+				if(record.getUser() == null){
+					record.setUser(user);
+				}
+				queue.add(new SpoutRecordTuple(record, batchId, serialId++));
 				state.setLastExpectedSerialId(batchId, serialId);
 			}
 			if(iter instanceof Closeable){

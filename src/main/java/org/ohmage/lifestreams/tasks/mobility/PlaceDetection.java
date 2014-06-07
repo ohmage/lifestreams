@@ -16,8 +16,6 @@ import org.ohmage.lifestreams.models.data.MobilitySegment.PlaceSegment;
 import org.ohmage.lifestreams.models.data.MobilitySegment.State;
 import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.ohmage.lifestreams.utils.DivideInterval;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import com.javadocmd.simplelatlng.LatLng;
 import com.javadocmd.simplelatlng.LatLngTool;
@@ -29,13 +27,11 @@ import fr.dudie.nominatim.model.Address;
  * @author changun
  *
  */
-@Component
 public class PlaceDetection extends SimpleTask<MobilityData> {
 	private static final int TEN_MINS = 60 * 10 * 1000;
 
 	// OSM API requester's email
-	@Value("${nominatim.requester.email}") String email;
-	
+	final String nominatimRequesterEmail;
 	// the state of last data point of which we just determin its state
 	private State prevState = State.Place;
 	// the segment we are currently aggregating
@@ -47,7 +43,7 @@ public class PlaceDetection extends SimpleTask<MobilityData> {
 	
 	@Override
 	public void init() {
-		OSMClient = new CachedOpenStreetMapClient(email, this.getMapFactory());
+		OSMClient = new CachedOpenStreetMapClient(nominatimRequesterEmail, this.getMapFactory());
 	}
 	@Override
 	public void recover() {
@@ -239,5 +235,11 @@ public class PlaceDetection extends SimpleTask<MobilityData> {
 			accumulateNewDataPoint(headRec, curState);
 		}
 	}
-
+	public PlaceDetection(String nominatimRequesterEmail) {
+		super();
+		this.nominatimRequesterEmail = nominatimRequesterEmail;
+	}
+	public PlaceDetection() {
+		this("your@email.com");
+	}
 }

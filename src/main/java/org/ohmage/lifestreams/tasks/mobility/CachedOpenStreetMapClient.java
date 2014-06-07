@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.ohmage.lifestreams.spouts.PersistentMapFactory;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +39,7 @@ public class CachedOpenStreetMapClient {
 
 	CachedOpenStreetMapClient(String email, PersistentMapFactory factory){
 		
-		final HttpClient httpClient = HttpClientBuilder.create().build();
+		final HttpClient httpClient = new DefaultHttpClient();
 		nominatimClient = new JsonNominatimClient(httpClient, email);
 		addressCache = factory.getSystemWideMap(CachedOpenStreetMapClient.class.getName(), LatLng.class, Address.class);
 	}

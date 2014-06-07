@@ -1,4 +1,4 @@
-package org.ohmage.lifestreams.spouts;
+package org.ohmage.lifestreams.stores;
 
 import java.io.ByteArrayInputStream;
 import java.io.Serializable;
@@ -14,8 +14,6 @@ import java.util.zip.InflaterInputStream;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -42,7 +40,7 @@ public class RedisMapStore implements IMapStore, Serializable {
 		return pool;
 	}
 	
-	private Logger logger = LoggerFactory.getLogger(RedisMapStore.class);
+	private static final Logger logger = LoggerFactory.getLogger(RedisMapStore.class);
 	public RedisMapStore(){
 		this("localhost", new JedisPoolConfig());
 	}

@@ -1,6 +1,5 @@
 package org.ohmage.lifestreams.bolts;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -9,8 +8,8 @@ import java.util.Set;
 
 import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.spouts.IMapStore;
 import org.ohmage.lifestreams.spouts.PersistentMapFactory;
+import org.ohmage.lifestreams.stores.IMapStore;
 import org.ohmage.lifestreams.stores.IStreamStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tuples.BaseTuple;
@@ -19,10 +18,6 @@ import org.ohmage.lifestreams.tuples.RecordTuple;
 import org.ohmage.lifestreams.tuples.StreamStatusTuple;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
-import org.ohmage.models.OhmageUser.OhmageAuthenticationError;
-import org.ohmage.sdk.OhmageStreamClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import backtype.storm.Config;
 import backtype.storm.generated.GlobalStreamId;
@@ -35,7 +30,6 @@ import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
 
 /**
  * LifestreamsBolt is a implementation of Storm Bolt. Each Lifestreams Bolt is
@@ -74,9 +68,6 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 
 	// the input streams of this bolt
 	Set<GlobalStreamId> inputStreams;
-
-	// logger
-	Logger logger = LoggerFactory.getLogger(LifestreamsBolt.class);
 
 	// whether to write back the processed records to the ohmage stream.
 	private boolean isDryrun = false;
@@ -137,18 +128,6 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 			} else if (baseTuple instanceof RecordTuple && !userState.isEnded()) {
 				userState.execute((RecordTuple) baseTuple);
 			}
-		}
-	}
-
-	private void upload(StreamRecord<? extends Object> dp) {
-		try {
-
-			new OhmageStreamClient(dp.getUser()).upload(targetStream,
-					dp.toObserverDataPoint());
-		} catch (OhmageAuthenticationError e) {
-			throw new RuntimeException(e);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
 		}
 	}
 

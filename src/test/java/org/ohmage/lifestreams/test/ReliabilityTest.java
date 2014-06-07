@@ -17,7 +17,6 @@ import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 

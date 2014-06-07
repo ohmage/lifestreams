@@ -2,6 +2,7 @@ package org.ohmage.lifestreams.spouts;
 
 import java.util.Map;
 
+import org.ohmage.lifestreams.stores.IMapStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.models.OhmageUser;
 

@@ -1,4 +1,4 @@
-package org.ohmage.lifestreams.spouts;
+package org.ohmage.lifestreams.stores;
 
 import java.io.Serializable;
 import java.util.Map;

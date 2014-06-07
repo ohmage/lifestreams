@@ -10,8 +10,6 @@ import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -24,7 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class RedisStreamStore implements IStreamStore {
 
-	private Logger logger = LoggerFactory.getLogger(RedisStreamStore.class);
+	private static final Logger logger = LoggerFactory.getLogger(RedisStreamStore.class);
 	String host = "localhost";
 
 	transient private JedisPool pool;
@@ -89,5 +87,11 @@ public class RedisStreamStore implements IStreamStore {
 	public <T> StreamRecord<T> queryTheEarliest(OhmageStream stream,
 			OhmageUser user, Class<T> dataType) {
 		throw new UnsupportedOperationException();
+	}
+	public RedisStreamStore(String host){
+		this.host = host;
+	}
+	public RedisStreamStore(){
+		this("localhost");
 	}
 }

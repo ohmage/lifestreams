@@ -5,15 +5,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.bolts.LifestreamsBolt;
-import org.ohmage.lifestreams.spouts.IMapStore;
 import org.ohmage.lifestreams.spouts.PersistentMapFactory;
-import org.ohmage.lifestreams.spouts.RedisMapStore;
-import org.ohmage.lifestreams.stores.RedisStreamStore;
+import org.ohmage.lifestreams.stores.IMapStore;
 import org.ohmage.lifestreams.stores.IStreamStore;
+import org.ohmage.lifestreams.stores.RedisMapStore;
+import org.ohmage.lifestreams.stores.RedisStreamStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tasks.TimeWindowTask;
 import org.ohmage.lifestreams.utils.KryoSerializer;
@@ -21,19 +20,10 @@ import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.util.SerializationUtils;
-
-import com.esotericsoftware.kryo.io.Output;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.generated.StormTopology;
-import backtype.storm.topology.BoltDeclarer;
 import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.SpoutDeclarer;
 import backtype.storm.topology.TopologyBuilder;
@@ -54,12 +44,6 @@ import backtype.storm.tuple.Fields;
  */
 
 public class LifestreamsTopologyBuilder {
-	
-	/*
-	@Value("${global.config.dryrun}")
-	@Value("${lifestreams.cold.start}")
-	@Value("${topology.max.spout.pending}")
-	@Value("${topology.message.timeout.secs}")*/
 	
 	/*** Lifestreams Configuration ***/
 	IStreamStore streamStore = new RedisStreamStore();

@@ -3,13 +3,12 @@ package org.ohmage.lifestreams;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
-import org.ohmage.lifestreams.spouts.IMapStore;
 import org.ohmage.lifestreams.utils.KryoSerializer;
+
+import backtype.storm.Config;
 
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-
-import backtype.storm.Config;
 
 /**
  * This class contains lifestreams topology specific configuration.

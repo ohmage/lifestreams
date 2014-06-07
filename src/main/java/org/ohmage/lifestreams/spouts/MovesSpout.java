@@ -21,7 +21,6 @@ import org.ohmage.models.OhmageUser.OhmageAuthenticationError;
 import org.ohmage.sdk.OhmageStreamClient;
 import org.ohmage.sdk.OhmageStreamIterator;
 import org.ohmage.sdk.OhmageStreamIterator.SortOrder;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
