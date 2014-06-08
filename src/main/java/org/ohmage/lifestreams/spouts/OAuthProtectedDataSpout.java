@@ -27,7 +27,7 @@ abstract class OAuthProtectedDataSpout<T> extends BaseLifestreamsSpout<T> {
 	final private Pattern providerPattern;
 	final private Pattern scopePattern;
 
-	private StreamRecordFactory<AccessTokenData> dataPointFactory = StreamRecordFactory.createStreamRecordFactory(AccessTokenData.class);
+	private StreamRecordFactory dataPointFactory = new StreamRecordFactory();
 	
 	boolean match(AccessTokenData token){
 		return providerPattern.matcher(token.getProvider()).find() && 
@@ -48,7 +48,7 @@ abstract class OAuthProtectedDataSpout<T> extends BaseLifestreamsSpout<T> {
 			public StreamRecord<AccessTokenData> next() {
 				StreamRecord<AccessTokenData> rec;
 				try {
-					rec = dataPointFactory.createRecord(iter.next(), user);
+					rec = dataPointFactory.createRecord(iter.next(), user, AccessTokenData.class);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}

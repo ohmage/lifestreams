@@ -7,7 +7,7 @@ import org.ohmage.lifestreams.models.StreamRecord;
 public class RecordTuple extends BaseTuple {
 	private StreamRecord rec;
 
-	RecordTuple(Tuple t){
+	public RecordTuple(Tuple t){
 		super(t);
 	}
 	public RecordTuple(StreamRecord rec) {

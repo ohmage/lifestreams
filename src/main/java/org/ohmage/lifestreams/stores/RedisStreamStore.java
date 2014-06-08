@@ -53,7 +53,7 @@ public class RedisStreamStore implements IStreamStore {
 	// query all the processed data for a given user and stream
 	@Override
 	public <T> List<StreamRecord<T>> queryAll(OhmageStream stream, OhmageUser user, Class<T> dataType) {
-		StreamRecordFactory<T> recFactory = StreamRecordFactory.createStreamRecordFactory(dataType);
+		StreamRecordFactory recFactory = new StreamRecordFactory();
 		Jedis jedis = getPool().getResource();
 		jedis.select(0);
 		List<String> stringStream = jedis.hvals(user.toString() + stream.toString());
@@ -62,7 +62,7 @@ public class RedisStreamStore implements IStreamStore {
 		for(String string:stringStream){
 			try {
 				ObjectMapper mapper = new ObjectMapper();
-				records.add(recFactory.createRecord((ObjectNode) mapper.readTree(string), user));
+				records.add(recFactory.createRecord((ObjectNode) mapper.readTree(string), user, dataType));
 			} catch (Exception e) {
 				logger.error("Node string: {}", string);
 				throw new RuntimeException(e);

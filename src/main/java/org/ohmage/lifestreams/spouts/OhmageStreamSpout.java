@@ -33,16 +33,14 @@ public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 	// the columns to be queried
 	private String columnList; 
 	// the Type of the emitted records
-	private Class dataPointClass;
 	private Class<T> c;
-	private int rateLimit = -1;
 	@Override
 	public void open(Map conf, TopologyContext context,
 			SpoutOutputCollector collector) {
 		
 		super.open(conf, context, collector);
 		// create data point factory
-		this.factory =  StreamRecordFactory.createStreamRecordFactory(c);
+		this.factory =  new StreamRecordFactory();
 	
 	}
 
@@ -92,7 +90,7 @@ public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 			// move the iterator pointer to the location right before the record whose timestamp >= since
 			final PeekingIterator<ObjectNode> peekableIter = new PeekingIterator<ObjectNode>(iter);
 			while(iter.hasNext()){
-				StreamRecord<T> rec = factory.createRecord(peekableIter.peek(), user);
+				StreamRecord<T> rec = factory.createRecord(peekableIter.peek(), user, c);
 				if(rec.getTimestamp().compareTo(since) >= 0){
 					break;
 				}else{
@@ -110,7 +108,7 @@ public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 				public StreamRecord<T> next() {
 					ObjectNode json = peekableIter.next();
 					try {
-						return factory.createRecord(json, user);
+						return factory.createRecord(json, user, c);
 
 					} catch (Exception e){
 						logger.error("convert ohmage record error", e);

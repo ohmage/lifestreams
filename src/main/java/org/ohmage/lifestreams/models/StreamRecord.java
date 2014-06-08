@@ -125,34 +125,35 @@ public class StreamRecord<T> implements Comparable{
 		return node;
 	}
 
-	public static class StreamRecordFactory<T> implements Serializable {
-		private Class<T> c;
-		public static <T> StreamRecordFactory<T> createStreamRecordFactory(Class<T> c ){
-			return new StreamRecordFactory<T>(c);
+	public static class StreamRecordFactory implements Serializable {
+        transient private ObjectMapper mapper;
+		public StreamRecordFactory(){
 		}
-		private StreamRecordFactory(Class<T> c){
-			this.c = c;
-		}
-		public StreamRecord<T> createRecord(ObjectNode node, OhmageUser user)
+        public ObjectMapper getMapper(){
+            if(mapper==null) {
+                mapper = new ObjectMapper();
+
+                mapper.registerModule(new JodaModule());
+                mapper.configure(
+                        com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                        false);
+            }
+            return mapper;
+        }
+		public <T> StreamRecord<T> createRecord(ObjectNode node, OhmageUser user, Class<T> dataClass)
 				throws IOException {
-			ObjectMapper mapper = new ObjectMapper();
-			
-			mapper.registerModule(new JodaModule());
-			mapper.configure(
-					com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-					false);
-			// use the timezone in the timestamp field to parse the datatime string
+
+			// use the timezone in the timestamp field to parse every DataTime string in the record
 			
 			// get the timezone
 			TimeZone zone = ISODateTimeFormat.dateTime().withOffsetParsed().parseDateTime(node.get("metadata").get("timestamp").asText()).getZone().toTimeZone();
 
 			// make the json parser to use the timezone in the timestamp field to parse all the ISODateTime
-			mapper.setTimeZone(zone);
+            getMapper().setTimeZone(zone);
 
-			@SuppressWarnings("unchecked")
-			StreamRecord<T> dataPoint = mapper.convertValue(node, new StreamRecord<T>().getClass());
+			StreamRecord<T> dataPoint = getMapper().convertValue(node, new StreamRecord<T>().getClass());
 			
-			dataPoint.setData(mapper.convertValue(dataPoint.getData(), c));
+			dataPoint.setData(getMapper().convertValue(dataPoint.getData(), dataClass));
 			dataPoint.setUser(user);
 			return dataPoint;
 		}

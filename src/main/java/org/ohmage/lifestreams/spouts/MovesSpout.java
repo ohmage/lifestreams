@@ -61,7 +61,7 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
     private OhmageStream movesCredentialsStream;
 
 	// record factory for MovesCredentials record in ohmage
-    private StreamRecordFactory<MovesCredentialsData> dataPointFactory = StreamRecordFactory.createStreamRecordFactory(MovesCredentialsData.class);
+    private StreamRecordFactory dataPointFactory = new StreamRecordFactory();
 	
 	Iterator<StreamRecord<MovesCredentialsData>> getMovesCredentialDataIterator(final OhmageUser user, DateTime after) throws OhmageAuthenticationError, IOException{
 		final OhmageStreamIterator iter = new OhmageStreamClient(getRequester())
@@ -78,7 +78,7 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 			public StreamRecord<MovesCredentialsData> next() {
 				StreamRecord<MovesCredentialsData> rec;
 				try {
-					rec = dataPointFactory.createRecord(iter.next(), user);
+					rec = dataPointFactory.createRecord(iter.next(), user, MovesCredentialsData.class);
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
