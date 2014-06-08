@@ -1,7 +1,6 @@
-package org.ohmage.lifestreams.spouts;
+package org.ohmage.lifestreams.stores;
 
 import com.esotericsoftware.kryo.Kryo;
-import org.ohmage.lifestreams.stores.IMapStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.models.OhmageUser;
 

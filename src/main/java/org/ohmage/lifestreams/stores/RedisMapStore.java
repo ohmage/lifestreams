@@ -1,9 +1,7 @@
 package org.ohmage.lifestreams.stores;
 
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
-import org.apache.commons.io.output.ByteArrayOutputStream;
+import org.ohmage.lifestreams.utils.KryoSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -11,11 +9,8 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.exceptions.JedisException;
 
-import java.io.ByteArrayInputStream;
 import java.io.Serializable;
 import java.util.*;
-import java.util.zip.DeflaterOutputStream;
-import java.util.zip.InflaterInputStream;
 
 public class RedisMapStore implements IMapStore, Serializable {
 	/**
@@ -61,19 +56,10 @@ public class RedisMapStore implements IMapStore, Serializable {
 		final Class<V> vClass;
 		
 		public byte[] getBytes(Object obj) {
-	        ByteArrayOutputStream byteArrayOutputStream = 
-	                new ByteArrayOutputStream(16384);
-	        DeflaterOutputStream deflaterOutputStream = 
-	                new DeflaterOutputStream(byteArrayOutputStream);
-	    	Output valOutput = new Output(deflaterOutputStream);
-	    	
-			kryo.writeObject(valOutput, obj);
-			valOutput.close();
-			return byteArrayOutputStream.toByteArray();
+            return KryoSerializer.getBytes(obj, kryo);
 		}
 		public<T> T toObject(byte[] bytes, Class<T> c) {
-		    Input in = new Input(new InflaterInputStream(new ByteArrayInputStream(bytes)));
-			return kryo.readObject(in, c);
+		    return KryoSerializer.toObject(bytes, c, kryo);
 		}
 
 		@Override

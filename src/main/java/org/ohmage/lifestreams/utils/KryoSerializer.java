@@ -1,52 +1,29 @@
 package org.ohmage.lifestreams.utils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.regex.Pattern;
-
+import backtype.storm.serialization.IKryoFactory;
+import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.shaded.org.objenesis.strategy.StdInstantiatorStrategy;
+import de.javakaffee.kryoserializers.*;
+import de.javakaffee.kryoserializers.jodatime.JodaDateTimeSerializer;
+import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamMetadata;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.models.data.ActivityEpisode;
-import org.ohmage.lifestreams.models.data.ActivitySummaryData;
-import org.ohmage.lifestreams.models.data.GeoDiameterData;
-import org.ohmage.lifestreams.models.data.MobilityData;
-import org.ohmage.lifestreams.models.data.RectifiedMobilityData;
-import org.ohmage.lifestreams.models.data.TimeWindowData;
+import org.ohmage.lifestreams.models.data.*;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.models.OhmageServer;
 import org.ohmage.models.OhmageUser;
 
-import backtype.storm.serialization.IKryoFactory;
-import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
-
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.shaded.org.objenesis.strategy.StdInstantiatorStrategy;
-
-import de.javakaffee.kryoserializers.ArraysAsListSerializer;
-import de.javakaffee.kryoserializers.BitSetSerializer;
-import de.javakaffee.kryoserializers.CollectionsEmptyListSerializer;
-import de.javakaffee.kryoserializers.CollectionsEmptyMapSerializer;
-import de.javakaffee.kryoserializers.CollectionsEmptySetSerializer;
-import de.javakaffee.kryoserializers.CollectionsSingletonListSerializer;
-import de.javakaffee.kryoserializers.CollectionsSingletonMapSerializer;
-import de.javakaffee.kryoserializers.CollectionsSingletonSetSerializer;
-import de.javakaffee.kryoserializers.EnumMapSerializer;
-import de.javakaffee.kryoserializers.GregorianCalendarSerializer;
-import de.javakaffee.kryoserializers.RegexSerializer;
-import de.javakaffee.kryoserializers.SynchronizedCollectionsSerializer;
-import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
-import de.javakaffee.kryoserializers.jodatime.JodaDateTimeSerializer;
+import java.io.ByteArrayInputStream;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.InflaterInputStream;
 
 public class KryoSerializer  implements IKryoFactory {
 
@@ -137,4 +114,20 @@ public class KryoSerializer  implements IKryoFactory {
 		// TODO Auto-generated method stub
 		
 	}
+
+    static public byte[] getBytes(Object obj, Kryo kryo) {
+        ByteArrayOutputStream byteArrayOutputStream =
+                new ByteArrayOutputStream(16384);
+        DeflaterOutputStream deflaterOutputStream =
+                new DeflaterOutputStream(byteArrayOutputStream);
+        Output valOutput = new Output(deflaterOutputStream);
+
+        kryo.writeObject(valOutput, obj);
+        valOutput.close();
+        return byteArrayOutputStream.toByteArray();
+    }
+    static public<T> T toObject(byte[] bytes, Class<T> c, Kryo kryo) {
+        Input in = new Input(new InflaterInputStream(new ByteArrayInputStream(bytes)));
+        return kryo.readObject(in, c);
+    }
 }

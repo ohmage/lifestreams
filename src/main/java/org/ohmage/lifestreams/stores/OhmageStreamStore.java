@@ -1,11 +1,12 @@
 package org.ohmage.lifestreams.stores;
 
-import java.util.List;
-
-import org.joda.time.Interval;
+import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
+import org.ohmage.sdk.OhmageStreamIterator;
+
+import java.util.List;
 
 public class OhmageStreamStore implements IStreamStore {
 
@@ -14,32 +15,10 @@ public class OhmageStreamStore implements IStreamStore {
 		// TODO Auto-generated method stub
 	}
 
-	@Override
-	public <T> List<StreamRecord<T>> queryAll(OhmageStream stream,
-			OhmageUser user, Class<T> dataType) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    @Override
+    public <T> List<StreamRecord<T>> query(OhmageStream stream, OhmageUser user, DateTime start, DateTime end, OhmageStreamIterator.SortOrder order, int maxRows, Class<T> dataType) {
+        return null;
+    }
 
-	@Override
-	public <T> List<StreamRecord<T>> queryByTimeInterval(OhmageStream stream,
-			OhmageUser user, Interval interval, Class<T> dataType) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public <T> StreamRecord<T> queryTheLatest(OhmageStream stream,
-			OhmageUser user, Class<T> dataType) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	public <T> StreamRecord<T> queryTheEarliest(OhmageStream stream,
-			OhmageUser user, Class<T> dataType) {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 }
