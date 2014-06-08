@@ -1,7 +1,5 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
-import java.util.LinkedList;
-
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.joda.time.Interval;
@@ -15,13 +13,15 @@ import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.springframework.stereotype.Component;
 
+import java.util.LinkedList;
+
 @Component
 public class TimeLeaveReturnHome extends SimpleTimeWindowTask<MobilitySegment>{
 
 
-	LinkedList<PlaceSegment> data = new LinkedList<PlaceSegment>();
-	GeoLocation homeLocation;
-	Long totalTimeSpanInSec = 0L;
+	private LinkedList<PlaceSegment> data = new LinkedList<PlaceSegment>();
+	private GeoLocation homeLocation;
+	private Long totalTimeSpanInSec = 0L;
 	public TimeLeaveReturnHome() {
 
 		super(Days.ONE);

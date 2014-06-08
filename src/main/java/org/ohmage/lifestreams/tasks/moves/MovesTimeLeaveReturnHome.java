@@ -1,7 +1,10 @@
 package org.ohmage.lifestreams.tasks.moves;
 
-import java.util.ArrayList;
-
+import co.nutrino.api.moves.impl.dto.activity.TrackPoint;
+import co.nutrino.api.moves.impl.dto.storyline.MovesPlace;
+import co.nutrino.api.moves.impl.dto.storyline.MovesPlaceTypeEnum;
+import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
+import com.javadocmd.simplelatlng.LatLng;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.ohmage.lifestreams.models.GeoLocation;
@@ -11,19 +14,14 @@ import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.springframework.stereotype.Component;
 
-import co.nutrino.api.moves.impl.dto.activity.TrackPoint;
-import co.nutrino.api.moves.impl.dto.storyline.MovesPlace;
-import co.nutrino.api.moves.impl.dto.storyline.MovesPlaceTypeEnum;
-import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
-
-import com.javadocmd.simplelatlng.LatLng;
+import java.util.ArrayList;
 
 @Component
 public class MovesTimeLeaveReturnHome extends SimpleTimeWindowTask<MovesSegment> {
 
 
-	ArrayList<MovesSegment> segments = new ArrayList<MovesSegment>();
-	static final float minimunCoverageRate = (float)0.5;
+	private ArrayList<MovesSegment> segments = new ArrayList<MovesSegment>();
+	private static final float minimunCoverageRate = (float)0.5;
 	@Override
 	public void executeDataPoint(StreamRecord<MovesSegment> record,	TimeWindow window) {
 		segments.add(record.d());
@@ -113,8 +111,8 @@ public class MovesTimeLeaveReturnHome extends SimpleTimeWindowTask<MovesSegment>
 							.setScaledTimeAtHomeInSeconds((int)(timeAtHomeInSeconds / coverageRate));
 				this.createRecord()
 						.setData(data)
-						.setTimestamp(window.getFirstInstant()).emit();;
-			}
+						.setTimestamp(window.getFirstInstant()).emit();
+            }
 		}
 		segments.clear();
 		checkpoint(window.getTimeWindowEndTime());

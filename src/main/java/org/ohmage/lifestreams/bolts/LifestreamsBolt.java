@@ -1,11 +1,15 @@
 package org.ohmage.lifestreams.bolts;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import backtype.storm.Config;
+import backtype.storm.generated.GlobalStreamId;
+import backtype.storm.generated.Grouping;
+import backtype.storm.serialization.SerializationFactory;
+import backtype.storm.task.OutputCollector;
+import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.base.BaseRichBolt;
+import backtype.storm.tuple.Tuple;
+import com.esotericsoftware.kryo.Kryo;
 import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.spouts.PersistentMapFactory;
@@ -19,17 +23,7 @@ import org.ohmage.lifestreams.tuples.StreamStatusTuple;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
 
-import backtype.storm.Config;
-import backtype.storm.generated.GlobalStreamId;
-import backtype.storm.generated.Grouping;
-import backtype.storm.serialization.SerializationFactory;
-import backtype.storm.task.OutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-import backtype.storm.topology.base.BaseRichBolt;
-import backtype.storm.tuple.Tuple;
-
-import com.esotericsoftware.kryo.Kryo;
+import java.util.*;
 
 /**
  * LifestreamsBolt is a implementation of Storm Bolt. Each Lifestreams Bolt is
@@ -54,7 +48,7 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	private HashMap<OhmageUser, UserTaskState> userStateMap = new HashMap<OhmageUser, UserTaskState>();
 
 	// storm data collector (for emitting records)
-	protected OutputCollector collector;
+    OutputCollector collector;
 
 	// the name of the topology, and the name of this bolt
 	// these values will be populated during prepare phase (see prepare())
@@ -64,10 +58,10 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	// the components in the subtree with this bolt as root.
 	// (when a bolt receives a command targeting one of its subcomponent,
 	// it should propagate the command)
-	Set<String> subComponents;
+    private Set<String> subComponents;
 
 	// the input streams of this bolt
-	Set<GlobalStreamId> inputStreams;
+    private Set<GlobalStreamId> inputStreams;
 
 	// whether to write back the processed records to the ohmage stream.
 	private boolean isDryrun = false;
@@ -75,8 +69,7 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	private IStreamStore streamStore;
 	// the ohmage stream the processed records will be writeback to.
 	private OhmageStream targetStream;
-	private IMapStore mapStore;
-	protected PersistentMapFactory mapFactory;
+	private PersistentMapFactory mapFactory;
 	final private Task templateTask;
 
 	private UserTaskState createUserState(OhmageUser user, Long batchId) {
@@ -142,7 +135,7 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	 *            Whether, in addition to emitting it, to upload the tuple to
 	 *            the defined stream store.
 	 */
-	public void emitRecord(StreamRecord<? extends Object> rec,
+	public void emitRecord(StreamRecord<?> rec,
 			List<Tuple> anchors, boolean upload) {
 		if (upload && !isDryrun && targetStream != null) {
 			// upload the processed record back to ohmage

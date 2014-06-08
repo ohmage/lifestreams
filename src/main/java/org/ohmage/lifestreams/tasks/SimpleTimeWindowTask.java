@@ -20,7 +20,7 @@ public abstract class SimpleTimeWindowTask<T> extends TimeWindowTask {
 		super();
 	}
 
-	public SimpleTimeWindowTask(BaseSingleFieldPeriod timeWindowSize) {
+	protected SimpleTimeWindowTask(BaseSingleFieldPeriod timeWindowSize) {
 		super(timeWindowSize);
 	}
 

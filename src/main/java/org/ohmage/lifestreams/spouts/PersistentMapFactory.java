@@ -1,18 +1,18 @@
 package org.ohmage.lifestreams.spouts;
 
-import java.util.Map;
-
+import com.esotericsoftware.kryo.Kryo;
 import org.ohmage.lifestreams.stores.IMapStore;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.models.OhmageUser;
 
-import com.esotericsoftware.kryo.Kryo;
+import java.util.Map;
 
+@SuppressWarnings("SameParameterValue")
 public class PersistentMapFactory {
-	final IMapStore store;
-	final Kryo kryo;
-	final String topologyName;
-	static final String PREFIX = "lifestreams";
+	private final IMapStore store;
+	private final Kryo kryo;
+	private final String topologyName;
+	private static final String PREFIX = "lifestreams";
 	public PersistentMapFactory(String topologyName, IMapStore s, Kryo kryo){
 		store = s;
 		this.kryo = kryo;

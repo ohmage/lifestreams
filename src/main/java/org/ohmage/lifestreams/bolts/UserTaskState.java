@@ -1,14 +1,8 @@
 package org.ohmage.lifestreams.bolts;
 
-import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
+import backtype.storm.tuple.Tuple;
+import backtype.storm.tuple.TupleImpl;
+import com.esotericsoftware.kryo.Kryo;
 import org.apache.commons.lang3.SerializationUtils;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
@@ -23,10 +17,8 @@ import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.TupleImpl;
-
-import com.esotericsoftware.kryo.Kryo;
+import java.lang.reflect.Field;
+import java.util.*;
 
 /**
  * UserTaskState stores and maintains the computation state to enforce the
@@ -63,7 +55,7 @@ import com.esotericsoftware.kryo.Kryo;
  * in the output cache that are derived from this tuple; these tasks then will
  * do same to their child tasks too so on so forth (See
  * {@link #executeGlobalCheckpoint(GlobalCheckpointTuple)} ). This operation is
- * equivalent to reclaimming the space taken up by the denpendency tree.</li>
+ * equivalent to reclaiming the space taken up by the dependency tree.</li>
  * 
  * </ul>
  * 
@@ -82,7 +74,7 @@ public class UserTaskState {
 	transient private Kryo kryo;
 	transient private IMapStore bookkeeper;
 	transient private Logger logger;
-	transient RecordTuple curRecordTuple;
+	private transient RecordTuple curRecordTuple;
 	transient private PersistentMapFactory mapFactory;
 
 	public Task getTask() {
@@ -126,8 +118,7 @@ public class UserTaskState {
 		} else {
 			addToUnackedTuples(tuple);
 		}
-		return;
-	}
+    }
 
 	private void addToOutputCache(StreamRecord rec) {
 		DateTime key = this.curRecordTuple.getTimestamp();
@@ -260,7 +251,7 @@ public class UserTaskState {
 	}
 
 	/**
-	 * No more data will be recived in at least a short time. Reclaim all the
+	 * No more data will be received in at least a short time. Reclaim all the
 	 * temporary data, and let the computation to be resumed from the last
 	 * checkpoint.
 	 */
@@ -314,7 +305,7 @@ public class UserTaskState {
 		return "" + cId + "." + user.getUsername();
 	}
 
-	public OhmageUser getUser() {
+	OhmageUser getUser() {
 		return user;
 	}
 	

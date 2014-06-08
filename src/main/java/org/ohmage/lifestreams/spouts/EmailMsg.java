@@ -1,16 +1,16 @@
 package org.ohmage.lifestreams.spouts;
 
-import javax.mail.Address;
-
 import org.joda.time.DateTime;
 
+import javax.mail.Address;
+
 public class EmailMsg{
-	Address[] senders;
-	Address[] recipients;
-	DateTime sentTime;
-	String subject;
-	String content;
-	boolean attachment;
+	private Address[] senders;
+	private Address[] recipients;
+	private DateTime sentTime;
+	private String subject;
+	private String content;
+	private boolean attachment;
 	public Address[] getSenders() {
 		return senders;
 	}

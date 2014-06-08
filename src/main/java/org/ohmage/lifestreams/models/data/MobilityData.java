@@ -1,21 +1,19 @@
 package org.ohmage.lifestreams.models.data;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-
-import org.ohmage.lifestreams.models.MobilityState;
-
 import com.esotericsoftware.minlog.Log;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.ohmage.lifestreams.models.MobilityState;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 public class MobilityData implements IMobilityData {
 	private MobilityState mode;
@@ -54,12 +52,11 @@ public class MobilityData implements IMobilityData {
 		this.speed = speed;
 	}
 
-	public static class MobilityStateDeserializer extends
+	private static class MobilityStateDeserializer extends
 			JsonDeserializer<MobilityState> {
 		@Override
 		public MobilityState deserialize(JsonParser jp,
-				DeserializationContext ctxt) throws IOException,
-				JsonProcessingException {
+				DeserializationContext ctxt) throws IOException {
 			String mode = jp.getText();
 			try{
 				return MobilityState.valueOf(mode.toUpperCase());
@@ -82,11 +79,10 @@ public class MobilityData implements IMobilityData {
 
 	}
 	
-	public static class WiFiDataDeserializer extends JsonDeserializer<Map<WiFi, Double>> {
+	private static class WiFiDataDeserializer extends JsonDeserializer<Map<WiFi, Double>> {
 		@Override
 		public Map<WiFi, Double> deserialize(JsonParser jp,
-			DeserializationContext ctxt) throws IOException,
-			JsonProcessingException {
+			DeserializationContext ctxt) throws IOException {
 			ObjectNode dataNode = jp.readValueAs(ObjectNode.class);
 			if(!dataNode.has("scan")){
 				return null;

@@ -4,7 +4,7 @@ package org.ohmage.lifestreams;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.env.SimpleCommandLinePropertySource;
 
-public class Application {
+class Application {
 	
 	public static void main(String[] args) {
 

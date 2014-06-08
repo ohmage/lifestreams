@@ -1,13 +1,13 @@
 package org.ohmage.lifestreams.tasks;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.joda.time.Days;
 import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.tuples.RecordTuple;
 import org.ohmage.lifestreams.utils.PendingBuffer;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * TimeWindowTask provides additional function for the tasks that aggregate the
@@ -22,11 +22,11 @@ public abstract class TimeWindowTask extends Task {
 	transient private PendingBuffer pendingBuf;
 	private BaseSingleFieldPeriod timeWindowSize;
 
-	public TimeWindowTask(BaseSingleFieldPeriod timeWindowSize) {
+	TimeWindowTask(BaseSingleFieldPeriod timeWindowSize) {
 		this.timeWindowSize = timeWindowSize;
 	}
 
-	public TimeWindowTask() {
+	TimeWindowTask() {
 		this(Days.ONE);
 	}
 
@@ -35,13 +35,13 @@ public abstract class TimeWindowTask extends Task {
 	}
 
 	@Override
-	public void init() {
+    protected void init() {
 		super.init();
 		pendingBuf = new PendingBuffer();
 	}
 
 	@Override
-	public void recover() {
+    protected void recover() {
 		super.recover();
 		pendingBuf = new PendingBuffer();
 	}
@@ -50,7 +50,7 @@ public abstract class TimeWindowTask extends Task {
 		throw new UnsupportedOperationException("You  must commit a checkpoint with timestamp.");
 	}
 	@Override
-	public void executeDataPoint(RecordTuple tuple) {
+    protected void executeDataPoint(RecordTuple tuple) {
 		StreamRecord rec = tuple.getStreamRecord();
 		// init the cur timewindow if it has not been initialized
 		if (curTimeWindow == null) {
@@ -94,7 +94,7 @@ public abstract class TimeWindowTask extends Task {
 		}
 	}
 
-	public abstract void executeDataPoint(RecordTuple input, TimeWindow window);
+	protected abstract void executeDataPoint(RecordTuple input, TimeWindow window);
 
 	public abstract void finishWindow(TimeWindow window);
 

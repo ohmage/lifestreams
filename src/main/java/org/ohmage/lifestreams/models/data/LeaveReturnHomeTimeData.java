@@ -37,8 +37,8 @@ public class LeaveReturnHomeTimeData extends TimeWindowData {
 		this.homeLocation = homeLocation;
 		return this;
 	}
-	int timeAtHomeInSeconds;
-	DateTime timeLeaveHome;
-	DateTime timeReturneHome;
-	GeoLocation homeLocation;
+	private int timeAtHomeInSeconds;
+	private DateTime timeLeaveHome;
+	private DateTime timeReturneHome;
+	private GeoLocation homeLocation;
 }

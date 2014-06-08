@@ -1,20 +1,17 @@
 package org.ohmage.lifestreams.models;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.TimeZone;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.ohmage.models.OhmageUser;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.datatype.joda.JodaModule;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.TimeZone;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class StreamRecord<T> implements Comparable{
@@ -44,14 +41,14 @@ public class StreamRecord<T> implements Comparable{
 	// alias for getData
 	public T d() {
 		return data;
-	};
+	}
 
-	// alias for setData
+    // alias for setData
 	public void d(T data) {
 		this.data = data;
-	};
+	}
 
-	@JsonIgnore
+    @JsonIgnore
 	public DateTime getTimestamp() {
 		return this.metadata.getTimestamp();
 	}
@@ -137,7 +134,7 @@ public class StreamRecord<T> implements Comparable{
 			this.c = c;
 		}
 		public StreamRecord<T> createRecord(ObjectNode node, OhmageUser user)
-				throws JsonParseException, JsonMappingException, IOException {
+				throws IOException {
 			ObjectMapper mapper = new ObjectMapper();
 			
 			mapper.registerModule(new JodaModule());

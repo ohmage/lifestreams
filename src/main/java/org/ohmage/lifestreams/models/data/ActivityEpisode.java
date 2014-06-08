@@ -1,16 +1,11 @@
 package org.ohmage.lifestreams.models.data;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.ohmage.lifestreams.models.MobilityState;
 
-import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
+import java.util.*;
 
 public class ActivityEpisode {
 	public static class TrackPoint {
@@ -53,7 +48,7 @@ public class ActivityEpisode {
 		return types;
 	}
 
-	public void setTypes(Set<MobilityState> types) {
+	void setTypes(Set<MobilityState> types) {
 		this.types = types;
 	}
 
@@ -97,16 +92,16 @@ public class ActivityEpisode {
 		return additionalFields;
 	}
 
-	public void setAdditionalFields(Object additionalFields) {
+	void setAdditionalFields(Object additionalFields) {
 		this.additionalFields = additionalFields;
 	}
-	Set<MobilityState> types = new HashSet<MobilityState>();
-	DateTime endTime;
-	DateTime startTime;
+	private Set<MobilityState> types = new HashSet<MobilityState>();
+	private DateTime endTime;
+	private DateTime startTime;
 	double duration;
-	double distance;
-	List<TrackPoint> trackPoints = new ArrayList<TrackPoint>();
-	Object additionalFields;
+	private double distance;
+	private List<TrackPoint> trackPoints = new ArrayList<TrackPoint>();
+	private Object additionalFields;
 
 
 	static public ActivityEpisode forMovesActivity(MovesActivity activity) {

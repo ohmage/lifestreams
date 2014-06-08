@@ -1,8 +1,8 @@
 package org.ohmage.lifestreams.stores;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.joda.time.Interval;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.StreamRecord.StreamRecordFactory;
@@ -10,23 +10,21 @@ import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class RedisStreamStore implements IStreamStore {
 
 	private static final Logger logger = LoggerFactory.getLogger(RedisStreamStore.class);
-	String host = "localhost";
+	private String host = "localhost";
 
 	transient private JedisPool pool;
-	public JedisPool getPool(){
+	JedisPool getPool(){
 		if(pool == null){
 			pool = new JedisPool(new JedisPoolConfig(), host);
 		}

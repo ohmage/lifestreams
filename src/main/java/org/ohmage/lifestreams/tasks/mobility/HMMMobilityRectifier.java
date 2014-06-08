@@ -1,9 +1,12 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-
+import be.ac.ulg.montefiore.run.jahmm.Hmm;
+import be.ac.ulg.montefiore.run.jahmm.ObservationDiscrete;
+import be.ac.ulg.montefiore.run.jahmm.OpdfDiscrete;
+import be.ac.ulg.montefiore.run.jahmm.OpdfDiscreteFactory;
+import com.javadocmd.simplelatlng.LatLng;
+import com.javadocmd.simplelatlng.LatLngTool;
+import com.javadocmd.simplelatlng.util.LengthUnit;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
@@ -12,14 +15,9 @@ import org.ohmage.lifestreams.models.data.RectifiedMobilityData;
 import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.springframework.stereotype.Component;
 
-import be.ac.ulg.montefiore.run.jahmm.Hmm;
-import be.ac.ulg.montefiore.run.jahmm.ObservationDiscrete;
-import be.ac.ulg.montefiore.run.jahmm.OpdfDiscrete;
-import be.ac.ulg.montefiore.run.jahmm.OpdfDiscreteFactory;
-
-import com.javadocmd.simplelatlng.LatLng;
-import com.javadocmd.simplelatlng.LatLngTool;
-import com.javadocmd.simplelatlng.util.LengthUnit;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 
 /**
  * @author changun This task uses a Hidden Markov Chain model to correct the
@@ -40,8 +38,8 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 
 	private static final int DRIVE_VERIFICATION_TIMEFRAME_SIZE = 10 * 60; // in seconds
 	private static final int MAXIMUN_ALLOWABLE_SAMPLING_INTERVAL =  3 * 60; // in seconds
-	transient Hmm<ObservationDiscrete<MobilityState>> hmmModel;
-	List<StreamRecord<MobilityData>> data = new ArrayList<StreamRecord<MobilityData>>(100);
+	private transient Hmm<ObservationDiscrete<MobilityState>> hmmModel;
+	private List<StreamRecord<MobilityData>> data = new ArrayList<StreamRecord<MobilityData>>(100);
 
 	@Override
 	public void init() {
@@ -53,7 +51,7 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 		super.recover();
 		init();
 	}
-	int consectiveStill = 0; 
+	private int consectiveStill = 0;
 	@Override
 	public void executeDataPoint(StreamRecord<MobilityData> dp) {
 		if(dp.getData().getMode() == MobilityState.UNKNOWN){
@@ -93,7 +91,7 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 			.setTimestamp(dp.getTimestamp())
 			.emit();
 	}
-	public void correctMobilityStates(List<StreamRecord<MobilityData>> data){
+	void correctMobilityStates(List<StreamRecord<MobilityData>> data){
 		
 		// emit directly if we don't have enough data points
 		if(data.size() < 20){
@@ -145,7 +143,7 @@ public class HMMMobilityRectifier extends SimpleTask<MobilityData> {
 		}
 	}
 
-	public static Hmm<ObservationDiscrete<MobilityState>> createHmmModel() {
+	private static Hmm<ObservationDiscrete<MobilityState>> createHmmModel() {
 		OpdfDiscreteFactory<MobilityState> factory = new OpdfDiscreteFactory<MobilityState>(
 				MobilityState.class);
 		Hmm<ObservationDiscrete<MobilityState>> hmm = new Hmm<ObservationDiscrete<MobilityState>>(

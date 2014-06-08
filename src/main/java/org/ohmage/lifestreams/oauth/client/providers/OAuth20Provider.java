@@ -29,10 +29,10 @@ public class OAuth20Provider implements IProvider {
 	public String getApiName() {
 		return apiName;
 	}
-	public String getApiKey() {
+	String getApiKey() {
 		return apiKey;
 	}
-	public String getApiSecret() {
+	String getApiSecret() {
 		return apiSecret;
 	}
 	/* (non-Javadoc)
@@ -49,10 +49,10 @@ public class OAuth20Provider implements IProvider {
 	public String getName() {
 		return name;
 	}
-	public String getAuthEndpoint() {
+	String getAuthEndpoint() {
 		return authEndpoint;
 	}
-	public String getAccessToeknEndpoint() {
+	String getAccessToeknEndpoint() {
 		return accessToeknEndpoint;
 	}
 
@@ -116,10 +116,10 @@ public class OAuth20Provider implements IProvider {
     	return newToken;
     	
 	}
-	public OAuth20Provider(String providerName, 
-			String authEndpoint, String accessTokenEndpoint, 
-			String apiName, String apiKey, String apiSecret, 
-			String scope) {
+	OAuth20Provider(String providerName,
+                    String authEndpoint, String accessTokenEndpoint,
+                    String apiName, String apiKey, String apiSecret,
+                    String scope) {
 		
 		this.name = providerName;
 		this.authEndpoint = authEndpoint;

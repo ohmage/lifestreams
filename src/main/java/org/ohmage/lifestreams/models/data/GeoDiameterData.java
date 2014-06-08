@@ -6,9 +6,9 @@ import org.ohmage.lifestreams.tasks.TimeWindow;
 
 public class GeoDiameterData extends TimeWindowData {
 
-	double diameter;
-	GeoLocation earlierPointOnDiameter;
-	GeoLocation laterPointOnDiameter;
+	private double diameter;
+	private GeoLocation earlierPointOnDiameter;
+	private GeoLocation laterPointOnDiameter;
 
 	public double getGeoDiameterInMiles() {
 		return diameter;

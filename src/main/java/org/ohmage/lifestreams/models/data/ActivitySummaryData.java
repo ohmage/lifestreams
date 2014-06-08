@@ -1,10 +1,10 @@
 package org.ohmage.lifestreams.models.data;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.ohmage.lifestreams.bolts.IGenerator;
 import org.ohmage.lifestreams.tasks.TimeWindow;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ActivitySummaryData extends TimeWindowData {
 
@@ -55,12 +55,12 @@ public class ActivitySummaryData extends TimeWindowData {
 		return this;
 	}
 
-	double totalTime;
-	double totalActiveTime;
-	double totalSedentaryTime;
-	double totalTransportationTime;
+	private double totalTime;
+	private double totalActiveTime;
+	private double totalSedentaryTime;
+	private double totalTransportationTime;
 
-	List<ActivityEpisode> activityEpisodes = new ArrayList<ActivityEpisode>();
+	private List<ActivityEpisode> activityEpisodes = new ArrayList<ActivityEpisode>();
 
 	public ActivitySummaryData(TimeWindow window, IGenerator generator) {
 		super(window, generator);

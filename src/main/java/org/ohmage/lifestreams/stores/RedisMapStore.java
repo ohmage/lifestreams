@@ -1,28 +1,21 @@
 package org.ohmage.lifestreams.stores;
 
-import java.io.ByteArrayInputStream;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.zip.DeflaterOutputStream;
-import java.util.zip.InflaterInputStream;
-
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.exceptions.JedisException;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import java.io.ByteArrayInputStream;
+import java.io.Serializable;
+import java.util.*;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.InflaterInputStream;
 
 public class RedisMapStore implements IMapStore, Serializable {
 	/**
@@ -33,7 +26,7 @@ public class RedisMapStore implements IMapStore, Serializable {
 	final private JedisPoolConfig config;
 	
 	transient private JedisPool pool;
-	public JedisPool getPool(){
+	JedisPool getPool(){
 		if(pool == null){
 			pool = new JedisPool(config, host);
 		}
@@ -48,7 +41,7 @@ public class RedisMapStore implements IMapStore, Serializable {
 		this(host, new JedisPoolConfig());
 	}
 	
-	public RedisMapStore(String host, JedisPoolConfig config){
+	private RedisMapStore(String host, JedisPoolConfig config){
 		this.config = config;
 		this.host = host;
 	}
@@ -80,7 +73,7 @@ public class RedisMapStore implements IMapStore, Serializable {
 		}
 		public<T> T toObject(byte[] bytes, Class<T> c) {
 		    Input in = new Input(new InflaterInputStream(new ByteArrayInputStream(bytes)));
-			return (T) kryo.readObject(in, c);
+			return kryo.readObject(in, c);
 		}
 
 		@Override

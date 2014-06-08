@@ -1,5 +1,6 @@
 package org.ohmage.lifestreams.oauth.client.providers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.oltu.oauth2.client.OAuthClient;
 import org.apache.oltu.oauth2.client.URLConnectionClient;
 import org.apache.oltu.oauth2.client.request.OAuthBearerClientRequest;
@@ -8,8 +9,7 @@ import org.apache.oltu.oauth2.client.response.OAuthResourceResponse;
 import org.apache.oltu.oauth2.common.OAuth;
 import org.apache.oltu.oauth2.common.token.OAuthToken;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
+@SuppressWarnings("SameParameterValue")
 public class GoogleProfileProvider extends OAuth20Provider {
 
 	public GoogleProfileProvider(String providerName,

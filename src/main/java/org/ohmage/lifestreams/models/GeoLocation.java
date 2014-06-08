@@ -1,32 +1,26 @@
 package org.ohmage.lifestreams.models;
 
-import java.io.IOException;
-
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.ObjectCodec;
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.JsonDeserializer;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.JsonSerializer;
-import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.*;
 import com.javadocmd.simplelatlng.LatLng;
 import com.javadocmd.simplelatlng.LatLngTool;
 import com.javadocmd.simplelatlng.util.LengthUnit;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
+import java.io.IOException;
 
 public class GeoLocation {
 	// The ISO8601-formatted date-time-timezone string.
-	final DateTime timestamp;
+	private final DateTime timestamp;
 	// geo coordinates
-	final LatLng coordinates;
+	private final LatLng coordinates;
 	// accuracy in meter
-	final double accuracy;
+	private final double accuracy;
 	// name of provider (WiFi, GPS, etc)
-	final String provider;
+	private final String provider;
 
 	public GeoLocation(DateTime timestamp, LatLng coordinates, double accuracy,
 			String provider) {
@@ -62,8 +56,8 @@ public class GeoLocation {
 			JsonDeserializer<GeoLocation> {
 		@Override
 		public GeoLocation deserialize(JsonParser jp,
-				DeserializationContext ctxt) throws JsonProcessingException,
-				IOException {
+				DeserializationContext ctxt) throws
+                IOException {
 			ObjectCodec oc = jp.getCodec();
 			JsonNode node = oc.readTree(jp);
 
@@ -86,8 +80,7 @@ public class GeoLocation {
 			JsonSerializer<GeoLocation> {
 		@Override
 		public void serialize(GeoLocation value, JsonGenerator jgen,
-				SerializerProvider provider) throws IOException,
-				JsonProcessingException {
+				SerializerProvider provider) throws IOException {
 			jgen.writeNumberField("latitude", value.coordinates.getLatitude());
 			jgen.writeNumberField("longitude", value.coordinates.getLongitude());
 			jgen.writeStringField("provider", value.provider);

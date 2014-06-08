@@ -1,14 +1,12 @@
 package org.ohmage.lifestreams;
 
-import java.util.Map;
-
+import backtype.storm.Config;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import org.apache.commons.codec.binary.Base64;
 import org.ohmage.lifestreams.utils.KryoSerializer;
 
-import backtype.storm.Config;
-
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import java.util.Map;
 
 /**
  * This class contains lifestreams topology specific configuration.
@@ -17,15 +15,15 @@ import com.esotericsoftware.kryo.io.Output;
  */
 public class LifestreamsConfig {
 	// whether to write back the processed data to ohmage
-	public static String DRYRUN_WITHOUT_UPLOADING = "lifestreams.dryrun";
+	public static final String DRYRUN_WITHOUT_UPLOADING = "lifestreams.dryrun";
 	// whether to write back the processed data to ohmage
-	public static String LIFESTREAMS_REQUESTER = "lifestreams.requester";
+	public static final String LIFESTREAMS_REQUESTER = "lifestreams.requester";
 	// whether to write back the processed data to ohmage
-	public static String LIFESTREAMS_REQUESTEES = "lifestreams.requestees";
+	public static final String LIFESTREAMS_REQUESTEES = "lifestreams.requestees";
 	// persistent map store to keep computation state
-	public static String MAP_STORE_INSTANCE = "lifestreams.mapStore";
+	public static final String MAP_STORE_INSTANCE = "lifestreams.mapStore";
 	// persistent stream store to write output data
-	public static String STREAM_STORE_INSTANCE = "lifestreams.streamStore";
+	public static final String STREAM_STORE_INSTANCE = "lifestreams.streamStore";
 	public static void serializeAndPutObject(Config config, String key, Object obj){
 		Output output = new Output(10 * 1024);
 		KryoSerializer.getInstance().writeClassAndObject(output, obj);

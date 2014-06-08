@@ -1,10 +1,12 @@
 package org.ohmage.lifestreams;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import backtype.storm.Config;
+import backtype.storm.LocalCluster;
+import backtype.storm.generated.StormTopology;
+import backtype.storm.topology.IRichSpout;
+import backtype.storm.topology.SpoutDeclarer;
+import backtype.storm.topology.TopologyBuilder;
+import backtype.storm.tuple.Fields;
 import org.apache.commons.lang3.StringUtils;
 import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.bolts.LifestreamsBolt;
@@ -21,13 +23,10 @@ import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import backtype.storm.Config;
-import backtype.storm.LocalCluster;
-import backtype.storm.generated.StormTopology;
-import backtype.storm.topology.IRichSpout;
-import backtype.storm.topology.SpoutDeclarer;
-import backtype.storm.topology.TopologyBuilder;
-import backtype.storm.tuple.Fields;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Lifestreams topology builder provide helper class for defining a Lifestreams
@@ -46,12 +45,12 @@ import backtype.storm.tuple.Fields;
 public class LifestreamsTopologyBuilder {
 	
 	/*** Lifestreams Configuration ***/
-	IStreamStore streamStore = new RedisStreamStore();
-	IMapStore mapStore = new RedisMapStore();
-	boolean dryRun = false;
-	boolean coldStart = false;
-	int maxSpoutPeding = 100000;
-	int msgTimeout = 10 * 60;
+    private IStreamStore streamStore = new RedisStreamStore();
+	private IMapStore mapStore = new RedisMapStore();
+	private boolean dryRun = false;
+	private boolean coldStart = false;
+	private int maxSpoutPending = 100000;
+	private int msgTimeout = 10 * 60;
 	// the requester used to query ohmage stream data
 	private OhmageUser requester;
 	// a comma-separated list of user names
@@ -89,7 +88,7 @@ public class LifestreamsTopologyBuilder {
 	 * 
 	 * @return the streamStore
 	 */
-	public IStreamStore getStreamStore() {
+    IStreamStore getStreamStore() {
 		return streamStore;
 	}
 
@@ -110,7 +109,7 @@ public class LifestreamsTopologyBuilder {
 	 * 
 	 * @return the mapStore
 	 */
-	public IMapStore getMapStore() {
+    IMapStore getMapStore() {
 		return mapStore;
 	}
 
@@ -127,18 +126,18 @@ public class LifestreamsTopologyBuilder {
 	}
 
 	/**
-	 * @return the maxSpoutPeding
+	 * @return the maxSpoutPending
 	 */
-	public int getMaxSpoutPeding() {
-		return maxSpoutPeding;
+	public int getMaxSpoutPending() {
+		return maxSpoutPending;
 	}
 
 	/**
-	 * @param maxSpoutPeding
-	 *            the maxSpoutPeding to set
+	 * @param maxSpoutPending
+	 *            the maxSpoutPending to set
 	 */
-	public LifestreamsTopologyBuilder setMaxSpoutPeding(int maxSpoutPeding) {
-		this.maxSpoutPeding = maxSpoutPeding;
+	public LifestreamsTopologyBuilder setMaxSpoutPending(int maxSpoutPending) {
+		this.maxSpoutPending = maxSpoutPending;
 		return this;
 	}
 
@@ -282,7 +281,7 @@ public class LifestreamsTopologyBuilder {
 	 * 
 	 * @return a new instance of storm topology
 	 */
-	public StormTopology createTopology() {
+    StormTopology createTopology() {
 		
 		// create LifestreamsBolts containing specified Tasks
 		for (BoltConfig config : boltConfigs) {
@@ -318,7 +317,7 @@ public class LifestreamsTopologyBuilder {
 	 * 
 	 * @return
 	 */
-	public Config getConfiguration() {
+    Config getConfiguration() {
 		Config conf = new Config();
 		conf.setDebug(false);
 		// ohmage data requester
@@ -338,7 +337,7 @@ public class LifestreamsTopologyBuilder {
 		conf.put(Config.TOPOLOGY_KRYO_FACTORY, KryoSerializer.class.getName());
 		// how many pending spouts (i.e. spouts in the topology) can be submit
 		// for a spout task
-		conf.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, maxSpoutPeding);
+		conf.put(Config.TOPOLOGY_MAX_SPOUT_PENDING, maxSpoutPending);
 		return conf;
 	}
 }

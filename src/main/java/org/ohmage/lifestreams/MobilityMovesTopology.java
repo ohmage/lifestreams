@@ -27,37 +27,36 @@ import org.springframework.beans.factory.annotation.Qualifier;
  * @author changun
  * 
  */
-public class MobilityMovesTopology {
-	// ** Input Streams **//
-	@Autowired
-	@Qualifier("mobilityStream")
-	OhmageStream mobilityStream;
-	@Autowired
-	@Qualifier("movesCredentialStream")
-	OhmageStream movesCredentialStream;
+class MobilityMovesTopology {
 
 	// ** Output streams **//
 	@Autowired
 	@Qualifier("activitySummaryStream")
-	OhmageStream activitySummaryStream;
+    private
+    OhmageStream activitySummaryStream;
 	@Autowired
 	@Qualifier("geodiameterStream")
-	OhmageStream geodiameterStream;
+    private
+    OhmageStream geodiameterStream;
 	@Autowired
 	@Qualifier("leaveArriveHomeStream")
-	OhmageStream leaveArriveHomeStream;
+    private
+    OhmageStream leaveArriveHomeStream;
 
 	// ** Spouts ** //
 	@Autowired
-	OhmageStreamSpout<MobilityData> mobilitySpout;
+    private
+    OhmageStreamSpout<MobilityData> mobilitySpout;
 	@Autowired
-	MovesSpout movesSpout;
+    private
+    MovesSpout movesSpout;
 	@Autowired
-	LifestreamsTopologyBuilder builder;
+    private
+    LifestreamsTopologyBuilder builder;
 	// ** Configuration ** //
-	final String topologyName;
-	final int parallelismPerTask;
-	final int mobility_spout_number;
+	private final String topologyName;
+	private final int parallelismPerTask;
+	private final int mobility_spout_number;
 	
 	public void run() {
 		/** setup the topology **/

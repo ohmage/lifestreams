@@ -1,5 +1,24 @@
 package org.ohmage.lifestreams.spouts;
 
+import backtype.storm.spout.SpoutOutputCollector;
+import backtype.storm.task.TopologyContext;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.code.samples.oauth2.OAuth2Authenticator;
+import com.google.code.samples.oauth2.OAuth2Authenticator.OAuth2Provider;
+import com.sun.mail.imap.IMAPStore;
+import org.joda.time.DateTime;
+import org.ohmage.lifestreams.models.StreamRecord;
+import org.ohmage.lifestreams.models.data.AccessTokenData;
+import org.ohmage.lifestreams.oauth.client.providers.IProvider;
+import org.ohmage.models.OhmageStream;
+import org.ohmage.models.OhmageUser;
+
+import javax.mail.*;
+import javax.mail.search.ComparisonTerm;
+import javax.mail.search.ReceivedDateTerm;
+import javax.mail.search.SearchTerm;
 import java.io.IOException;
 import java.security.Security;
 import java.util.Arrays;
@@ -8,42 +27,15 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import javax.mail.Address;
-import javax.mail.BodyPart;
-import javax.mail.Folder;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.search.ComparisonTerm;
-import javax.mail.search.ReceivedDateTerm;
-import javax.mail.search.SearchTerm;
-
-import org.joda.time.DateTime;
-import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.models.data.AccessTokenData;
-import org.ohmage.lifestreams.oauth.client.providers.IProvider;
-import org.ohmage.models.OhmageStream;
-import org.ohmage.models.OhmageUser;
-
-import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.task.TopologyContext;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.code.samples.oauth2.OAuth2Authenticator;
-import com.google.code.samples.oauth2.OAuth2Authenticator.OAuth2Provider;
-import com.sun.mail.imap.IMAPStore;
-
 public class GmailSpout extends OAuthProtectedDataSpout<EmailMsg> {
 	private static final boolean DEBUG = false;
 	private static final int GMAIL_IMAP_PORT = 993;
 	private static final String GMAIL_IMAP_URL = "imap.gmail.com";
 	private static final String GMAIL_SENT_MAIL_INBOX = "[Gmail]/Sent Mail";
-	public static final Pattern providerNamePattern = Pattern.compile("gmail");
-	public static final Pattern scopePattern = Pattern.compile("https\\://mail\\.google\\.com/");
-	final IProvider provider;
-	final ObjectMapper mapper = new ObjectMapper();
+	private static final Pattern providerNamePattern = Pattern.compile("gmail");
+	private static final Pattern scopePattern = Pattern.compile("https\\://mail\\.google\\.com/");
+	private final IProvider provider;
+	private final ObjectMapper mapper = new ObjectMapper();
 
 	public GmailSpout(IProvider resourceProvider, OhmageStream accessTokenStream, DateTime since) {
 		super(accessTokenStream, providerNamePattern, scopePattern , since, 1, TimeUnit.HOURS);
@@ -107,11 +99,10 @@ public class GmailSpout extends OAuthProtectedDataSpout<EmailMsg> {
 				throw new Exception("Cannot find any email address in the token data"
 									+  mapper.writeValueAsString(tokenData));
 			}
-			IMAPStore store = null;
+			IMAPStore store;
 			try{
 				// try connect to imap
 				store = OAuth2Authenticator.connectToImap(GMAIL_IMAP_URL, GMAIL_IMAP_PORT, "changun.tw",  accessToken, DEBUG);
-				throw new Exception();
 			}catch(Exception e){
 				// if failed, try to refresh the token and try to connect again
 				accessToken = refreshAndUploadToken(tokenData.getToken(), user, provider).getAccessToken();

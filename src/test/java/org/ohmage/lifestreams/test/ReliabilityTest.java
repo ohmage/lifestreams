@@ -1,8 +1,5 @@
 package org.ohmage.lifestreams.test;
 
-import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
-
 import org.joda.time.DateTime;
 import org.joda.time.Hours;
 import org.junit.Assert;
@@ -19,6 +16,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 @ContextConfiguration({"classpath*:/mainContext.xml", "classpath:/testContext.xml"})
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -100,7 +100,8 @@ public class ReliabilityTest {
 	}
 	
 	@Autowired
-	LifestreamsTopologyBuilder builder;
+    private
+    LifestreamsTopologyBuilder builder;
 
 	TickSpout tickSpout;
 	@Test

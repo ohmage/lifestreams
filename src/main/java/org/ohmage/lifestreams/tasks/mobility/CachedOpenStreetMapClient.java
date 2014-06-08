@@ -1,25 +1,23 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
+import com.javadocmd.simplelatlng.LatLng;
+import com.javadocmd.simplelatlng.LatLngTool;
+import com.javadocmd.simplelatlng.util.LengthUnit;
+import com.jcabi.aspects.RetryOnFailure;
+import fr.dudie.nominatim.client.JsonNominatimClient;
+import fr.dudie.nominatim.model.Address;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.ohmage.lifestreams.spouts.PersistentMapFactory;
 import org.slf4j.LoggerFactory;
 
-import com.javadocmd.simplelatlng.LatLng;
-import com.javadocmd.simplelatlng.LatLngTool;
-import com.javadocmd.simplelatlng.util.LengthUnit;
-import com.jcabi.aspects.RetryOnFailure;
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
-import fr.dudie.nominatim.client.JsonNominatimClient;
-import fr.dudie.nominatim.model.Address;
-
-public class CachedOpenStreetMapClient {
+class CachedOpenStreetMapClient {
 	private JsonNominatimClient nominatimClient;
-	Map<LatLng, Address> addressCache;
+	private Map<LatLng, Address> addressCache;
 	@RetryOnFailure(attempts = 5, delay = 1, unit = TimeUnit.MINUTES)
 	public Address getAddress(double lat, double lng) throws IOException {
 		LatLng query = new LatLng(lat, lng);

@@ -12,29 +12,32 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public class EmailTopology {
+class EmailTopology {
 
-	IProvider gmailProvider = new GoogleProfileProvider("gmail", "", 
-			"48636836762-9p082qvhat6ojtgnhn4najkmkuolaieu.apps.googleusercontent.com",
-	"_flzl2k8JySJKnXsHxkQjqFv",
-	"https://mail.google.com/ https://www.googleapis.com/auth/userinfo.email");
+    private IProvider gmailProvider = new GoogleProfileProvider("gmail", "",
+            "48636836762-9p082qvhat6ojtgnhn4najkmkuolaieu.apps.googleusercontent.com",
+            "_flzl2k8JySJKnXsHxkQjqFv",
+            "https://mail.google.com/ https://www.googleapis.com/auth/userinfo.email");
 
-	OhmageStream accessTokenStream = new OhmageStream("org.ohmage.oauth", "token", "201405312", "201405312");
-	
-	@Autowired
-	OhmageUser requester;
-	@Value("${ohmage.requestees}")
-	String requestees;
-	public void run(){
-		LifestreamsTopologyBuilder builder = new LifestreamsTopologyBuilder();
-		builder
-			.setRequester(requester)
-			.setRequestees(requestees)
-			.setColdStart(true);
-		
-		GmailSpout spout = new GmailSpout(gmailProvider, accessTokenStream, new DateTime().minusMonths(1));
-		builder.setSpout("GmailSpout", spout);
-		builder.setTask("StripEmail", new MailCleaner(), "GmailSpout");
-		builder.submitToLocalCluster("EmailTest");
-	}
+    private OhmageStream accessTokenStream = new OhmageStream("org.ohmage.oauth", "token", "201405312", "201405312");
+
+    @Autowired
+    private
+    OhmageUser requester;
+    @Value("${ohmage.requestees}")
+    private
+    String requestees;
+
+    public void run() {
+        LifestreamsTopologyBuilder builder = new LifestreamsTopologyBuilder();
+        builder
+                .setRequester(requester)
+                .setRequestees(requestees)
+                .setColdStart(true);
+
+        GmailSpout spout = new GmailSpout(gmailProvider, accessTokenStream, new DateTime().minusMonths(1));
+        builder.setSpout("GmailSpout", spout);
+        builder.setTask("StripEmail", new MailCleaner(), "GmailSpout");
+        builder.submitToLocalCluster("EmailTest");
+    }
 }

@@ -1,27 +1,5 @@
 package org.ohmage.lifestreams.spouts;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
-import org.joda.time.LocalDate;
-import org.joda.time.MutableDateTime;
-import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.models.StreamRecord.StreamRecordFactory;
-import org.ohmage.lifestreams.models.data.MovesCredentialsData;
-import org.ohmage.models.OhmageStream;
-import org.ohmage.models.OhmageUser;
-import org.ohmage.models.OhmageUser.OhmageAuthenticationError;
-import org.ohmage.sdk.OhmageStreamClient;
-import org.ohmage.sdk.OhmageStreamIterator;
-import org.ohmage.sdk.OhmageStreamIterator.SortOrder;
-
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
 import co.nutrino.api.moves.exception.OAuthException;
@@ -45,6 +23,23 @@ import co.nutrino.api.moves.impl.service.MovesOAuthService;
 import co.nutrino.api.moves.impl.service.MovesSecurityManager;
 import co.nutrino.api.moves.impl.service.MovesServiceBuilder;
 import co.nutrino.api.moves.request.RequestTokenConvertor;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.LocalDate;
+import org.joda.time.MutableDateTime;
+import org.ohmage.lifestreams.models.StreamRecord;
+import org.ohmage.lifestreams.models.StreamRecord.StreamRecordFactory;
+import org.ohmage.lifestreams.models.data.MovesCredentialsData;
+import org.ohmage.models.OhmageStream;
+import org.ohmage.models.OhmageUser;
+import org.ohmage.models.OhmageUser.OhmageAuthenticationError;
+import org.ohmage.sdk.OhmageStreamClient;
+import org.ohmage.sdk.OhmageStreamIterator;
+import org.ohmage.sdk.OhmageStreamIterator.SortOrder;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 	class MovesInfo{
@@ -57,18 +52,18 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 	}
 	
 	// the following are from Moves APIs
-	MovesUserClient userClient;
-	MovesUserStorylineClient storylineClient;
-	MovesAuthenticationClient authClient;
+    private MovesUserClient userClient;
+	private MovesUserStorylineClient storylineClient;
+	private MovesAuthenticationClient authClient;
 	
 	
 	// the ohmage stream that stores the moves credentials
-	OhmageStream movesCredentialsStream;
+    private OhmageStream movesCredentialsStream;
 
 	// record factory for MovesCredentials record in ohmage
-	StreamRecordFactory<MovesCredentialsData> dataPointFactory = StreamRecordFactory.createStreamRecordFactory(MovesCredentialsData.class);
+    private StreamRecordFactory<MovesCredentialsData> dataPointFactory = StreamRecordFactory.createStreamRecordFactory(MovesCredentialsData.class);
 	
-	public Iterator<StreamRecord<MovesCredentialsData>> getMovesCredentialDataIterator(final OhmageUser user, DateTime after) throws OhmageAuthenticationError, IOException{
+	Iterator<StreamRecord<MovesCredentialsData>> getMovesCredentialDataIterator(final OhmageUser user, DateTime after) throws OhmageAuthenticationError, IOException{
 		final OhmageStreamIterator iter = new OhmageStreamClient(getRequester())
 												.getOhmageStreamIteratorBuilder(movesCredentialsStream, user)
 												.order(SortOrder.ReversedChronological)
@@ -95,7 +90,7 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 			}
 		};
 	}
-	public MovesUserCredentials getStoredMovesCredentialsFor(OhmageUser requestee) throws OhmageAuthenticationError, IOException{
+	MovesUserCredentials getStoredMovesCredentialsFor(OhmageUser requestee) throws OhmageAuthenticationError, IOException{
 		// There are two places that could store the moves credentials for a particular user.
 		// 1. the requestee's own moves credentials stream.
 		// 2. the requester's moves credentials stream.
@@ -136,7 +131,7 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 			return null;
 		}
 	}
-	public MovesUserCredentials refreshCredentials(MovesUserCredentials oldCredentials, OhmageUser user) throws OAuthException, OhmageAuthenticationError, IOException{
+	MovesUserCredentials refreshCredentials(MovesUserCredentials oldCredentials, OhmageUser user) throws OAuthException, OhmageAuthenticationError, IOException{
 		logger.trace("Try to Refresh Moves OAuth Token For {}", user);
 		UserMovesAuthentication newAuth = authClient.refreshAuthentication(oldCredentials);
 		logger.trace("Received new OAuth Token For {}", user);
@@ -150,7 +145,7 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 											  , data.getRefreshToken());
 		return newCredentials;
 	}
-	public MovesInfo getMovesInfo(MovesUserCredentials credentials, OhmageUser ohmageUser){
+	MovesInfo getMovesInfo(MovesUserCredentials credentials, OhmageUser ohmageUser){
 		try{
 			while(true){
 				try {
@@ -172,7 +167,7 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 		}
 	}
 
-	public List<StreamRecord<MovesSegment>> getMovesData(MovesInfo moves, OhmageUser ohmageUser, DateTime start) {
+	List<StreamRecord<MovesSegment>> getMovesData(MovesInfo moves, OhmageUser ohmageUser, DateTime start) {
 
 		MovesUserProfile movesProfile = moves.user.getProfile();
 		// get the current time in the user's timezone
@@ -275,7 +270,7 @@ public class MovesSpout extends BaseLifestreamsSpout<MovesSegment>{
 		super.open(conf, context, collector);
 		initMovesAPI();
 	}
-	MovesSecurityManager movesSecurityManger;
+	private MovesSecurityManager movesSecurityManger;
 	public MovesSpout(DateTime since, OhmageStream movesCredentialsStream, String movesApiKey, String movesApiSecret) {
 		super(since, 2, TimeUnit.HOURS);
 		this.movesSecurityManger = new MovesSecurityManager(movesApiKey, movesApiSecret, "location activity");

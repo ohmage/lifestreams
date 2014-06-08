@@ -1,24 +1,23 @@
 package org.ohmage.lifestreams.models.data;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.oltu.oauth2.common.token.BasicOAuthToken;
 import org.apache.oltu.oauth2.common.token.OAuthToken;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.oauth.client.providers.IProvider;
 import org.ohmage.models.OhmageUser;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.HashMap;
+import java.util.Map;
 
 public class AccessTokenData {
 
-	String provider;
-	String scope;
-	String username;
-	BasicOAuthToken token;
-	Object metaInfo;
+	private String provider;
+	private String scope;
+	private String username;
+	private BasicOAuthToken token;
+	private Object metaInfo;
 
 	public Object getMetaInfo() {
 		return metaInfo;

@@ -1,6 +1,6 @@
 package org.ohmage.lifestreams.utils;
 
-public class UnitConversion {
+class UnitConversion {
 	public static double  NMToMile(double NM){
 		return NM * 1.15078;
 	}

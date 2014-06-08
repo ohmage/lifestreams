@@ -1,10 +1,5 @@
 package org.ohmage.lifestreams.spouts;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-
 import org.apache.oltu.oauth2.common.exception.OAuthProblemException;
 import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
 import org.apache.oltu.oauth2.common.token.OAuthToken;
@@ -20,19 +15,25 @@ import org.ohmage.sdk.OhmageStreamClient;
 import org.ohmage.sdk.OhmageStreamIterator;
 import org.ohmage.sdk.OhmageStreamIterator.SortOrder;
 
-public abstract class OAuthProtectedDataSpout<T> extends BaseLifestreamsSpout<T> {
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+
+@SuppressWarnings("SameParameterValue")
+abstract class OAuthProtectedDataSpout<T> extends BaseLifestreamsSpout<T> {
 
 	final private OhmageStream accessRecordStream;
 	final private Pattern providerPattern;
 	final private Pattern scopePattern;
 
-	StreamRecordFactory<AccessTokenData> dataPointFactory = StreamRecordFactory.createStreamRecordFactory(AccessTokenData.class);
+	private StreamRecordFactory<AccessTokenData> dataPointFactory = StreamRecordFactory.createStreamRecordFactory(AccessTokenData.class);
 	
-	protected boolean match(AccessTokenData token){
+	boolean match(AccessTokenData token){
 		return providerPattern.matcher(token.getProvider()).find() && 
 				scopePattern.matcher(token.getScope()).find();
 	}
-	protected Iterator<StreamRecord<AccessTokenData>> getAccessTokenRecordIterator(final OhmageUser user) throws OhmageAuthenticationError, IOException{
+	Iterator<StreamRecord<AccessTokenData>> getAccessTokenRecordIterator(final OhmageUser user) throws OhmageAuthenticationError, IOException{
 		final OhmageStreamIterator iter = new OhmageStreamClient(getRequester())
 											.getOhmageStreamIteratorBuilder(accessRecordStream, user)
 											.order(SortOrder.ReversedChronological)
@@ -60,7 +61,7 @@ public abstract class OAuthProtectedDataSpout<T> extends BaseLifestreamsSpout<T>
 			}
 		};
 	}
-	protected AccessTokenData getLatestAccessTokenRecord(OhmageUser user) throws OhmageAuthenticationError, IOException{
+	AccessTokenData getLatestAccessTokenRecord(OhmageUser user) throws OhmageAuthenticationError, IOException{
 		// 1. the requestee's own moves credentials stream.
 		// 2. the requester's moves credentials stream.
 		String username = user.getUsername();
@@ -102,14 +103,14 @@ public abstract class OAuthProtectedDataSpout<T> extends BaseLifestreamsSpout<T>
 			return null;
 		}
 	}
-	protected OAuthToken refreshAndUploadToken(OAuthToken token, OhmageUser user, IProvider provider) throws OAuthSystemException, OAuthProblemException, OhmageAuthenticationError, IOException{
+	OAuthToken refreshAndUploadToken(OAuthToken token, OhmageUser user, IProvider provider) throws OAuthSystemException, OAuthProblemException, OhmageAuthenticationError, IOException{
 		OAuthToken newToken = provider.refreshToken(token);
 		Object metaInfo = provider.getMetaInfo(newToken);
 		AccessTokenData record = new AccessTokenData(user, provider, newToken, metaInfo);
     	new OhmageStreamClient(this.getRequester()).upload(accessRecordStream, record.toOhmageRecord());
     	return newToken;
 	}
-	public OAuthProtectedDataSpout(OhmageStream accessRecordStream, Pattern providerNamePattern,  Pattern scopePattern, DateTime since, int retryDelay, TimeUnit unit) {
+	OAuthProtectedDataSpout(OhmageStream accessRecordStream, Pattern providerNamePattern, Pattern scopePattern, DateTime since, int retryDelay, TimeUnit unit) {
 		super(since, retryDelay, unit);
 		this.accessRecordStream = accessRecordStream;
 		this.providerPattern = providerNamePattern;

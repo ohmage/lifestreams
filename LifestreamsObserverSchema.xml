@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--suppress ALL -->
 <observer>
     <id>org.ohmage.lifestreams.activities_retry</id>
     <version>201403111</version>
@@ -15,118 +16,118 @@
         <description>This records various aggregated summaries of user's activities.</description>
 
         <metadata>
-            <timestamp />
+            <timestamp/>
         </metadata>
 
         <schema>
-{
-  "type": "object",
-  "doc": "summaries",
-  "fields": [
-    {
-      "name": "timeWindow",
-      "doc": "The timeWindow that are covered by this measure",
-      "type": "object",
-      "fields": [
-        {
-          "name": "firstInstant",
-          "doc": "first instant of this time window",
-          "type": "string" 
-        },
-        {
-          "name": "lastInstant",
-          "doc": "last instant of this time window",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "snapshot",
-      "doc": "if this datapoint is a snapshot",
-      "type": "boolean"
-    },
-    {
-      "name": "totalTime",
-      "doc": "the amount of time the samples cover (milliseconds)",
-      "type": "number"
-    },
-    {
-      "name": "totalActiveTime",
-      "doc": "the amount of time being active (walk, run, bike, etc) (milliseconds)",
-      "type": "number"
-    },
-    {
-      "name": "totalSedentaryTime",
-      "doc": "the amount of time being sedentary (sit, drive, subway, etc) (milliseconds)",
-      "type": "number"
-    },
-    {
-      "name": "totalTransportationTime",
-      "doc": "the amount of time in transportation (subway, drive, etc) (milliseconds)",
-      "type": "number"
-    },
-    {
-      "name": "activityInstances",
-      "doc": "instances of active activities",
-      "type": "array",
-      "constType": {
-        "type": "object",
-        "fields": [
-          {
+            {
+            "type": "object",
+            "doc": "summaries",
+            "fields": [
+            {
+            "name": "timeWindow",
+            "doc": "The timeWindow that are covered by this measure",
+            "type": "object",
+            "fields": [
+            {
+            "name": "firstInstant",
+            "doc": "first instant of this time window",
+            "type": "string"
+            },
+            {
+            "name": "lastInstant",
+            "doc": "last instant of this time window",
+            "type": "string"
+            }
+            ]
+            },
+            {
+            "name": "snapshot",
+            "doc": "if this datapoint is a snapshot",
+            "type": "boolean"
+            },
+            {
+            "name": "totalTime",
+            "doc": "the amount of time the samples cover (milliseconds)",
+            "type": "number"
+            },
+            {
+            "name": "totalActiveTime",
+            "doc": "the amount of time being active (walk, run, bike, etc) (milliseconds)",
+            "type": "number"
+            },
+            {
+            "name": "totalSedentaryTime",
+            "doc": "the amount of time being sedentary (sit, drive, subway, etc) (milliseconds)",
+            "type": "number"
+            },
+            {
+            "name": "totalTransportationTime",
+            "doc": "the amount of time in transportation (subway, drive, etc) (milliseconds)",
+            "type": "number"
+            },
+            {
+            "name": "activityInstances",
+            "doc": "instances of active activities",
+            "type": "array",
+            "constType": {
+            "type": "object",
+            "fields": [
+            {
             "name": "startTime",
             "doc": "When the activities start",
             "type": "string"
-          },
-          {
+            },
+            {
             "name": "duration",
             "doc": "The duration of the activity. (in seconds)",
             "type": "number"
-          },
-          {
+            },
+            {
             "name": "endTime",
             "doc": "When the activities end",
             "type": "string"
-          },
-          {
+            },
+            {
             "name": "distance",
             "doc": "the travel distance (in miles)",
             "type": "number"
-          },
-          {
+            },
+            {
             "name": "trackPoints",
             "doc": "the gps data points",
             "type": "array",
             "constType": {
-              "type": "object",
-              "fields": [
-                {
-                  "name": "lat",
-                  "doc": "latitude",
-                  "type": "number"
-                },
-                {
-                  "name": "lng",
-                  "doc": "longitude",
-                  "type": "number"
-                },
-                {
-                  "name": "time",
-                  "doc": "timestamp",
-                  "type": "string"
-                }
-              ]
+            "type": "object",
+            "fields": [
+            {
+            "name": "lat",
+            "doc": "latitude",
+            "type": "number"
+            },
+            {
+            "name": "lng",
+            "doc": "longitude",
+            "type": "number"
+            },
+            {
+            "name": "time",
+            "doc": "timestamp",
+            "type": "string"
             }
-          }
-        ]
-      }
-    }
-  ]
-}
+            ]
+            }
+            }
+            ]
+            }
+            }
+            ]
+            }
         </schema>
     </stream>
-    
-    
-        <stream>
+
+
+    <stream>
         <id>geodiameter</id>
         <version>20140311</version>
 
@@ -134,60 +135,60 @@
         <description>The most distant two locations the user had been in the day. (distances are in miles)</description>
 
         <metadata>
-            <timestamp />
+            <timestamp/>
         </metadata>
 
         <schema>
-{
-  "type": "object",
-  "doc": "geodiameter",
-  "fields": [
-    {
-      "name": "timeWindow",
-      "doc": "The timeWindow that are covered by this measure",
-      "type": "object",
-      "fields": [
-        {
-          "name": "firstInstant",
-          "doc": "first instant of this time window",
-          "type": "string"
-        },
-        {
-          "name": "lastInstant",
-          "doc": "last instant of this time window",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "snapshot",
-      "doc": "if this datapoint is a snapshot",
-      "type": "boolean"
-    },
-    {
-      "name": "diameter",
-      "doc": "the distance between the most distant two points in a day (in miles)",
-      "type": "number"
-    },
-    {
-      "name": "earlierPointOnDiameter",
-      "doc": "the earlier point on the diameter",
-      "type": "object",
-      "fields": []
-    },
-    {
-      "name": "laterPointOnDiameter",
-      "doc": "the later point on the diameter",
-      "type": "object",
-      "fields": []
-    }
-  ]
-}
+            {
+            "type": "object",
+            "doc": "geodiameter",
+            "fields": [
+            {
+            "name": "timeWindow",
+            "doc": "The timeWindow that are covered by this measure",
+            "type": "object",
+            "fields": [
+            {
+            "name": "firstInstant",
+            "doc": "first instant of this time window",
+            "type": "string"
+            },
+            {
+            "name": "lastInstant",
+            "doc": "last instant of this time window",
+            "type": "string"
+            }
+            ]
+            },
+            {
+            "name": "snapshot",
+            "doc": "if this datapoint is a snapshot",
+            "type": "boolean"
+            },
+            {
+            "name": "diameter",
+            "doc": "the distance between the most distant two points in a day (in miles)",
+            "type": "number"
+            },
+            {
+            "name": "earlierPointOnDiameter",
+            "doc": "the earlier point on the diameter",
+            "type": "object",
+            "fields": []
+            },
+            {
+            "name": "laterPointOnDiameter",
+            "doc": "the later point on the diameter",
+            "type": "object",
+            "fields": []
+            }
+            ]
+            }
         </schema>
     </stream>
-    
-    
-        <stream>
+
+
+    <stream>
         <id>leave_arrive_home_time</id>
         <version>20140311</version>
 
@@ -195,43 +196,43 @@
         <description>The most distant two locations the user had been in the day. (distances are in miles)</description>
 
         <metadata>
-            <timestamp />
+            <timestamp/>
         </metadata>
 
         <schema>
-{
-  "type": "object",
-  "doc": "The time the user leave, arrive, and stay at home in a day",
-  "fields": [
-    {
-      "name": "timeWindow",
-      "doc": "The timeWindow that are covered by this measure",
-      "type": "object",
-      "fields": [
-        {
-          "name": "firstInstant",
-          "doc": "first instant of this time window",
-          "type": "string"
-        },
-        {
-          "name": "lastInstant",
-          "doc": "last instant of this time window",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "snapshot",
-      "doc": "if this datapoint is a snapshot",
-      "type": "boolean"
-    },
-    {
-      "name": "timeAtHomeInSeconds",
-      "doc": "the amount of home the user is at home",
-      "type": "number"
-    }
-  ]
-}
+            {
+            "type": "object",
+            "doc": "The time the user leave, arrive, and stay at home in a day",
+            "fields": [
+            {
+            "name": "timeWindow",
+            "doc": "The timeWindow that are covered by this measure",
+            "type": "object",
+            "fields": [
+            {
+            "name": "firstInstant",
+            "doc": "first instant of this time window",
+            "type": "string"
+            },
+            {
+            "name": "lastInstant",
+            "doc": "last instant of this time window",
+            "type": "string"
+            }
+            ]
+            },
+            {
+            "name": "snapshot",
+            "doc": "if this datapoint is a snapshot",
+            "type": "boolean"
+            },
+            {
+            "name": "timeAtHomeInSeconds",
+            "doc": "the amount of home the user is at home",
+            "type": "number"
+            }
+            ]
+            }
         </schema>
     </stream>
 </observer>

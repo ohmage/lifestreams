@@ -1,8 +1,7 @@
 package org.ohmage.lifestreams.utils;
 
-import org.ohmage.lifestreams.models.GeoLocation;
-
 import com.bbn.openmap.geo.Geo;
+import org.ohmage.lifestreams.models.GeoLocation;
 
 
 /**
@@ -10,7 +9,7 @@ import com.bbn.openmap.geo.Geo;
  *  This class is from http://stackoverflow.com/questions/1134579/smooth-gps-data 
  *  
  */
-public class KalmanLatLong {
+class KalmanLatLong {
 	private final float MinAccuracy = 1;
 
 	private float Q_metres_per_second;

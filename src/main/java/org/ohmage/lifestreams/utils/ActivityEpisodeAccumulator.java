@@ -1,8 +1,7 @@
 package org.ohmage.lifestreams.utils;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.bbn.openmap.geo.Geo;
+import com.javadocmd.simplelatlng.LatLng;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
@@ -10,13 +9,13 @@ import org.ohmage.lifestreams.models.data.ActivityEpisode;
 import org.ohmage.lifestreams.models.data.ActivityEpisode.TrackPoint;
 import org.ohmage.lifestreams.models.data.IMobilityData;
 
-import com.bbn.openmap.geo.Geo;
-import com.javadocmd.simplelatlng.LatLng;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ActivityEpisodeAccumulator {
-	ActivityEpisode instance = new ActivityEpisode();
-	KalmanLatLong filter = new KalmanLatLong((float) 4); // Q meter per second = 2
-	ArrayList<GeoLocation> rawGeoLocations = new ArrayList<GeoLocation>();
+	private final ActivityEpisode instance = new ActivityEpisode();
+	private final KalmanLatLong filter = new KalmanLatLong((float) 4); // Q meter per second = 2
+	private final ArrayList<GeoLocation> rawGeoLocations = new ArrayList<GeoLocation>();
 	// return if this accumulator has been init (i.e. contains any data points)
 	public boolean isInitialized(){
 		return instance.getStartTime() != null;

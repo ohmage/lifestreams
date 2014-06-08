@@ -1,9 +1,9 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-
+import com.javadocmd.simplelatlng.LatLng;
+import com.javadocmd.simplelatlng.LatLngTool;
+import com.javadocmd.simplelatlng.util.LengthUnit;
+import fr.dudie.nominatim.model.Address;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
@@ -17,11 +17,9 @@ import org.ohmage.lifestreams.models.data.MobilitySegment.State;
 import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.ohmage.lifestreams.utils.DivideInterval;
 
-import com.javadocmd.simplelatlng.LatLng;
-import com.javadocmd.simplelatlng.LatLngTool;
-import com.javadocmd.simplelatlng.util.LengthUnit;
-
-import fr.dudie.nominatim.model.Address;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @author changun
@@ -31,15 +29,15 @@ public class PlaceDetection extends SimpleTask<MobilityData> {
 	private static final int TEN_MINS = 60 * 10 * 1000;
 
 	// OSM API requester's email
-	final String nominatimRequesterEmail;
+	private final String nominatimRequesterEmail;
 	// the state of last data point of which we just determin its state
 	private State prevState = State.Place;
 	// the segment we are currently aggregating
 	private LinkedList<StreamRecord> curSegment = new LinkedList<StreamRecord>();
 	// data point buffer
-	LinkedList<StreamRecord<MobilityData>> data = new LinkedList<StreamRecord<MobilityData>>();
+    private LinkedList<StreamRecord<MobilityData>> data = new LinkedList<StreamRecord<MobilityData>>();
 	// client for querying OSM address
-	transient CachedOpenStreetMapClient OSMClient;
+	private transient CachedOpenStreetMapClient OSMClient;
 	
 	@Override
 	public void init() {
@@ -235,7 +233,8 @@ public class PlaceDetection extends SimpleTask<MobilityData> {
 			accumulateNewDataPoint(headRec, curState);
 		}
 	}
-	public PlaceDetection(String nominatimRequesterEmail) {
+	@SuppressWarnings("SameParameterValue")
+    private PlaceDetection(String nominatimRequesterEmail) {
 		super();
 		this.nominatimRequesterEmail = nominatimRequesterEmail;
 	}
