@@ -19,7 +19,7 @@ public class OAuth20Provider implements IProvider {
 	final private String scope;
 	final private String name;
 	final private String authEndpoint;
-	final private String accessToeknEndpoint;
+	final private String accessTokenEndpoint;
 
 	
 	/* (non-Javadoc)
@@ -52,8 +52,8 @@ public class OAuth20Provider implements IProvider {
 	String getAuthEndpoint() {
 		return authEndpoint;
 	}
-	String getAccessToeknEndpoint() {
-		return accessToeknEndpoint;
+	String getAccessTokenEndpoint() {
+		return accessTokenEndpoint;
 	}
 
 	/* (non-Javadoc)
@@ -76,7 +76,7 @@ public class OAuth20Provider implements IProvider {
 	@Override
 	public OAuthToken getAccessToken(String code, String callback) throws OAuthSystemException, OAuthProblemException{
 		OAuthClientRequest request = OAuthClientRequest
-                .tokenLocation(getAccessToeknEndpoint())
+                .tokenLocation(getAccessTokenEndpoint())
                 .setGrantType(GrantType.AUTHORIZATION_CODE)
                 .setClientId(getApiKey())
                 .setClientSecret(getApiSecret())
@@ -100,7 +100,7 @@ public class OAuth20Provider implements IProvider {
 	@Override
 	public OAuthToken refreshToken(OAuthToken token) throws OAuthSystemException, OAuthProblemException{
 		OAuthClientRequest request = OAuthClientRequest
-                .tokenLocation(getAccessToeknEndpoint())
+                .tokenLocation(getAccessTokenEndpoint())
                 .setGrantType(GrantType.REFRESH_TOKEN)
                 .setClientId(getApiKey())
                 .setClientSecret(getApiSecret())
@@ -123,7 +123,7 @@ public class OAuth20Provider implements IProvider {
 		
 		this.name = providerName;
 		this.authEndpoint = authEndpoint;
-		this.accessToeknEndpoint = accessTokenEndpoint;
+		this.accessTokenEndpoint = accessTokenEndpoint;
 		this.apiName = apiName;
 		this.apiKey = apiKey;
 		this.apiSecret = apiSecret;

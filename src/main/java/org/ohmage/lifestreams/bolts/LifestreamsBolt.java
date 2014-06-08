@@ -76,7 +76,7 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	private PersistentMapFactory mapFactory;
 	final private Task templateTask;
 
-	private UserTaskState createUserState(OhmageUser user, Long batchId) {
+	private UserTaskState createUserState(OhmageUser user) {
 		UserTaskState userState = UserTaskState.createOrRecoverUserState(this,
 				user, templateTask, mapFactory);
 		userStateMap.put(user, userState);
@@ -106,7 +106,7 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 			StreamStatusTuple tuple = (StreamStatusTuple) baseTuple;
 			switch (tuple.getStatus()) {
 			case HEAD:
-				createUserState(user, tuple.getBatchId());
+				createUserState(user);
 				break;
 			case END:
 				UserTaskState userState = getUserState(user);
