@@ -5,7 +5,7 @@ import org.ohmage.lifestreams.bolts.IGenerator;
 import org.ohmage.lifestreams.bolts.UserTaskState;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.spouts.PersistentMapFactory;
+import org.ohmage.lifestreams.stores.PersistentMapFactory;
 import org.ohmage.lifestreams.tuples.RecordTuple;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;

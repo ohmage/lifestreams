@@ -6,7 +6,7 @@ import org.apache.commons.lang3.SerializationUtils;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.spouts.BaseLifestreamsSpout;
-import org.ohmage.lifestreams.spouts.PersistentMapFactory;
+import org.ohmage.lifestreams.stores.PersistentMapFactory;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tasks.TwoLayeredCacheMap;
 import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
