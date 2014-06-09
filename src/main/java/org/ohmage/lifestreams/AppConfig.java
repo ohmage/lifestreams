@@ -15,10 +15,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
+import redis.clients.jedis.JedisPoolConfig;
 
 @Configuration
-@PropertySource("/application.properties")
-class AppConfig {
+@PropertySource("/lifestreams.properties")
+public class AppConfig {
 
     private static final String LIFESTREAMS_OBSERVER_VER = "201403111";
     private static final String LIFESTREAMS_OBSERVER_ID = "org.ohmage.lifestreams.activities";
@@ -96,13 +97,14 @@ class AppConfig {
     }
 
     @Bean
-    IMapStore mapStore() {
+    public IMapStore mapStore() {
         return new RedisMapStore(env.getProperty("redis.host"));
     }
 
     @Bean
-    IStreamStore streamStore() {
-        return new RedisStreamStore(env.getProperty("redis.host"));
+    public IStreamStore streamStore() {
+        return new RedisStreamStore(env.getProperty("redis.host"), new JedisPoolConfig(),
+                Integer.parseInt(env.getProperty("redis.stream.store.DBIndex")));
     }
 
     @Bean

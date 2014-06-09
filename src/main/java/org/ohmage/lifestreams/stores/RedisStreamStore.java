@@ -24,24 +24,24 @@ public class RedisStreamStore implements IStreamStore {
 	private static final Logger logger = LoggerFactory.getLogger(RedisStreamStore.class);
 	private static final String PREFIX = "lifestreams.stream.";
     private String host = "localhost";
-
+    private JedisPoolConfig config = new JedisPoolConfig();
+    private int DBIndex = 0;
 	transient private JedisPool pool;
 	JedisPool getPool(){
 		if(pool == null){
-			pool = new JedisPool(new JedisPoolConfig(), host);
+			pool = new JedisPool(config, host);
 		}
 		return pool;
 	}
-	// store a record to the Redis server. The records of the same pair of stream + user will be 
-	// stored in a hash table, with the keys as the string representation of the data (i.e. output of data.getString().)
-	// In most cases, where the  data object is a subclass of the LifestreamsData, see lifestreams.models.data.LifestreamsData
-	// for the format of this representation.
+	// store a record to the Redis server.
 	@Override
 	public void upload(OhmageStream stream, StreamRecord rec) {
         String key = PREFIX + stream.getObserverId() + "." + stream.getStreamId() + "." + rec.getUser().getUsername();
         Jedis jedis = getPool().getResource();
+        jedis.select(DBIndex);
         try {
             byte[] bytes = KryoSerializer.getBytes(rec, KryoSerializer.getInstance());
+            // use record timestamp as score
             double score = rec.getTimestamp().getMillis();
             jedis.zadd(key.getBytes(), score, bytes);
         } catch (JedisException e) {
@@ -66,21 +66,22 @@ public class RedisStreamStore implements IStreamStore {
         Kryo kryo = KryoSerializer.getInstance();
         String key = PREFIX + stream.getObserverId() + "." + stream.getStreamId() + "." + user.getUsername();
         Jedis jedis = getPool().getResource();
+        jedis.select(DBIndex);
         double startScore = start != null ? start.getMillis() : Double.NEGATIVE_INFINITY;
         double endScore = end != null ? end.getMillis() : Double.POSITIVE_INFINITY;
-        Set<String> storedRecs = null;
+        Set<byte[]> storedRecs = null;
         try {
             if(order == OhmageStreamIterator.SortOrder.Chronological) {
                 if (maxRows > 0) {
-                    storedRecs = jedis.zrangeByScore(key, startScore, endScore, 0, maxRows);
+                    storedRecs = jedis.zrangeByScore(key.getBytes(), startScore, endScore, 0, maxRows);
                 } else{
-                    storedRecs = jedis.zrangeByScore(key, startScore, endScore);
+                    storedRecs = jedis.zrangeByScore(key.getBytes(), startScore, endScore);
                 }
             }else{
                 if (maxRows > 0) {
-                    storedRecs = jedis.zrevrangeByScore(key, startScore, endScore, 0, maxRows);
+                    storedRecs = jedis.zrevrangeByScore(key.getBytes(), startScore, endScore, 0, maxRows);
                 } else{
-                    storedRecs = jedis.zrevrangeByScore(key, startScore, endScore);
+                    storedRecs = jedis.zrevrangeByScore(key.getBytes(), startScore, endScore);
                 }
             }
         } catch (JedisException e) {
@@ -98,20 +99,24 @@ public class RedisStreamStore implements IStreamStore {
 
         if(storedRecs != null) {
             List<StreamRecord> ret = new ArrayList<StreamRecord>(storedRecs.size());
-            for (String stored : storedRecs) {
-                StreamRecord rec = KryoSerializer.toObject(stored.getBytes(), StreamRecord.class, kryo);
+            for (byte[] stored : storedRecs) {
+                StreamRecord rec = KryoSerializer.toObject(stored, StreamRecord.class, kryo);
                 ret.add(rec);
             }
             return ret;
         }
         return null;
-
     }
-
+    public RedisStreamStore(String host, JedisPoolConfig config, int DBIndex){
+        this.host = host;
+        this.config = config;
+        this.DBIndex = DBIndex;
+    }
 	public RedisStreamStore(String host){
-		this.host = host;
+		this(host, new JedisPoolConfig(), 0);
 	}
 	public RedisStreamStore(){
 		this("localhost");
 	}
+
 }

@@ -16,9 +16,10 @@ public class OhmageStreamStore implements IStreamStore {
 	}
 
     @Override
-    public <T> List<StreamRecord<T>> query(OhmageStream stream, OhmageUser user, DateTime start, DateTime end, OhmageStreamIterator.SortOrder order, int maxRows, Class<T> dataType) {
+    public List<StreamRecord> query(OhmageStream stream, OhmageUser user, DateTime start, DateTime end, OhmageStreamIterator.SortOrder order, int maxRows) {
         return null;
     }
+
 
 
 }

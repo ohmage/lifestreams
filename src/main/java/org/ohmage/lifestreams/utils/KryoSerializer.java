@@ -117,17 +117,18 @@ public class KryoSerializer  implements IKryoFactory {
 
     static public byte[] getBytes(Object obj, Kryo kryo) {
         ByteArrayOutputStream byteArrayOutputStream =
-                new ByteArrayOutputStream(16384);
+                new ByteArrayOutputStream(1024*1024);
         DeflaterOutputStream deflaterOutputStream =
                 new DeflaterOutputStream(byteArrayOutputStream);
         Output valOutput = new Output(deflaterOutputStream);
 
-        kryo.writeObject(valOutput, obj);
+        kryo.writeClassAndObject(valOutput, obj);
         valOutput.close();
+        toObject(byteArrayOutputStream.toByteArray(), obj.getClass(), kryo);
         return byteArrayOutputStream.toByteArray();
     }
     static public<T> T toObject(byte[] bytes, Class<T> c, Kryo kryo) {
         Input in = new Input(new InflaterInputStream(new ByteArrayInputStream(bytes)));
-        return kryo.readObject(in, c);
+        return (T)kryo.readClassAndObject(in);
     }
 }
