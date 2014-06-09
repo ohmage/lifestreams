@@ -8,7 +8,7 @@ import fr.dudie.nominatim.client.JsonNominatimClient;
 import fr.dudie.nominatim.model.Address;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.ohmage.lifestreams.spouts.PersistentMapFactory;
+import org.ohmage.lifestreams.stores.PersistentMapFactory;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;

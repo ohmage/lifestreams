@@ -1,7 +1,7 @@
 package org.ohmage.lifestreams.stores;
 
 import com.esotericsoftware.kryo.Kryo;
-import org.ohmage.lifestreams.tasks.StatefulTask;
+import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.models.OhmageUser;
 
 import java.util.Map;
@@ -26,7 +26,7 @@ public class PersistentMapFactory {
 	public <K,V> Map<K,V> getComponentMap(String cId, String name, Class<K> kClass, Class<V> vClass){
 		return store.getMap(getBaseName() + ".componentMap." + cId + "." + name, kryo, kClass, vClass);
 	}
-	public <K,V> Map<K,V> getUserTaskMap(StatefulTask t, String name, Class<K> kClass, Class<V> vClass){
+	public <K,V> Map<K,V> getUserTaskMap(Task t, String name, Class<K> kClass, Class<V> vClass){
 		return store.getMap(getBaseName() + ".taskMap." + t.getComponentId() + "." + t.getUser().getUsername() + "." + name, kryo, kClass, vClass);
 	}
 	public <K,V> Map<K,V> getUserTaskMap(String cId, OhmageUser user, String name, Class<K> kClass, Class<V> vClass){
