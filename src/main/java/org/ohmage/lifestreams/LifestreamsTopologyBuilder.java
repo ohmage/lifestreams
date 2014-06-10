@@ -295,13 +295,8 @@ public class LifestreamsTopologyBuilder {
 
 			// if the requestees are not given, use all the users that are
 			// accessible to the requester
-			Set<String> requesteeSet = new HashSet<String>();
-			for (List<String> userList : requester.getAccessibleUsers()
-					.values()) {
-				for (String user : userList) {
-					requesteeSet.add(user);
-				}
-			}
+			Set<String> requesteeSet = new HashSet<String>(requester.getAccessibleUsers());
+
 			this.requestees = StringUtils.join(requesteeSet, ",");
 		}
 		return this.requestees;
