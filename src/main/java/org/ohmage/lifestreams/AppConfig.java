@@ -21,8 +21,9 @@ import redis.clients.jedis.JedisPoolConfig;
 @PropertySource("/lifestreams.properties")
 public class AppConfig {
 
-    private static final String LIFESTREAMS_OBSERVER_VER = "201403111";
-    private static final String LIFESTREAMS_OBSERVER_ID = "org.ohmage.lifestreams.activities";
+    private static final String LIFESTREAMS_OBSERVER_VER = "1";
+    private static final String MOBILITY_OBSERVER_ID = "org.ohmage.lifestreams.mobility";
+    private static final String MOVES_OBSERVER_ID = "org.ohmage.lifestreams.moves";
 
     @Autowired
     private
@@ -59,22 +60,39 @@ public class AppConfig {
 
     @Bean
     OhmageStream activitySummaryStream() {
-        return new OhmageStream(LIFESTREAMS_OBSERVER_ID, "activity_summaries",
-                LIFESTREAMS_OBSERVER_VER, "20140311");
+        return new OhmageStream(MOBILITY_OBSERVER_ID, "summaries",
+                LIFESTREAMS_OBSERVER_VER, "1");
     }
 
     @Bean
     OhmageStream geodiameterStream() {
-        return new OhmageStream(LIFESTREAMS_OBSERVER_ID, "geodiameter",
-                LIFESTREAMS_OBSERVER_VER, "20140311");
+        return new OhmageStream(MOBILITY_OBSERVER_ID, "geodiameter",
+                LIFESTREAMS_OBSERVER_VER, "1");
     }
 
     @Bean
-    OhmageStream leaveArriveHomeStream() {
-        return new OhmageStream(LIFESTREAMS_OBSERVER_ID,
-                "leave_arrive_home_time", LIFESTREAMS_OBSERVER_VER, "20140311");
+    OhmageStream leaveReturnHomeStream() {
+        return new OhmageStream(MOBILITY_OBSERVER_ID,
+                "leave_return_home_time", LIFESTREAMS_OBSERVER_VER, "1");
     }
 
+    @Bean
+    OhmageStream activitySummaryStreamForMoves() {
+        return new OhmageStream(MOVES_OBSERVER_ID, "summaries",
+                LIFESTREAMS_OBSERVER_VER, "1");
+    }
+
+    @Bean
+    OhmageStream geodiameterStreamForMoves() {
+        return new OhmageStream(MOVES_OBSERVER_ID, "geodiameter",
+                LIFESTREAMS_OBSERVER_VER, "1");
+    }
+
+    @Bean
+    OhmageStream leaveReturnHomeStreamForMoves() {
+        return new OhmageStream(MOVES_OBSERVER_ID,
+                "leave_return_home_time", LIFESTREAMS_OBSERVER_VER, "1");
+    }
     @Bean
     MovesSpout movesSpout() {
         return new MovesSpout(since(), movesCredentialStream(),

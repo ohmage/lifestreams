@@ -1,6 +1,8 @@
 package org.ohmage.lifestreams.stores;
 
 import com.esotericsoftware.kryo.Kryo;
+import org.apache.commons.lang3.StringUtils;
+import org.jboss.netty.util.internal.StringUtil;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.utils.KryoSerializer;
@@ -15,6 +17,7 @@ import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.exceptions.JedisException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -33,10 +36,16 @@ public class RedisStreamStore implements IStreamStore {
 		}
 		return pool;
 	}
+    String getKeyForStream(OhmageStream stream, OhmageUser user){
+        return PREFIX + StringUtils.join(
+                Arrays.asList(user.getUsername(),
+                              stream.getObserverId(), stream.getObserverVer(),
+                              stream.getStreamId(),   stream.getStreamVer()), '/');
+    }
 	// store a record to the Redis server.
 	@Override
 	public void upload(OhmageStream stream, StreamRecord rec) {
-        String key = PREFIX + stream.getObserverId() + "." + stream.getStreamId() + "." + rec.getUser().getUsername();
+        String key = getKeyForStream(stream, rec.getUser());
         Jedis jedis = getPool().getResource();
         jedis.select(DBIndex);
         try {
@@ -64,7 +73,7 @@ public class RedisStreamStore implements IStreamStore {
                                            OhmageStreamIterator.SortOrder order,
                                            int maxRows) {
         Kryo kryo = KryoSerializer.getInstance();
-        String key = PREFIX + stream.getObserverId() + "." + stream.getStreamId() + "." + user.getUsername();
+        String key = getKeyForStream(stream, user);
         Jedis jedis = getPool().getResource();
         jedis.select(DBIndex);
         double startScore = start != null ? start.getMillis() : Double.NEGATIVE_INFINITY;

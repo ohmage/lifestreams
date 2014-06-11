@@ -29,7 +29,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
  */
 class MobilityMovesTopology {
 
-	// ** Output streams **//
+	// ** Mobility Output streams **//
 	@Autowired
 	@Qualifier("activitySummaryStream")
     private
@@ -39,9 +39,23 @@ class MobilityMovesTopology {
     private
     OhmageStream geodiameterStream;
 	@Autowired
-	@Qualifier("leaveArriveHomeStream")
+	@Qualifier("leaveReturnHomeStream")
     private
-    OhmageStream leaveArriveHomeStream;
+    OhmageStream leaveReturnHomeStream;
+
+    // ** Moves Output streams **//
+    @Autowired
+    @Qualifier("activitySummaryStreamForMoves")
+    private
+    OhmageStream activitySummaryStreamForMoves;
+    @Autowired
+    @Qualifier("geodiameterStreamForMoves")
+    private
+    OhmageStream geodiameterStreamForMoves;
+    @Autowired
+    @Qualifier("leaveReturnHomeStreamForMoves")
+    private
+    OhmageStream leaveReturnHomeStreamForMoves;
 
 	// ** Spouts ** //
 	@Autowired
@@ -76,7 +90,7 @@ class MobilityMovesTopology {
 
 			builder.setTask("MobilityTimeLeaveReturnHome", new TimeLeaveReturnHome(), "PlaceDetection")
 			.setParallelismHint(parallelismPerTask)
-			.setTargetStream(leaveArriveHomeStream);
+			.setTargetStream(leaveReturnHomeStream);
 			
 			// compute daily geodiameter from Mobility data
 			builder.setTask("GeoDistanceBolt", new GeoDiameterTask(),	"ThrottledMobilityDataStream")
@@ -114,16 +128,16 @@ class MobilityMovesTopology {
 			// compute geo diameter based on the track points
 			builder.setTask("MovesGeoDiameter", new GeoDiameterTask(),
 					"MovesTrackPointExtractor")
-					.setTargetStream(geodiameterStream)
+					.setTargetStream(geodiameterStreamForMoves)
 					.setTimeWindowSize(Days.ONE);
 
 			// generate daily activity summary
 			builder.setTask("MovesActivitySummarier", new MovesActivitySummarizer(),
-					"MovesDataStream").setTargetStream(activitySummaryStream)
+					"MovesDataStream").setTargetStream(activitySummaryStreamForMoves)
 					.setTimeWindowSize(Days.ONE);
 
 			builder.setTask("TimeLeaveReturnHome", new MovesTimeLeaveReturnHome(),
-					"MovesDataStream").setTargetStream(leaveArriveHomeStream)
+					"MovesDataStream").setTargetStream(leaveReturnHomeStreamForMoves)
 					.setTimeWindowSize(Days.ONE);
 		
 		builder.submitToLocalCluster(topologyName);
