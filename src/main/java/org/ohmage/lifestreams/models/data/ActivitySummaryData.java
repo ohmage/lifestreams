@@ -26,7 +26,7 @@ public class ActivitySummaryData extends TimeWindowData {
         return this;
     }
 
-    public double getTotalActiveDistanceInMiles(double totalActiveTime) {
+    public double getTotalActiveDistanceInMiles() {
         double totalMiles = 0.0;
         for (ActivityEpisode epi : this.getActivityEpisodes()) {
             totalMiles += epi.getDistanceInMiles();
