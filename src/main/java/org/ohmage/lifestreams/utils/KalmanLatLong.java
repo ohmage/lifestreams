@@ -96,17 +96,9 @@ class KalmanLatLong {
 			// has different units to lat and lng
 			float K = variance / (variance + accuracy * accuracy);
 			// apply K
-			double newLat = lat + K * (lat_measurement - lat);
-			double newLng = lng + K * (lng_measurement - lng);
-			double speed = new Geo(newLat, newLng, true).distanceKM(new Geo(lat, lng, true))  * 1000 * 1000 / (TimeInc_milliseconds);
-			if(speed > Q_metres_per_second * 10 ){
-				return;
-			}
-			// only update the state if the speed is less than 10*expected_speed
-			// this is for avoiding spurious results
-			lat = newLat;
-			lng = newLng;
-			
+			lat = lat + K * (lat_measurement - lat);
+			lng = lng + K * (lng_measurement - lng);
+
 			// new Covarariance matrix is (IdentityMatrix - K) * Covarariance
 			variance = (1 - K) * variance;
 			

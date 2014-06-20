@@ -49,9 +49,12 @@ public class RedisStreamStore implements IStreamStore {
         Jedis jedis = getPool().getResource();
         jedis.select(DBIndex);
         try {
+            // use time stamp as score
+            double score = rec.getTimestamp().getMillis();
+            // remove the record with the same timestamp
+            jedis.zremrangeByScore(key, score, score);
             byte[] bytes = KryoSerializer.getBytes(rec, KryoSerializer.getInstance());
             // use record timestamp as score
-            double score = rec.getTimestamp().getMillis();
             jedis.zadd(key.getBytes(), score, bytes);
         } catch (JedisException e) {
             getPool().returnBrokenResource(jedis);

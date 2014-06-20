@@ -11,6 +11,7 @@ import org.joda.time.DateTime;
 import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.stores.IMapStore;
+import org.ohmage.lifestreams.stores.PersistentMapFactory;
 import org.ohmage.lifestreams.tuples.*;
 import org.ohmage.lifestreams.tuples.SpoutRecordTuple.RecordTupleMsgId;
 import org.ohmage.lifestreams.tuples.StreamStatusTuple.StreamStatus;

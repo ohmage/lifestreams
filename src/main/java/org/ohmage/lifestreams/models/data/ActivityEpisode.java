@@ -1,10 +1,13 @@
 package org.ohmage.lifestreams.models.data;
 
 import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import org.ohmage.lifestreams.models.MobilityState;
 
+import java.io.IOException;
 import java.util.*;
 
 public class ActivityEpisode {
@@ -64,6 +67,7 @@ public class ActivityEpisode {
         DateTime time;
     }
 
+
     public Set<MobilityState> getTypes() {
         return types;
     }
@@ -116,7 +120,19 @@ public class ActivityEpisode {
     public void setSteps(int steps) {
         this.steps = steps;
     }
-
+    public String toString(){
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.registerModule(new JodaModule());
+            mapper.configure(
+                    com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS,
+                    false);
+            mapper.setTimeZone(this.getEndTime().getZone().toTimeZone());
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(this);
+        }catch (IOException e){
+            throw new RuntimeException(e);
+        }
+    }
 
 
     static public ActivityEpisode forMovesActivity(MovesActivity activity) {
