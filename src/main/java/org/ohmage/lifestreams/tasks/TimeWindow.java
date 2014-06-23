@@ -62,10 +62,16 @@ public class TimeWindow {
 	public DateTime getTimeWindowEndTime(){
 		return this.getTimeWindowBeginTime().plus(this.windowDuration).minus(1);
 	}
-	public int getTimeWindowSizeInSecond(){
-		return this.windowDuration.toPeriod().toStandardSeconds().getSeconds();
+	public long getTimeWindowSizeInSecond(){
+		return this.getTimeWindowSizeInMillis()/1000;
 	}
-	public DateTime getFirstInstant() {
+    public long getTimeWindowSizeInMillis(){
+        return new Interval(this.getTimeWindowBeginTime(), this.getTimeWindowEndTime()).toDurationMillis();
+    }
+    public Interval getTimeInterval(){
+        return new Interval(getTimeWindowBeginTime(), getTimeWindowEndTime());
+    }
+    public DateTime getFirstInstant() {
 		return firstInstant;
 	}
 

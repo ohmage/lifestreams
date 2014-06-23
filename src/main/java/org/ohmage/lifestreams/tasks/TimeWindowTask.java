@@ -22,11 +22,11 @@ public abstract class TimeWindowTask extends Task {
 	transient private PendingBuffer pendingBuf;
 	private BaseSingleFieldPeriod timeWindowSize;
 
-	TimeWindowTask(BaseSingleFieldPeriod timeWindowSize) {
+	public TimeWindowTask(BaseSingleFieldPeriod timeWindowSize) {
 		this.timeWindowSize = timeWindowSize;
 	}
 
-	TimeWindowTask() {
+	public TimeWindowTask() {
 		this(Days.ONE);
 	}
 

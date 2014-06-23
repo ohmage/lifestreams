@@ -3,6 +3,7 @@ package org.ohmage.lifestreams.models.data;
 import java.util.List;
 
 import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.ohmage.lifestreams.models.StreamRecord;
 
 import com.javadocmd.simplelatlng.LatLng;
@@ -14,7 +15,13 @@ public class MobilitySegment{
 	public enum State {
 		Place, Moves
 	}
-	static public class MoveSegment{
+    static public abstract interface Segment{
+        DateTime getBegin();
+        DateTime getEnd();
+        State getState();
+        Double getTimeSpanInSecs();
+    }
+	static public class MoveSegment implements Segment{
 		final DateTime begin;
 		final DateTime end;
 		final LatLng from;
@@ -30,54 +37,83 @@ public class MobilitySegment{
 			this.dest = dest;
 			this.trackpoints = trackpoints;
 		}
-	}
-	static public class PlaceSegment {
-		public PlaceSegment(DateTime begin, DateTime end, LatLng coordinates, Address address) {
-			super();
-			this.address = address;
-			this.begin = begin;
-			this.end = end;
-			this.coordinates = coordinates;
-		}
+
+        @Override
+        public DateTime getBegin() {
+            return begin;
+        }
+
+        @Override
+        public DateTime getEnd() {
+            return end;
+        }
+
+        @Override
+        public State getState() {
+            return State.Moves;
+        }
+
+        @Override
+        public Double getTimeSpanInSecs() {
+            return new Duration(begin, end).getMillis() / 1000.0;
+        }
+    }
+	static public class PlaceSegment implements Segment{
+
+        final Address address;
+        final DateTime begin;
+        final DateTime end;
+        final LatLng coordinates;
+
 		public Address getAddress() {
 			return address;
 		}
-		public DateTime getBegin() {
-			return begin;
-		}
-		public DateTime getEnd() {
-			return end;
-		}
-		final Address address;
-		final DateTime begin;
-		final DateTime end;
-		final LatLng coordinates;
+        public LatLng getCoordinates() {
+            return coordinates;
+        }
+        @Override
+        public DateTime getBegin() {
+            return begin;
+        }
+
+        @Override
+        public DateTime getEnd() {
+            return end;
+        }
+
+        @Override
+        public State getState() {
+            return State.Place;
+        }
+
+        @Override
+        public Double getTimeSpanInSecs() {
+            return new Duration(begin, end).getMillis() / 1000.0;
+        }
+
+        public PlaceSegment(DateTime begin, DateTime end, LatLng coordinates, Address address) {
+            super();
+            this.address = address;
+            this.begin = begin;
+            this.end = end;
+            this.coordinates = coordinates;
+        }
 	}
 	
 
-	private MoveSegment moveSegment;
-	private PlaceSegment placeSegment;
+	private Segment segment;
 	
-	public Long getTimeSpanInSecs(){
-		if(moveSegment != null){
-			return moveSegment.end.getMillis() - moveSegment.begin.getMillis() / 1000; 
-		}else{
-			return placeSegment.end.getMillis() - placeSegment.begin.getMillis() / 1000; 
-		}
+	public Double getTimeSpanInSecs(){
+		return segment.getTimeSpanInSecs();
 	}
-	public MoveSegment getMoveSegment() {
-		return moveSegment;
+	public Segment getSegment(){
+        return segment;
+    }
+	public State getState()
+    {
+        return this.segment.getState();
 	}
-	public PlaceSegment getPlaceSegment() {
-		return placeSegment;
-	}
-	public State getSegmentType(){
-		return moveSegment != null ? State.Moves : State.Place;
-	}
-	public MobilitySegment(MoveSegment moveSegment){
-		this.moveSegment = moveSegment;
-	}
-	public MobilitySegment(PlaceSegment placeSegment){
-		this.placeSegment = placeSegment;
+	public MobilitySegment(Segment seg){
+		this.segment = seg;
 	}
 }

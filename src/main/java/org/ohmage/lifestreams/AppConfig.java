@@ -75,6 +75,11 @@ public class AppConfig {
         return new OhmageStream(MOBILITY_OBSERVER_ID,
                 "leave_return_home_time", LIFESTREAMS_OBSERVER_VER, "1");
     }
+    @Bean
+    OhmageStream dataCoverageStream() {
+        return new OhmageStream(MOBILITY_OBSERVER_ID,
+                "coverage", LIFESTREAMS_OBSERVER_VER, "1");
+    }
 
     @Bean
     OhmageStream activitySummaryStreamForMoves() {
@@ -93,6 +98,13 @@ public class AppConfig {
         return new OhmageStream(MOVES_OBSERVER_ID,
                 "leave_return_home_time", LIFESTREAMS_OBSERVER_VER, "1");
     }
+
+    @Bean
+    OhmageStream dataCoverageStreamForMoves() {
+        return new OhmageStream(MOVES_OBSERVER_ID,
+                "coverage", LIFESTREAMS_OBSERVER_VER, "1");
+    }
+
     @Bean
     MovesSpout movesSpout() {
         return new MovesSpout(since(), movesCredentialStream(),

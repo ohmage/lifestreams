@@ -2,19 +2,14 @@ package org.ohmage.lifestreams;
 
 import org.joda.time.Days;
 import org.joda.time.Duration;
+import org.joda.time.Hours;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.spouts.MovesSpout;
 import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
 import org.ohmage.lifestreams.tasks.DataRateLimiter;
 import org.ohmage.lifestreams.tasks.GeoDiameterTask;
-import org.ohmage.lifestreams.tasks.mobility.HMMMobilityRectifier;
-import org.ohmage.lifestreams.tasks.mobility.MobilityActivitySummarizer;
-import org.ohmage.lifestreams.tasks.mobility.PlaceDetection;
-import org.ohmage.lifestreams.tasks.mobility.TimeLeaveReturnHome;
-import org.ohmage.lifestreams.tasks.moves.FilterDuplicatedSegment;
-import org.ohmage.lifestreams.tasks.moves.MovesActivitySummarizer;
-import org.ohmage.lifestreams.tasks.moves.MovesTimeLeaveReturnHome;
-import org.ohmage.lifestreams.tasks.moves.TrackPointExtractor;
+import org.ohmage.lifestreams.tasks.mobility.*;
+import org.ohmage.lifestreams.tasks.moves.*;
 import org.ohmage.models.OhmageStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -42,6 +37,10 @@ class MobilityMovesTopology {
 	@Qualifier("leaveReturnHomeStream")
     private
     OhmageStream leaveReturnHomeStream;
+    @Autowired
+    @Qualifier("dataCoverageStream")
+    private
+    OhmageStream dataCoverageStream;
 
     // ** Moves Output streams **//
     @Autowired
@@ -56,6 +55,10 @@ class MobilityMovesTopology {
     @Qualifier("leaveReturnHomeStreamForMoves")
     private
     OhmageStream leaveReturnHomeStreamForMoves;
+    @Autowired
+    @Qualifier("dataCoverageStreamForMoves")
+    private
+    OhmageStream dataCoverageStreamForMoves;
 
 	// ** Spouts ** //
 	@Autowired
@@ -84,7 +87,9 @@ class MobilityMovesTopology {
 					mobility_spout_number);
 			builder.setTask("ThrottledMobilityDataStream", new DataRateLimiter(Duration.standardSeconds(30)), "MobilityDataStream")
 					.setParallelismHint(parallelismPerTask);
-
+            builder.setTask("MobilityHourlyDataCoverage", new MobilityCoverage(Hours.ONE), "ThrottledMobilityDataStream")
+                    .setTargetStream(dataCoverageStream)
+                    .setParallelismHint(parallelismPerTask);
 			builder.setTask("PlaceDetection", new PlaceDetection(), "ThrottledMobilityDataStream")
 					.setParallelismHint(parallelismPerTask);
 
@@ -120,6 +125,10 @@ class MobilityMovesTopology {
 			// segments from the ohmage or the local Moves fetcher may contain
 			// duplication. Filter them out.
 			builder.setTask("MovesDataStream", new FilterDuplicatedSegment(),	"RawMovesDataStream");
+
+            //compute hourly coverage rate
+            builder.setTask("MovesHourlyDataCoverage", new MovesDataCoverage(Hours.ONE), "MovesDataStream")
+                .setTargetStream(dataCoverageStreamForMoves);
 
 			// extract track points from moves segments
 			builder.setTask("MovesTrackPointExtractor", new TrackPointExtractor(),
