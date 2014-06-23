@@ -135,7 +135,7 @@ public class ActivityEpisode {
     }
 
 
-    static public ActivityEpisode forMovesActivity(MovesActivity activity) {
+    static public ActivityEpisode createFromMovesActivity(MovesActivity activity) {
         ActivityEpisode instance = new ActivityEpisode();
         // get distanceInMiles in miles
         instance.setDistanceInMiles(activity.getDistance() * 0.000621371192);

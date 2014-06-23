@@ -58,7 +58,7 @@ public class MovesActivitySummarizer extends SimpleTimeWindowTask<MovesSegment> 
 						totalActiveTime += activity.getDuration();
 						// create activity instance
 						activityEpisodes.add(ActivityEpisode
-								.forMovesActivity(activity));
+								.createFromMovesActivity(activity));
 					} else {
 						if (state.equals(MobilityState.DRIVE)) {
 							// accumulate transport time
