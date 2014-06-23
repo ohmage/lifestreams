@@ -1,14 +1,12 @@
 package org.ohmage.lifestreams.models.data;
 
-import java.util.List;
-
+import com.javadocmd.simplelatlng.LatLng;
+import fr.dudie.nominatim.model.Address;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.ohmage.lifestreams.models.StreamRecord;
 
-import com.javadocmd.simplelatlng.LatLng;
-
-import fr.dudie.nominatim.model.Address;
+import java.util.List;
 
 public class MobilitySegment{
 	

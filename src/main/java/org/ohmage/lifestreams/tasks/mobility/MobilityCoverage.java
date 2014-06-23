@@ -2,15 +2,12 @@ package org.ohmage.lifestreams.tasks.mobility;
 
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
-import org.joda.time.Hours;
 import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.DataCoverage;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
 import org.ohmage.lifestreams.tasks.TimeWindow;
-import org.ohmage.lifestreams.tasks.TimeWindowTask;
-import org.ohmage.lifestreams.tuples.RecordTuple;
 
 /**
  * MobilityCoverage compute the coverage of mobility data in each time window

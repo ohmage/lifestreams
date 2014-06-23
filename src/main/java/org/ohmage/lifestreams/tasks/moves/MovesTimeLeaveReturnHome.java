@@ -1,10 +1,8 @@
 package org.ohmage.lifestreams.tasks.moves;
 
-import co.nutrino.api.moves.impl.dto.activity.TrackPoint;
 import co.nutrino.api.moves.impl.dto.storyline.MovesPlace;
 import co.nutrino.api.moves.impl.dto.storyline.MovesPlaceTypeEnum;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
-import com.google.common.collect.Lists;
 import com.javadocmd.simplelatlng.LatLng;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
@@ -17,8 +15,6 @@ import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedList;
 
 @Component

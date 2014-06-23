@@ -1,20 +1,16 @@
 package org.ohmage.lifestreams.utils;
 
-import clojure.tools.logging.impl.LoggerFactory;
-import com.bbn.openmap.geo.Geo;
 import com.javadocmd.simplelatlng.LatLng;
 import com.javadocmd.simplelatlng.LatLngTool;
 import com.javadocmd.simplelatlng.util.LengthUnit;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
-import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.ActivityEpisode;
 import org.ohmage.lifestreams.models.data.ActivityEpisode.TrackPoint;
 import org.ohmage.lifestreams.models.data.IMobilityData;
 import org.slf4j.Logger;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class ActivityEpisodeAccumulator {

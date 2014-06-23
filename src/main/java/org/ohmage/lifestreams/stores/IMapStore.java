@@ -1,9 +1,9 @@
 package org.ohmage.lifestreams.stores;
 
+import com.esotericsoftware.kryo.Kryo;
+
 import java.io.Serializable;
 import java.util.Map;
-
-import com.esotericsoftware.kryo.Kryo;
 
 public interface IMapStore extends Serializable {
 	public void clearAll(String pattern);

@@ -3,7 +3,6 @@ package org.ohmage.lifestreams.tasks.moves;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
-import org.joda.time.Period;
 import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.DataCoverage;
@@ -11,6 +10,7 @@ import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 
 /**
+ * MovesDataCoverage compute moves data coverage in each time window
  * Created by changun on 6/20/14.
  */
 public class MovesDataCoverage extends SimpleTask<MovesSegment> {

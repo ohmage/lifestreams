@@ -2,7 +2,6 @@ package org.ohmage.lifestreams.stores;
 
 import com.esotericsoftware.kryo.Kryo;
 import org.apache.commons.lang3.StringUtils;
-import org.jboss.netty.util.internal.StringUtil;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.utils.KryoSerializer;

@@ -1,10 +1,10 @@
 package org.ohmage.lifestreams.tasks;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.spouts.EmailMsg;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Strip out quote part of a mail. Copy & paste from:

@@ -1,6 +1,5 @@
 package org.ohmage.lifestreams.utils;
 
-import com.bbn.openmap.geo.Geo;
 import org.ohmage.lifestreams.models.GeoLocation;
 
 

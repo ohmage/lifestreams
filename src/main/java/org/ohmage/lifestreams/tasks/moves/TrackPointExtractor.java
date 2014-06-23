@@ -1,16 +1,14 @@
 package org.ohmage.lifestreams.tasks.moves;
 
+import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
+import co.nutrino.api.moves.impl.dto.activity.TrackPoint;
+import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
+import com.javadocmd.simplelatlng.LatLng;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.TimeWindowData;
 import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.springframework.stereotype.Component;
-
-import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
-import co.nutrino.api.moves.impl.dto.activity.TrackPoint;
-import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
-
-import com.javadocmd.simplelatlng.LatLng;
 
 /**
  * @author changun This task extracts tracking points from MovesSegements and
@@ -26,7 +24,7 @@ public class TrackPointExtractor extends SimpleTask<MovesSegment> {
 		}
 	}
 
-	private void emitTrackPoint(TrackPoint point, MovesSegment segment) {
+	private void emitTrackPoint(TrackPoint point) {
 		LatLng coordinates = new LatLng(point.getLat(), point.getLon());
 		GeoLocation location = new GeoLocation(point.getTime(),	coordinates, -1, "Moves");
 		this.createRecord()
@@ -52,7 +50,7 @@ public class TrackPointExtractor extends SimpleTask<MovesSegment> {
 							point.setTime(activity.getEndTime());
 						}
 						// emit this track point
-						emitTrackPoint(point, segment);
+						emitTrackPoint(point);
 					}
 				}
 			}
@@ -61,7 +59,7 @@ public class TrackPointExtractor extends SimpleTask<MovesSegment> {
 			// if this segment contains a place
 			segment.getPlace().getLocation().setTime(segment.getEndTime());
 			// emit the location of this place as a tracking point
-			emitTrackPoint(segment.getPlace().getLocation(), segment);
+			emitTrackPoint(segment.getPlace().getLocation());
 		}
 		checkpoint(record.getTimestamp());
 	}

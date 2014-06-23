@@ -4,7 +4,6 @@ import com.javadocmd.simplelatlng.LatLng;
 import fr.dudie.nominatim.model.Address;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
-import org.joda.time.Duration;
 import org.joda.time.Interval;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
