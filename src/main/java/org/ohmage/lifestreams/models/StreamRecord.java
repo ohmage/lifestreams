@@ -14,10 +14,11 @@ import java.io.Serializable;
 import java.util.TimeZone;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class StreamRecord<T> implements Comparable{
+public class StreamRecord<T>{
     static ObjectMapper mapper = new ObjectMapper();
     {
-        // register datetime serializer
+        // register custom datetime serializer/deserelizer
+        // which will use the timezone specified in the DateTime object / or json string as default
         mapper.registerModule(new DateTimeSerializeModule());
     }
 	private OhmageUser user;
@@ -114,9 +115,7 @@ public class StreamRecord<T> implements Comparable{
 	}
 
 	public ObjectNode toObserverDataPoint() {
-		// set the timezone of the data point as the timestamp's timezone
-		ObjectNode node = mapper.convertValue(this, ObjectNode.class);
-		return node;
+		return mapper.convertValue(this, ObjectNode.class);
 	}
 
 	public static class StreamRecordFactory implements Serializable {
@@ -124,18 +123,15 @@ public class StreamRecord<T> implements Comparable{
 		}
 		public <T> StreamRecord<T> createRecord(ObjectNode node, OhmageUser user, Class<T> dataClass)
 				throws IOException {
-			StreamRecord<T> dataPoint = mapper.convertValue(node, new StreamRecord<T>().getClass());
-			dataPoint.setData(mapper.convertValue(dataPoint.getData(), dataClass));
-			dataPoint.setUser(user);
-			return dataPoint;
+			StreamRecord dataPoint = mapper.convertValue(node, StreamRecord.class);
+            StreamRecord<T> ret = new StreamRecord<T>();
+            ret.setUser(dataPoint.getUser());
+            ret.setMetadata(dataPoint.getMetadata());
+			ret.setData(mapper.convertValue(dataPoint.getData(), dataClass));
+			return ret;
 		}
 	}
 
-	@Override
-	public int compareTo(Object arg0) {
-		// by default, sort StreamRecord by time
-		return (int) (this.getTimestamp().getMillis() - ((StreamRecord) arg0).getTimestamp().getMillis());
-	}
     public StreamRecord() {
     }
 }
