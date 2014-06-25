@@ -4,10 +4,7 @@ import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.spouts.MovesSpout;
 import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
-import org.ohmage.lifestreams.stores.IMapStore;
-import org.ohmage.lifestreams.stores.IStreamStore;
-import org.ohmage.lifestreams.stores.RedisMapStore;
-import org.ohmage.lifestreams.stores.RedisStreamStore;
+import org.ohmage.lifestreams.stores.*;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -133,8 +130,10 @@ public class AppConfig {
 
     @Bean
     public IStreamStore streamStore() {
+       return new MongoStreamStore(env.getProperty("mongo.host"));
+        /*
         return new RedisStreamStore(env.getProperty("redis.host"), new JedisPoolConfig(),
-                Integer.parseInt(env.getProperty("redis.stream.store.DBIndex")));
+                Integer.parseInt(env.getProperty("redis.stream.store.DBIndex")));*/
     }
 
     @Bean

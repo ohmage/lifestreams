@@ -20,6 +20,13 @@ public class StreamRecord<T>{
         // register custom datetime serializer/deserelizer
         // which will use the timezone specified in the DateTime object / or json string as default
         mapper.registerModule(new DateTimeSerializeModule());
+        // ignore unknown field when deserializing objects
+        mapper.configure(
+                com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                false);
+    }
+    static public ObjectMapper getObjectMapper(){
+        return mapper;
     }
 	private OhmageUser user;
 	private StreamMetadata metadata = new StreamMetadata();
@@ -123,7 +130,7 @@ public class StreamRecord<T>{
 		}
 		public <T> StreamRecord<T> createRecord(ObjectNode node, OhmageUser user, Class<T> dataClass)
 				throws IOException {
-			StreamRecord dataPoint = mapper.convertValue(node, StreamRecord.class);
+			StreamRecord dataPoint = mapper.convertValue(node, new StreamRecord<Object>().getClass());
             StreamRecord<T> ret = new StreamRecord<T>();
             ret.setUser(dataPoint.getUser());
             ret.setMetadata(dataPoint.getMetadata());

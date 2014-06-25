@@ -124,11 +124,15 @@ public class KryoSerializer  implements IKryoFactory {
 
         kryo.writeClassAndObject(valOutput, obj);
         valOutput.close();
-        toObject(byteArrayOutputStream.toByteArray(), obj.getClass(), kryo);
         return byteArrayOutputStream.toByteArray();
     }
     static public<T> T toObject(byte[] bytes, Class<T> c, Kryo kryo) {
         Input in = new Input(new InflaterInputStream(new ByteArrayInputStream(bytes)));
-        return (T)kryo.readClassAndObject(in);
+        Object obj = kryo.readClassAndObject(in);
+        if(c.isInstance(obj)){
+            throw new RuntimeException("The data is not of type: "+ c.toString());
+        }else {
+            return (T) obj;
+        }
     }
 }
