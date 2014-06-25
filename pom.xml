@@ -1,266 +1,267 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-   <modelVersion>4.0.0</modelVersion>
-   <groupId>org.ohmage</groupId>
-   <artifactId>lifestreams</artifactId>
-   <version>0.0.2-SNAPSHOT</version>
-   <name>lifestreams-storm</name>
-   <description>lifestreams</description>
-   <parent>
-      <groupId>org.springframework.boot</groupId>
-      <artifactId>spring-boot-starter-parent</artifactId>
-      <version>0.5.0.BUILD-SNAPSHOT</version>
-   </parent>
-   <dependencies>
-      <!-- Kryo and Kryo extensions -->
-      <dependency>
-         <groupId>com.esotericsoftware.kryo</groupId>
-         <artifactId>kryo</artifactId>
-         <version>2.22</version>
-      </dependency>
-      <dependency>
-         <groupId>de.javakaffee</groupId>
-         <artifactId>kryo-serializers</artifactId>
-         <version>0.26</version>
-      </dependency>
-      
-      <dependency>
-         <groupId>org.springframework.boot</groupId>
-         <artifactId>spring-boot-starter</artifactId>
-         <exclusions>
-         	<exclusion>
-         		<artifactId>log4j-over-slf4j</artifactId>
-         		<groupId>org.slf4j</groupId>
-         	</exclusion>
-         	<exclusion>
-         		<artifactId>logback-classic</artifactId>
-         		<groupId>ch.qos.logback</groupId>
-         	</exclusion>
-         	<exclusion>
-         		<artifactId>logback-core</artifactId>
-         		<groupId>ch.qos.logback</groupId>
-         	</exclusion>
-         </exclusions>
-      </dependency>
-      <dependency>
-         <groupId>org.springframework.boot</groupId>
-         <artifactId>spring-boot-starter-test</artifactId>
-         <scope>test</scope>
-      </dependency>
-      <!-- Jackson -->
-      <!-- the core, which includes Streaming API, shared low-level abstractions (but NOT data-binding) -->
-      <dependency>
-         <groupId>com.fasterxml.jackson.core</groupId>
-         <artifactId>jackson-core</artifactId>
-      </dependency>
-      <!-- Joda Time -->
-      <dependency>
-         <groupId>joda-time</groupId>
-         <artifactId>joda-time</artifactId>
-      </dependency>
-      <!-- Storm -->
-      <dependency>
-         <groupId>org.apache.storm</groupId>
-         <artifactId>storm-core</artifactId>
-         <version>0.9.1-incubating</version>
-         <exclusions>
-            <exclusion>
-            	<artifactId>logback-core</artifactId>
-            	<groupId>ch.qos.logback</groupId>
-            </exclusion>
-            <exclusion>
-            	<artifactId>logback-classic</artifactId>
-            	<groupId>ch.qos.logback</groupId>
-            </exclusion>
-            <exclusion>
-            	<artifactId>log4j-over-slf4j</artifactId>
-            	<groupId>org.slf4j</groupId>
-            </exclusion>
-         </exclusions>
-      </dependency>
-      <!-- for easy HTTP request -->
-      <dependency>
-         <groupId>com.github.kevinsawicki</groupId>
-         <artifactId>http-request</artifactId>
-         <version>5.5</version>
-      </dependency>
-      <!-- HMM -->
-      <dependency>
-         <groupId>be.ac.ulg.montefiore.run.jahmm</groupId>
-         <artifactId>jahmm</artifactId>
-         <version>0.6.2</version>
-      </dependency>
-      <!-- Apache Math (for computing Median) -->
-      <dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-math3</artifactId>
-			<version>3.2</version>
-	  </dependency>
-	  <!-- Apache Lang (for Deep Copy) -->
-	   <dependency>
-	       <groupId>org.apache.commons</groupId>
-		  <artifactId>commons-lang3</artifactId>
-		  <version>3.3.2</version>
-      </dependency>
-      <!-- Redis -->
-      <dependency>
-         <groupId>redis.clients</groupId>
-         <artifactId>jedis</artifactId>
-         <version>2.1.0</version>
-         <type>jar</type>
-         <scope>compile</scope>
-      </dependency>
-      <!-- Moves DTO -->
-      <!-- Please checkout the code from: https://github.com/changun/moves-api-->
-      <dependency>
-         <artifactId>moves-api</artifactId>
-         <groupId>com.moves</groupId>
-         <version>0.3</version>
-      </dependency>
-      <!-- Ohmage Stream SDK -->
-      <!-- Please checkout the code from: https://github.com/changun/OhmageStreamSDK -->
-      <dependency>
-		  <groupId>org.ohmage</groupId>
-		  <artifactId>streamSDK</artifactId>
-		  <version>0.0.1</version>
-      </dependency>
-       <!-- Openmap -->
-      <dependency>
-         <groupId>com.bbn</groupId>
-         <artifactId>openmap</artifactId>
-         <version>5.0.4</version>
-      </dependency>
-      <!-- Simple GPS coordinates -->
-	   <dependency>
-  			<groupId>com.javadocmd</groupId>
-  			<artifactId>simplelatlng</artifactId>
-  			<version>RELEASE</version>
-		</dependency>
-		<!-- OpenStreetMap api -->
-		<dependency>
-		  <groupId>fr.dudie</groupId>
-		  <artifactId>nominatim-api</artifactId>
-		  <version>2.0.2</version>
-		</dependency>
-		<!-- Retry on fail -->
-		<dependency>
-		  <groupId>com.jcabi</groupId>
-		  <artifactId>jcabi-aspects</artifactId>
-		  <version>0.12</version>
-		</dependency>
-		<dependency>
-		  <groupId>org.aspectj</groupId>
-		  <artifactId>aspectjrt</artifactId>
-		  <scope>runtime</scope>
-		</dependency>
-   </dependencies>
-   <properties>
-      <start-class>org.ohmage.lifestreams.Application</start-class>
-   </properties>
-   
-     <distributionManagement>
-    <repository>
-      <id>ssh-repository</id>
-      <url>scpexe://apollo.ohmage.org/home/changun/public_html/maven_repo</url>
-    </repository>
-  </distributionManagement>
-   <build>
-           <extensions>
-      <!-- Enabling the use of FTP -->
-      <extension>
-        <groupId>org.apache.maven.wagon</groupId>
-         <artifactId>wagon-ssh-external</artifactId>
-         <version>1.0-beta-6</version>
-      </extension>
-    </extensions>
-      <plugins>
-         <plugin>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-         </plugin>
-         <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-eclipse-plugin</artifactId>
-            <configuration>
-               <downloadSources>true</downloadSources>
-               <downloadJavadocs>true</downloadJavadocs>
-            </configuration>
-         </plugin>
-          <plugin>
-          <artifactId>maven-assembly-plugin</artifactId>
-          <configuration>
-                   <executions>
-                <execution>
-                    <id>assemble-all</id>
-                    <phase>package</phase>
-                    <goals>
-                        <goal>single</goal>
-                    </goals>
-                </execution>
-            </executions>
-          
-            <archive>
-              <manifest>
-                <mainClass>org.ohmage.lifestreams.Application</mainClass>
-              </manifest>
-            </archive>
-            <descriptorRefs>
-              <descriptorRef>jar-with-dependencies</descriptorRef>
-            </descriptorRefs>
-          </configuration>
-        </plugin>
-      </plugins>
-   </build>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.ohmage</groupId>
+    <artifactId>lifestreams</artifactId>
+    <version>0.0.2-SNAPSHOT</version>
+    <name>lifestreams-storm</name>
+    <description>lifestreams</description>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>0.5.0.BUILD-SNAPSHOT</version>
+    </parent>
+    <dependencies>
+        <!-- Kryo and Kryo extensions -->
+        <dependency>
+            <groupId>com.esotericsoftware.kryo</groupId>
+            <artifactId>kryo</artifactId>
+            <version>2.22</version>
+        </dependency>
+        <dependency>
+            <groupId>de.javakaffee</groupId>
+            <artifactId>kryo-serializers</artifactId>
+            <version>0.26</version>
+        </dependency>
 
-   <repositories>
-      <repository>
-         <id>spring-snapshots</id>
-         <name>Spring Snapshots</name>
-         <url>http://repo.springsource.org/snapshot</url>
-         <snapshots>
-            <enabled>true</enabled>
-         </snapshots>
-      </repository>
-      <repository>
-         <id>spring-milestones</id>
-         <name>Spring Milestones</name>
-         <url>http://repo.springsource.org/milestone</url>
-         <snapshots>
-            <enabled>false</enabled>
-         </snapshots>
-      </repository>
-      <repository>
-         <id>clojars.org</id>
-         <url>http://clojars.org/repo</url>
-      </repository>
-      <repository>
-         <id>Jahmm</id>
-         <name>Jahmm HMM library repository</name>
-         <url>http://jahmm.googlecode.com/svn/repo</url>
-      </repository>
-      <!-- Lifestreams repo -->
-       <repository>
-         <id>Lifestreams</id>
-         <name>changun's Lifestreams repo</name>
-         <url>https://web.ohmage.org/~changun/maven_repo</url>
-      </repository>
-   </repositories>
-   <pluginRepositories>
-      <pluginRepository>
-         <id>spring-snapshots</id>
-         <name>Spring Snapshots</name>
-         <url>http://repo.springsource.org/snapshot</url>
-         <snapshots>
-            <enabled>true</enabled>
-         </snapshots>
-      </pluginRepository>
-      <pluginRepository>
-         <id>spring-milestones</id>
-         <name>Spring Milestones</name>
-         <url>http://repo.springsource.org/milestone</url>
-         <snapshots>
-            <enabled>false</enabled>
-         </snapshots>
-      </pluginRepository>
-   </pluginRepositories>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter</artifactId>
+            <exclusions>
+                <exclusion>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>logback-classic</artifactId>
+                    <groupId>ch.qos.logback</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>logback-core</artifactId>
+                    <groupId>ch.qos.logback</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Jackson -->
+        <!-- the core, which includes Streaming API, shared low-level abstractions (but NOT data-binding) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+        </dependency>
+        <!-- Joda Time -->
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+        </dependency>
+        <!-- Storm -->
+        <dependency>
+            <groupId>org.apache.storm</groupId>
+            <artifactId>storm-core</artifactId>
+            <version>0.9.1-incubating</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>logback-core</artifactId>
+                    <groupId>ch.qos.logback</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>logback-classic</artifactId>
+                    <groupId>ch.qos.logback</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>log4j-over-slf4j</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- for easy HTTP request -->
+        <dependency>
+            <groupId>com.github.kevinsawicki</groupId>
+            <artifactId>http-request</artifactId>
+            <version>5.5</version>
+        </dependency>
+        <!-- HMM -->
+        <dependency>
+            <groupId>be.ac.ulg.montefiore.run.jahmm</groupId>
+            <artifactId>jahmm</artifactId>
+            <version>0.6.2</version>
+        </dependency>
+        <!-- Apache Math (for computing Median) -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>3.2</version>
+        </dependency>
+        <!-- Apache Lang (for Deep Copy) -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.3.2</version>
+        </dependency>
+        <!-- Redis -->
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>2.1.0</version>
+            <type>jar</type>
+            <scope>compile</scope>
+        </dependency>
+        <!-- Moves DTO -->
+        <!-- Please checkout the code from: https://github.com/changun/moves-api-->
+        <dependency>
+            <artifactId>moves-api</artifactId>
+            <groupId>com.moves</groupId>
+            <version>0.3</version>
+        </dependency>
+        <!-- Ohmage Stream SDK -->
+        <!-- Please checkout the code from: https://github.com/changun/OhmageStreamSDK -->
+        <dependency>
+            <groupId>org.ohmage</groupId>
+            <artifactId>streamSDK</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+        <!-- Openmap -->
+        <dependency>
+            <groupId>com.bbn</groupId>
+            <artifactId>openmap</artifactId>
+            <version>5.0.4</version>
+        </dependency>
+        <!-- Simple GPS coordinates -->
+        <dependency>
+            <groupId>com.javadocmd</groupId>
+            <artifactId>simplelatlng</artifactId>
+            <version>RELEASE</version>
+        </dependency>
+        <!-- OpenStreetMap api -->
+        <dependency>
+            <groupId>fr.dudie</groupId>
+            <artifactId>nominatim-api</artifactId>
+            <version>2.0.2</version>
+        </dependency>
+        <!-- Retry on fail -->
+        <dependency>
+            <groupId>com.jcabi</groupId>
+            <artifactId>jcabi-aspects</artifactId>
+            <version>0.12</version>
+        </dependency>
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjrt</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+    </dependencies>
+    <properties>
+        <start-class>org.ohmage.lifestreams.Application</start-class>
+    </properties>
+
+    <distributionManagement>
+        <repository>
+            <id>ssh-repository</id>
+            <url>scpexe://apollo.ohmage.org/home/changun/public_html/maven_repo</url>
+        </repository>
+    </distributionManagement>
+    <build>
+        <extensions>
+            <!-- Enabling the use of FTP -->
+            <extension>
+                <groupId>org.apache.maven.wagon</groupId>
+                <artifactId>wagon-ssh-external</artifactId>
+                <version>1.0-beta-6</version>
+            </extension>
+        </extensions>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-eclipse-plugin</artifactId>
+                <configuration>
+                    <downloadSources>true</downloadSources>
+                    <downloadJavadocs>true</downloadJavadocs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <executions>
+                        <execution>
+                            <id>assemble-all</id>
+                            <phase>package</phase>
+                            <goals>
+                                <goal>single</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+
+                    <archive>
+                        <manifest>
+                            <mainClass>org.ohmage.lifestreams.Application</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+    <repositories>
+        <repository>
+            <id>spring-snapshots</id>
+            <name>Spring Snapshots</name>
+            <url>http://repo.springsource.org/snapshot</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>http://repo.springsource.org/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>clojars.org</id>
+            <url>http://clojars.org/repo</url>
+        </repository>
+        <repository>
+            <id>Jahmm</id>
+            <name>Jahmm HMM library repository</name>
+            <url>http://jahmm.googlecode.com/svn/repo</url>
+        </repository>
+        <!-- Lifestreams repo -->
+        <repository>
+            <id>Lifestreams</id>
+            <name>changun's Lifestreams repo</name>
+            <url>https://web.ohmage.org/~changun/maven_repo</url>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>spring-snapshots</id>
+            <name>Spring Snapshots</name>
+            <url>http://repo.springsource.org/snapshot</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </pluginRepository>
+        <pluginRepository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>http://repo.springsource.org/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 </project>
