@@ -15,10 +15,11 @@ import java.util.TimeZone;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class StreamRecord<T> implements Comparable{
-
-	public StreamRecord() {
-	}
-
+    static ObjectMapper mapper = new ObjectMapper();
+    {
+        // register datetime serializer
+        mapper.registerModule(new DateTimeSerializeModule());
+    }
 	private OhmageUser user;
 	private StreamMetadata metadata = new StreamMetadata();
 	private T data;
@@ -113,47 +114,18 @@ public class StreamRecord<T> implements Comparable{
 	}
 
 	public ObjectNode toObserverDataPoint() {
-		ObjectMapper mapper = new ObjectMapper();
-		mapper.registerModule(new JodaModule());
 		// set the timezone of the data point as the timestamp's timezone
-		mapper.setTimeZone(this.getTimestamp().getZone().toTimeZone());
-		mapper.configure(
-				com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS,
-				false);
-
 		ObjectNode node = mapper.convertValue(this, ObjectNode.class);
 		return node;
 	}
 
 	public static class StreamRecordFactory implements Serializable {
-        transient private ObjectMapper mapper;
 		public StreamRecordFactory(){
 		}
-        public ObjectMapper getMapper(){
-            if(mapper==null) {
-                mapper = new ObjectMapper();
-
-                mapper.registerModule(new JodaModule());
-                mapper.configure(
-                        com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-                        false);
-            }
-            return mapper;
-        }
 		public <T> StreamRecord<T> createRecord(ObjectNode node, OhmageUser user, Class<T> dataClass)
 				throws IOException {
-
-			// use the timezone in the timestamp field to parse every DataTime string in the record
-			
-			// get the timezone
-			TimeZone zone = ISODateTimeFormat.dateTime().withOffsetParsed().parseDateTime(node.get("metadata").get("timestamp").asText()).getZone().toTimeZone();
-
-			// make the json parser to use the timezone in the timestamp field to parse all the ISODateTime
-            getMapper().setTimeZone(zone);
-
-			StreamRecord<T> dataPoint = getMapper().convertValue(node, new StreamRecord<T>().getClass());
-			
-			dataPoint.setData(getMapper().convertValue(dataPoint.getData(), dataClass));
+			StreamRecord<T> dataPoint = mapper.convertValue(node, new StreamRecord<T>().getClass());
+			dataPoint.setData(mapper.convertValue(dataPoint.getData(), dataClass));
 			dataPoint.setUser(user);
 			return dataPoint;
 		}
@@ -164,5 +136,6 @@ public class StreamRecord<T> implements Comparable{
 		// by default, sort StreamRecord by time
 		return (int) (this.getTimestamp().getMillis() - ((StreamRecord) arg0).getTimestamp().getMillis());
 	}
-
+    public StreamRecord() {
+    }
 }
