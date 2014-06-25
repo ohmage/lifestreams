@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.util.TimeZone;
 
 /**
+ * This a Jackson DateTime serialization module that uses the TimeZone specified in the DateTime object / JSON String
+ * by default.
  * Created by changun on 6/25/14.
  */
 public class DateTimeSerializeModule extends SimpleModule{
@@ -74,7 +76,7 @@ public class DateTimeSerializeModule extends SimpleModule{
     public DateTimeSerializeModule(){
         super("DateTimeWithTimezone");
         addDeserializer(DateTime.class, DateTimeDeserializer.forType(DateTime.class));
-        addSerializer(new DateTimeSerializer()); // assuming serializer declares correct class to bind to
+        addSerializer(new DateTimeSerializer());
     }
 
 

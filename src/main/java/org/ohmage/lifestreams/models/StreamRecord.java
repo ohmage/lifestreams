@@ -14,6 +14,7 @@ import java.io.Serializable;
 import java.util.TimeZone;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+
 public class StreamRecord<T>{
     static ObjectMapper mapper = new ObjectMapper();
     {
