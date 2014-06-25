@@ -171,6 +171,12 @@
 			<version>1.8.0</version>
 			<scope>runtime</scope>
 		</dependency>
+        <!-- Mongo db -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongo-java-driver</artifactId>
+            <version>2.12.2</version>
+        </dependency>
 
 		<dependency>
 
