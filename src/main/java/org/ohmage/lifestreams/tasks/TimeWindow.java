@@ -1,32 +1,22 @@
 package org.ohmage.lifestreams.tasks;
 
+import org.joda.time.*;
+import org.joda.time.base.BaseSingleFieldPeriod;
+
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
-import org.joda.time.DateTime;
-import org.joda.time.Days;
-import org.joda.time.Duration;
-import org.joda.time.Hours;
-import org.joda.time.Interval;
-import org.joda.time.Minutes;
-import org.joda.time.Months;
-import org.joda.time.MutableDateTime;
-import org.joda.time.Seconds;
-import org.joda.time.Weeks;
-import org.joda.time.Years;
-import org.joda.time.base.BaseSingleFieldPeriod;
-
 public class TimeWindow {
-	static final int minimunSamplingIntervalInSec = 30;
-	BaseSingleFieldPeriod windowDuration;
-	DateTime firstInstant;
-	DateTime lastInstant;
+	private static final int minimunSamplingIntervalInSec = 30;
+	private BaseSingleFieldPeriod windowDuration;
+	private DateTime firstInstant;
+	private DateTime lastInstant;
 	private DateTime epoch;
 	// the instants at which we have data point
 	// it is used to compute the median sampling period and missing data rate
-	transient BitSet instantSet; 
+	private transient BitSet instantSet;
 	public TimeWindow(BaseSingleFieldPeriod duration, DateTime time) {
 		this.windowDuration = duration;
 		this.firstInstant = time;
@@ -72,17 +62,23 @@ public class TimeWindow {
 	public DateTime getTimeWindowEndTime(){
 		return this.getTimeWindowBeginTime().plus(this.windowDuration).minus(1);
 	}
-	public int getTimeWindowSizeInSecond(){
-		return this.windowDuration.toPeriod().toStandardSeconds().getSeconds();
+	public long getTimeWindowSizeInSecond(){
+		return this.getTimeWindowSizeInMillis()/1000;
 	}
-	public DateTime getFirstInstant() {
+    public long getTimeWindowSizeInMillis(){
+        return new Interval(this.getTimeWindowBeginTime(), this.getTimeWindowEndTime()).toDurationMillis();
+    }
+    public Interval getTimeInterval(){
+        return new Interval(getTimeWindowBeginTime(), getTimeWindowEndTime());
+    }
+    public DateTime getFirstInstant() {
 		return firstInstant;
 	}
 
 	public DateTime getLastInstant() {
 		return lastInstant;
 	}
-	public long getMedianSamplingIntervalInSecond() {
+	long getMedianSamplingIntervalInSecond() {
 		if(instantSet.cardinality() < 2)
 			return windowDuration.toPeriod().toStandardSeconds().getSeconds();
 		List<Long> intervals = new ArrayList<Long>();
@@ -106,7 +102,7 @@ public class TimeWindow {
 		return 1 - (instantSet.size() / numOfSamplesIfFullCoverage);
 	}
 	
-	public long numOfTimeWindowSinceEpoch(DateTime dt){
+	long numOfTimeWindowSinceEpoch(DateTime dt){
 		// TODO: resolve timezone problem. 
 		// right now we use the timezone of the first received data point in the time window 
 		if (windowDuration.getClass() == Years.class)

@@ -1,9 +1,8 @@
 package org.ohmage.lifestreams.tuples;
 
+import backtype.storm.tuple.Tuple;
 import org.joda.time.DateTime;
 import org.ohmage.models.OhmageUser;
-
-import backtype.storm.tuple.Tuple;
 
 public class GlobalCheckpointTuple extends BaseTuple {
 	private DateTime checkpoint;

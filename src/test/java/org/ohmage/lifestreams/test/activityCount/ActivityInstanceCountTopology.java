@@ -1,6 +1,5 @@
 package org.ohmage.lifestreams.test.activityCount;
 
-import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -16,21 +15,23 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration({"classpath*:/mainContext.xml", "classpath:/testContext.xml"})
 @RunWith(SpringJUnit4ClassRunner.class)
 public class ActivityInstanceCountTopology {
-	@Autowired // output stream
+	@Autowired
+    private // output stream
 	OhmageStream activityInstanceCountStream;
 
-	@Autowired // spout that emits mobility data
+	@Autowired
+    private // spout that emits mobility data
 	OhmageStreamSpout mobilitySpout;
 	
-	@Autowired // activityInstanceCounter
+	@Autowired
+    private // activityInstanceCounter
 	ActivityInstanceCounter activityInstanceCounter;
 	
 	@Autowired
-	LifestreamsTopologyBuilder builder;
+    private
+    LifestreamsTopologyBuilder builder;
 	@Test
 	public void run() throws InterruptedException{
-		// since when to perform the computation
-		DateTime since = new DateTime("2013-1-1");
 		/** setup the input and output streams **/
 
 		/** setup the topology **/

@@ -1,18 +1,18 @@
 package org.ohmage.lifestreams.tasks;
 
-import java.io.Serializable;
-import java.util.Set;
-
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.bolts.IGenerator;
 import org.ohmage.lifestreams.bolts.UserTaskState;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.spouts.PersistentMapFactory;
+import org.ohmage.lifestreams.stores.PersistentMapFactory;
 import org.ohmage.lifestreams.tuples.RecordTuple;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.Serializable;
+import java.util.Set;
 
 /**
  * Tasks are the main bulding blocks of a Lifestreams topology and is where the
@@ -59,11 +59,11 @@ public abstract class Task implements Serializable, IGenerator {
 	private transient UserTaskState state;
 	private transient PersistentMapFactory mapFactory;
 
-	public PersistentMapFactory getMapFactory() {
+	protected PersistentMapFactory getMapFactory() {
 		return mapFactory;
 	}
 
-	public UserTaskState getState() {
+	UserTaskState getState() {
 		return state;
 	}
 
@@ -84,13 +84,13 @@ public abstract class Task implements Serializable, IGenerator {
 		recover();
 	}
 
-	protected void init() {
-	};
+	void init() {
+	}
 
-	protected void recover() {
-	};
+    protected void recover() {
+	}
 
-	public void execute(RecordTuple input) {
+    public void execute(RecordTuple input) {
 		executeDataPoint(input);
 	}
 
@@ -164,7 +164,7 @@ public abstract class Task implements Serializable, IGenerator {
 		return new RecordBuilder();
 	}
 
-	public Logger getLogger() {
+	protected Logger getLogger() {
 		return logger;
 	}
 

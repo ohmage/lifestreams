@@ -1,13 +1,12 @@
 package org.ohmage.lifestreams.utils;
 
+import backtype.storm.generated.GlobalStreamId;
+import org.ohmage.lifestreams.tuples.RecordTuple;
+
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-
-import org.ohmage.lifestreams.tuples.RecordTuple;
-
-import backtype.storm.generated.GlobalStreamId;
 
 public class PendingBuffer {
 	// we keep a buffer for each data stream

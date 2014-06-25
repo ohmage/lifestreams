@@ -4,7 +4,7 @@ import org.ohmage.lifestreams.bolts.IGenerator;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 
 public class TimeWindowData extends LifestreamsData {
-	TimeWindow timeWindow;
+	private TimeWindow timeWindow;
 
 	public TimeWindow getTimeWindow() {
 		return timeWindow;

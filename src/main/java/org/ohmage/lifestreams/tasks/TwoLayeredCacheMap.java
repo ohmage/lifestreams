@@ -1,16 +1,12 @@
 package org.ohmage.lifestreams.tasks;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 
 public class TwoLayeredCacheMap<KEY, VALUE> implements Map<KEY, VALUE>{
 	private Map<KEY, VALUE> volatileMap = new HashMap<KEY, VALUE>();
 	private Map<KEY, VALUE> persistentMapMirror = new HashMap<KEY, VALUE>();
-	final Map<KEY, VALUE> persistentMap;
+	private final Map<KEY, VALUE> persistentMap;
 	public TwoLayeredCacheMap(Map<KEY, VALUE> persistentMap){
 		this.persistentMap = persistentMap;
 		this.persistentMapMirror.putAll(persistentMap);

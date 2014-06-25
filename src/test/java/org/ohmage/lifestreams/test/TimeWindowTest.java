@@ -1,5 +1,7 @@
 package org.ohmage.lifestreams.test;
 
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.junit.Assert;
@@ -7,9 +9,6 @@ import org.junit.Test;
 import org.ohmage.lifestreams.tasks.GeoDiameterTask;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.lifestreams.utils.KryoSerializer;
-
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
 
 
 public class TimeWindowTest {

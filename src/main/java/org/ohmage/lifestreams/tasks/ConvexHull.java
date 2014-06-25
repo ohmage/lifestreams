@@ -1,18 +1,17 @@
 package org.ohmage.lifestreams.tasks;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-
-import org.ohmage.lifestreams.models.StreamRecord;
-
 import com.bbn.openmap.geo.Geo;
 import com.bbn.openmap.proj.Length;
 import com.javadocmd.simplelatlng.LatLng;
 import com.javadocmd.simplelatlng.LatLngTool;
 import com.javadocmd.simplelatlng.util.LengthUnit;
+import org.ohmage.lifestreams.models.StreamRecord;
 
-public class ConvexHull {
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+
+class ConvexHull {
 	public static List<StreamRecord> getHull(List<StreamRecord> points, double toleranceInMeter){
 		// prepare the geolocation array for computing convex hull
 				List<Geo> geoPoints = new LinkedList<Geo>();

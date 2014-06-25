@@ -25,7 +25,7 @@ public abstract class SimpleTask<T> extends Task {
 	}
 
 	@Override
-	public void init() {
+    protected void init() {
 		super.init();
 		if (this.getState().getBolt().getInputStreams().size() != 1) {
 			throw new RuntimeException(

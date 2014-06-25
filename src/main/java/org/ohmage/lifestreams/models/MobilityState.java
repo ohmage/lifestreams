@@ -5,11 +5,8 @@ import co.nutrino.api.moves.impl.dto.activity.MovesActivityEnum;
 public enum MobilityState {
 	STILL, RUN, WALK, DRIVE, CYCLING, UNKNOWN;
 	public boolean isActive() {
-		if (this.equals(RUN) || this.equals(WALK) || this.equals(CYCLING)) {
-			return true;
-		}
-		return false;
-	}
+        return this.equals(RUN) || this.equals(WALK) || this.equals(CYCLING);
+    }
 
 	static public MobilityState fromMovesActivity(MovesActivityEnum moves) {
 		if (moves.equals(MovesActivityEnum.Cycling))

@@ -1,45 +1,43 @@
 package org.ohmage.lifestreams.models.data;
 
-import org.ohmage.models.OhmageUser;
-
 import co.nutrino.api.moves.impl.dto.authentication.UserMovesAuthentication;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.ohmage.models.OhmageUser;
 
 public class MovesCredentialsData{
 	@JsonProperty("access_token")
 	public String getAccessToken() {
 		return accessToken;
 	}
-	public void setAccessToken(String accessToken) {
+	void setAccessToken(String accessToken) {
 		this.accessToken = accessToken;
 	}
 	@JsonProperty("refresh_token")
 	public String getRefreshToken() {
 		return refreshToken;
 	}
-	public void setRefreshToken(String refreshToken) {
+	void setRefreshToken(String refreshToken) {
 		this.refreshToken = refreshToken;
 	}
 	@JsonProperty(required=false)
 	public String getUsername() {
 		return username;
 	}
-	public void setUsername(String username) {
+	void setUsername(String username) {
 		this.username = username;
 	}
 	@JsonProperty("user_id")
 	public long getMovesId() {
 		return movesId;
 	}
-	public void setMovesId(long movesId) {
+	void setMovesId(long movesId) {
 		this.movesId = movesId;
 	}
 	@JsonProperty("expires_in")
 	public long getExpiredIn() {
 		return expiredIn;
 	}
-	public void setExpiredIn(long expiredIn) {
+	void setExpiredIn(long expiredIn) {
 		this.expiredIn = expiredIn;
 	}
 
@@ -55,11 +53,11 @@ public class MovesCredentialsData{
 		c.setMovesId(Long.parseLong(auth.getUser_id()));
 		return c;
 	}
-	String accessToken;
-	String refreshToken;
-	String username;
-	long movesId;
-	long expiredIn;
+	private String accessToken;
+	private String refreshToken;
+	private String username;
+	private long movesId;
+	private long expiredIn;
 
 	
 }

@@ -1,20 +1,20 @@
 package org.ohmage.lifestreams.spouts;
 
-import java.util.PriorityQueue;
-
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.tuples.SpoutRecordTuple.RecordTupleMsgId;
 import org.ohmage.models.OhmageUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UserSpoutState {
-	private OhmageUser user;
-	private BaseLifestreamsSpout spout;
-	private DateTime checkpoint; 
-	private Logger logger = LoggerFactory.getLogger(UserSpoutState.class);
-	
-	// the following are the fields that need to be reset before starting a new batch
+import java.util.PriorityQueue;
+
+class UserSpoutState {
+	private final OhmageUser user;
+	private final BaseLifestreamsSpout spout;
+	private final Logger logger = LoggerFactory.getLogger(UserSpoutState.class);
+
+    private DateTime checkpoint;
+    // the following are the fields that need to be reset before starting a new batch
 	private boolean failed = false;
 	private long ackedSerialId = -1;
 	private long lastExpectedSerialId = -1;

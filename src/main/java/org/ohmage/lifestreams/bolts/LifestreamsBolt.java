@@ -1,29 +1,5 @@
 package org.ohmage.lifestreams.bolts;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.ohmage.lifestreams.LifestreamsConfig;
-import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.spouts.IMapStore;
-import org.ohmage.lifestreams.spouts.PersistentMapFactory;
-import org.ohmage.lifestreams.stores.StreamStore;
-import org.ohmage.lifestreams.tasks.Task;
-import org.ohmage.lifestreams.tuples.BaseTuple;
-import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
-import org.ohmage.lifestreams.tuples.RecordTuple;
-import org.ohmage.lifestreams.tuples.StreamStatusTuple;
-import org.ohmage.models.OhmageStream;
-import org.ohmage.models.OhmageUser;
-import org.ohmage.models.OhmageUser.OhmageAuthenticationError;
-import org.ohmage.sdk.OhmageStreamClient;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import backtype.storm.Config;
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.generated.Grouping;
@@ -33,23 +9,40 @@ import backtype.storm.task.TopologyContext;
 import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichBolt;
 import backtype.storm.tuple.Tuple;
-
 import com.esotericsoftware.kryo.Kryo;
+import org.ohmage.lifestreams.LifestreamsConfig;
+import org.ohmage.lifestreams.models.StreamRecord;
+import org.ohmage.lifestreams.stores.IMapStore;
+import org.ohmage.lifestreams.stores.IStreamStore;
+import org.ohmage.lifestreams.stores.PersistentMapFactory;
+import org.ohmage.lifestreams.tasks.Task;
+import org.ohmage.lifestreams.tuples.BaseTuple;
+import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
+import org.ohmage.lifestreams.tuples.RecordTuple;
+import org.ohmage.lifestreams.tuples.StreamStatusTuple;
+import org.ohmage.models.OhmageStream;
+import org.ohmage.models.OhmageUser;
+
+import java.util.*;
 
 /**
  * LifestreamsBolt is a implementation of Storm Bolt. Each Lifestreams Bolt is
- * assigned a Task that contains the main data processing logic. However,
- * instead of directly interacting with the Task object, Lifestreams bolt
- * creates a {@link UserTaskState} instance for each user. {@link UserTaskState}
- * maintains the computation states and cache the outputs. Whenever the task
- * commits a checkpoint, the UserState object will make a snapshot of the
- * computation state and store it in a persistent storage, so that the
- * LifestreamsBolt can recover/resume the computation state after crash/failure.
- * LifestreamsBolt provides several function for {@link UserTaskState} to
- * interact with storm topology. For example,
- * {@link #emitRecord(StreamRecord, List, boolean)} is called to emit a stream
- * record to the topology and optionally upload the record to the stream store
- * (if specified).
+ * assigned a Task template that contains the main data processing logic. For
+ * each user, the bolt will make a copy of the Task template and runs that on
+ * each user's data. LifestreamsBolt support the stateful computation, meaning
+ * that it is capable of maintain the computation state of a Task and recover
+ * the state after crash/failure occurs To make the interface cleaner, instead
+ * of directly interacting with the Task object, Lifestreams bolt creates a
+ * {@link UserTaskState} instance for each user's Task instance.
+ * {@link UserTaskState} maintains the computation states and cache the outputs.
+ * Whenever the task commits a checkpoint, the UserState object will make a
+ * snapshot of the computation state and store it in a persistent storage. When
+ * crash/failure occurs, the LifestreamsBolt can recover/resume the computation
+ * state from the persistent storage. LifestreamsBolt provides several function
+ * for {@link UserTaskState} to interact with underlying storm topology. For
+ * example, {@link #emitRecord(StreamRecord, List, boolean)} is called to emit a
+ * stream record to the topology and optionally upload the record to the stream
+ * store (if specified).
  * 
  * @author changun
  * 
@@ -59,7 +52,7 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	private HashMap<OhmageUser, UserTaskState> userStateMap = new HashMap<OhmageUser, UserTaskState>();
 
 	// storm data collector (for emitting records)
-	protected OutputCollector collector;
+    OutputCollector collector;
 
 	// the name of the topology, and the name of this bolt
 	// these values will be populated during prepare phase (see prepare())
@@ -69,26 +62,23 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	// the components in the subtree with this bolt as root.
 	// (when a bolt receives a command targeting one of its subcomponent,
 	// it should propagate the command)
-	Set<String> subComponents;
+    private Set<String> subComponents;
 
 	// the input streams of this bolt
-	Set<GlobalStreamId> inputStreams;
-
-	// logger
-	Logger logger = LoggerFactory.getLogger(LifestreamsBolt.class);
+    private Set<GlobalStreamId> inputStreams;
 
 	// whether to write back the processed records to the ohmage stream.
 	private boolean isDryrun = false;
 	// the stream store, where the processed data being output to
-	private StreamStore streamStore;
+	private IStreamStore streamStore;
 	// the ohmage stream the processed records will be writeback to.
 	private OhmageStream targetStream;
-	private IMapStore mapStore;
-	protected PersistentMapFactory mapFactory;
+	private PersistentMapFactory mapFactory;
 	final private Task templateTask;
 
-	private UserTaskState createUserState(OhmageUser user, Long batchId) {
-		UserTaskState userState = UserTaskState.createOrRecoverUserState(this, user, templateTask, mapFactory);
+	private UserTaskState createUserState(OhmageUser user) {
+		UserTaskState userState = UserTaskState.createOrRecoverUserState(this,
+				user, templateTask, mapFactory);
 		userStateMap.put(user, userState);
 		return userState;
 	}
@@ -100,10 +90,13 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	private void removeUserState(OhmageUser user) {
 		userStateMap.remove(user);
 	}
-	public Map<String, UserTaskState> getPersistentStateMap(){
-		 return mapFactory.getComponentMap(this.componentId, "userTaskState", String.class, UserTaskState.class);
+
+	public Map<String, UserTaskState> getPersistentStateMap() {
+		return mapFactory.getComponentMap(this.componentId, "userTaskState",
+				String.class, UserTaskState.class);
 
 	}
+
 	@Override
 	public void execute(Tuple input) {
 		BaseTuple baseTuple = BaseTuple.createFromRawTuple(input);
@@ -113,7 +106,7 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 			StreamStatusTuple tuple = (StreamStatusTuple) baseTuple;
 			switch (tuple.getStatus()) {
 			case HEAD:
-				createUserState(user, tuple.getBatchId());
+				createUserState(user);
 				break;
 			case END:
 				UserTaskState userState = getUserState(user);
@@ -128,26 +121,15 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 			return;
 		}
 		UserTaskState userState = getUserState(user);
-		
+
 		if (userState != null) {
-			
+
 			if (baseTuple instanceof GlobalCheckpointTuple) {
-				userState.executeGlobalCheckpoint((GlobalCheckpointTuple) baseTuple);
+				userState
+						.executeGlobalCheckpoint((GlobalCheckpointTuple) baseTuple);
 			} else if (baseTuple instanceof RecordTuple && !userState.isEnded()) {
 				userState.execute((RecordTuple) baseTuple);
 			}
-		}
-	}
-
-	private void upload(StreamRecord<? extends Object> dp) {
-		try {
-
-			new OhmageStreamClient(dp.getUser()).upload(targetStream,
-					dp.toObserverDataPoint());
-		} catch (OhmageAuthenticationError e) {
-			throw new RuntimeException(e);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
 		}
 	}
 
@@ -162,7 +144,7 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	 *            Whether, in addition to emitting it, to upload the tuple to
 	 *            the defined stream store.
 	 */
-	public void emitRecord(StreamRecord<? extends Object> rec,
+	public void emitRecord(StreamRecord<?> rec,
 			List<Tuple> anchors, boolean upload) {
 		if (upload && !isDryrun && targetStream != null) {
 			// upload the processed record back to ohmage
@@ -205,11 +187,21 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 	@Override
 	public void prepare(@SuppressWarnings("rawtypes") Map stormConf,
 			TopologyContext context, OutputCollector collector) {
-		Kryo kryo = new SerializationFactory().getKryo(stormConf);
-		this.mapFactory = new PersistentMapFactory((String) stormConf.get(Config.TOPOLOGY_NAME), mapStore, kryo);
+		Kryo kryo = SerializationFactory.getKryo(stormConf);
+		// create map factory using map store instance specified in the config
+		IMapStore mapStore = (IMapStore) LifestreamsConfig
+				.getAndDeserializeObject(stormConf,
+						LifestreamsConfig.MAP_STORE_INSTANCE);
+		this.mapFactory = new PersistentMapFactory(
+				(String) stormConf.get(Config.TOPOLOGY_NAME), mapStore, kryo);
+
+		this.streamStore = (IStreamStore) LifestreamsConfig
+				.getAndDeserializeObject(stormConf,
+						LifestreamsConfig.STREAM_STORE_INSTANCE);
 		// initialize the topology-wide arguments
 		if (stormConf.containsKey(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING)) {
-			isDryrun = (Boolean) stormConf.get(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING);
+			isDryrun = (Boolean) stormConf
+					.get(LifestreamsConfig.DRYRUN_WITHOUT_UPLOADING);
 		}
 		this.collector = collector;
 		// populate the names of this bolt and the topology
@@ -235,11 +227,11 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 		}
 	}
 
-	public StreamStore getStreamStore() {
+	public IStreamStore getStreamStore() {
 		return streamStore;
 	}
 
-	public void setStreamStore(StreamStore streamStore) {
+	public void setStreamStore(IStreamStore streamStore) {
 		this.streamStore = streamStore;
 	}
 
@@ -278,8 +270,7 @@ public class LifestreamsBolt extends BaseRichBolt implements IGenerator {
 		return topologyId;
 	}
 
-	public LifestreamsBolt(Task templateTask, IMapStore mapStore) {
-		this.mapStore = mapStore;
+	public LifestreamsBolt(Task templateTask) {
 		this.templateTask = templateTask;
 	}
 

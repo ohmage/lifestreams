@@ -22,7 +22,7 @@ public class ActivityInstanceCounter extends SimpleTimeWindowTask<MobilityData> 
 	}
 
 	// counter for active instances
-	int activityInstanceCount = 0;
+    private int activityInstanceCount = 0;
 
 	@Override
 	public void executeDataPoint(StreamRecord<MobilityData> rec,

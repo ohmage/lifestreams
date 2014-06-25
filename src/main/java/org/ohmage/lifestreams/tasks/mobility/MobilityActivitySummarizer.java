@@ -1,9 +1,5 @@
 package org.ohmage.lifestreams.tasks.mobility;
 
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
@@ -14,6 +10,10 @@ import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.ohmage.lifestreams.utils.ActivityEpisodeAccumulator;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
 
 /**
  * @author changun This task generates a activity summary (see
@@ -28,10 +28,10 @@ public class MobilityActivitySummarizer extends SimpleTimeWindowTask<IMobilityDa
 	private static final Double MAXIMUN_SAMPLING_GAP = 5.5 * 60; // in seconds
 
 
-	transient EnumMap<MobilityState, Double> activityTimeAccumulator;
-	transient ActivityEpisodeAccumulator activityEpisodeAccumulator;
-	transient List<ActivityEpisode> activityInstances;
-	transient StreamRecord<IMobilityData> last_dp;
+	private transient EnumMap<MobilityState, Double> activityTimeAccumulator;
+	private transient ActivityEpisodeAccumulator activityEpisodeAccumulator;
+	private transient List<ActivityEpisode> activityInstances;
+	private transient StreamRecord<IMobilityData> last_dp;
 	
 	public void init() {
 		super.init();
