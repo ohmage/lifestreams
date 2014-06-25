@@ -1,27 +1,33 @@
 package org.ohmage.lifestreams.models;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.TimeZone;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import org.joda.time.DateTime;
 import org.joda.time.format.ISODateTimeFormat;
 import org.ohmage.models.OhmageUser;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.datatype.joda.JodaModule;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.TimeZone;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class StreamRecord<T> implements Comparable{
-
-	public StreamRecord() {
-	}
-
+public class StreamRecord<T>{
+    static ObjectMapper mapper = new ObjectMapper();
+    {
+        // register custom datetime serializer/deserelizer
+        // which will use the timezone specified in the DateTime object / or json string as default
+        mapper.registerModule(new DateTimeSerializeModule());
+        // ignore unknown field when deserializing objects
+        mapper.configure(
+                com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
+                false);
+    }
+    static public ObjectMapper getObjectMapper(){
+        return mapper;
+    }
 	private OhmageUser user;
 	private StreamMetadata metadata = new StreamMetadata();
 	private T data;
@@ -44,14 +50,14 @@ public class StreamRecord<T> implements Comparable{
 	// alias for getData
 	public T d() {
 		return data;
-	};
+	}
 
-	// alias for setData
+    // alias for setData
 	public void d(T data) {
 		this.data = data;
-	};
+	}
 
-	@JsonIgnore
+    @JsonIgnore
 	public DateTime getTimestamp() {
 		return this.metadata.getTimestamp();
 	}
@@ -116,55 +122,23 @@ public class StreamRecord<T> implements Comparable{
 	}
 
 	public ObjectNode toObserverDataPoint() {
-		ObjectMapper mapper = new ObjectMapper();
-		mapper.registerModule(new JodaModule());
-		// set the timezone of the data point as the timestamp's timezone
-		mapper.setTimeZone(this.getTimestamp().getZone().toTimeZone());
-		mapper.configure(
-				com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS,
-				false);
-
-		ObjectNode node = mapper.convertValue(this, ObjectNode.class);
-		return node;
+		return mapper.convertValue(this, ObjectNode.class);
 	}
 
-	public static class StreamRecordFactory<T> implements Serializable {
-		private Class<T> c;
-		public static <T> StreamRecordFactory<T> createStreamRecordFactory(Class<T> c ){
-			return new StreamRecordFactory<T>(c);
+	public static class StreamRecordFactory implements Serializable {
+		public StreamRecordFactory(){
 		}
-		private StreamRecordFactory(Class<T> c){
-			this.c = c;
-		}
-		public StreamRecord<T> createRecord(ObjectNode node, OhmageUser user)
-				throws JsonParseException, JsonMappingException, IOException {
-			ObjectMapper mapper = new ObjectMapper();
-			
-			mapper.registerModule(new JodaModule());
-			mapper.configure(
-					com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-					false);
-			// use the timezone in the timestamp field to parse the datatime string
-			
-			// get the timezone
-			TimeZone zone = ISODateTimeFormat.dateTime().withOffsetParsed().parseDateTime(node.get("metadata").get("timestamp").asText()).getZone().toTimeZone();
-
-			// make the json parser to use the timezone in the timestamp field to parse all the ISODateTime
-			mapper.setTimeZone(zone);
-
-			@SuppressWarnings("unchecked")
-			StreamRecord<T> dataPoint = mapper.convertValue(node, new StreamRecord<T>().getClass());
-			
-			dataPoint.setData(mapper.convertValue(dataPoint.getData(), c));
-			dataPoint.setUser(user);
-			return dataPoint;
+		public <T> StreamRecord<T> createRecord(ObjectNode node, OhmageUser user, Class<T> dataClass)
+				throws IOException {
+			StreamRecord dataPoint = mapper.convertValue(node, new StreamRecord<Object>().getClass());
+            StreamRecord<T> ret = new StreamRecord<T>();
+            ret.setUser(dataPoint.getUser());
+            ret.setMetadata(dataPoint.getMetadata());
+			ret.setData(mapper.convertValue(dataPoint.getData(), dataClass));
+			return ret;
 		}
 	}
 
-	@Override
-	public int compareTo(Object arg0) {
-		// by default, sort StreamRecord by time
-		return (int) (this.getTimestamp().getMillis() - ((StreamRecord) arg0).getTimestamp().getMillis());
-	}
-
+    public StreamRecord() {
+    }
 }

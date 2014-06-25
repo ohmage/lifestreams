@@ -1,11 +1,10 @@
 package org.ohmage.lifestreams.models.data;
 
-import java.util.Set;
-
-import org.ohmage.lifestreams.bolts.IGenerator;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.ohmage.lifestreams.bolts.IGenerator;
+
+import java.util.Set;
 
 public class LifestreamsData {
 
@@ -38,12 +37,12 @@ public class LifestreamsData {
 	
 		}
 
-	protected GeneratorInfo generator;
+	private GeneratorInfo generator;
 
-	public LifestreamsData() {
+	LifestreamsData() {
 		super();
 	}
-	public LifestreamsData(IGenerator generator) {
+	LifestreamsData(IGenerator generator) {
 		// populate info for generator
 		this.generator = new GeneratorInfo();
 		this.generator.setComponentId(generator.getGeneratorId());
@@ -58,7 +57,7 @@ public class LifestreamsData {
 	}
 
 	@JsonProperty
-	public GeneratorInfo getGenerator() {
+    GeneratorInfo getGenerator() {
 		return generator;
 	}
 

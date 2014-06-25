@@ -1,52 +1,45 @@
-package org.ohmage.lifestreams.spouts;
+package org.ohmage.lifestreams.stores;
 
-import java.io.ByteArrayInputStream;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.zip.DeflaterOutputStream;
-import java.util.zip.InflaterInputStream;
-
-import org.apache.commons.io.output.ByteArrayOutputStream;
+import com.esotericsoftware.kryo.Kryo;
+import org.ohmage.lifestreams.utils.KryoSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.exceptions.JedisException;
 
-import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.io.Input;
-import com.esotericsoftware.kryo.io.Output;
+import java.io.Serializable;
+import java.util.*;
 
-@Component
 public class RedisMapStore implements IMapStore, Serializable {
-	private static final String PREFIX = "lifestreams.";
-
-	private static final String CHECKPOINT = PREFIX + "checkpoint";
-	private static final String SNAPSHOT = PREFIX + "snapshot";
-	private static final String MAP = PREFIX + "maps.";
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -4830683070362165286L;
+	final private String host;
+	final private JedisPoolConfig config;
 	
-	@Value("${redis.host}")
-	String host;
-
 	transient private JedisPool pool;
-	public JedisPool getPool(){
+	JedisPool getPool(){
 		if(pool == null){
-			pool = new JedisPool(new JedisPoolConfig(), host);
+			pool = new JedisPool(config, host);
 		}
 		return pool;
 	}
 	
-	private Logger logger = LoggerFactory.getLogger(RedisMapStore.class);
+	private static final Logger logger = LoggerFactory.getLogger(RedisMapStore.class);
+	public RedisMapStore(){
+		this("localhost", new JedisPoolConfig());
+	}
+	public RedisMapStore(String host){
+		this(host, new JedisPoolConfig());
+	}
 	
+	private RedisMapStore(String host, JedisPoolConfig config){
+		this.config = config;
+		this.host = host;
+	}
 	
 	
 	public class RMap<K,V> implements Map<K,V>{
@@ -63,19 +56,10 @@ public class RedisMapStore implements IMapStore, Serializable {
 		final Class<V> vClass;
 		
 		public byte[] getBytes(Object obj) {
-	        ByteArrayOutputStream byteArrayOutputStream = 
-	                new ByteArrayOutputStream(16384);
-	        DeflaterOutputStream deflaterOutputStream = 
-	                new DeflaterOutputStream(byteArrayOutputStream);
-	    	Output valOutput = new Output(deflaterOutputStream);
-	    	
-			kryo.writeObject(valOutput, obj);
-			valOutput.close();
-			return byteArrayOutputStream.toByteArray();
+            return KryoSerializer.getBytes(obj, kryo);
 		}
 		public<T> T toObject(byte[] bytes, Class<T> c) {
-		    Input in = new Input(new InflaterInputStream(new ByteArrayInputStream(bytes)));
-			return (T) kryo.readObject(in, c);
+		    return KryoSerializer.toObject(bytes, c, kryo);
 		}
 
 		@Override

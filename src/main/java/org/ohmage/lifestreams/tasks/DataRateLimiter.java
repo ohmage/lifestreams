@@ -6,9 +6,9 @@ import org.joda.time.Interval;
 import org.ohmage.lifestreams.tuples.RecordTuple;
 
 public class DataRateLimiter extends Task {
-	DateTime lastEmittedTime = null;
-	Duration minInterval;
-	int tuplesSinceCheckpoint = 0;
+	private DateTime lastEmittedTime = null;
+	private Duration minInterval;
+	private int tuplesSinceCheckpoint = 0;
 	@Override
 	protected void executeDataPoint(RecordTuple tuple) {
 		boolean tooFrequent = false;

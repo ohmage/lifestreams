@@ -27,7 +27,7 @@ import org.ohmage.lifestreams.tasks.TimeWindow;
  *         }
  *         </schema>
  */
-public class ActivityInstanceCountData extends TimeWindowData{
+class ActivityInstanceCountData extends TimeWindowData{
 	private int activityInstanceCount;
 
 	public int getActivityInstanceCount() {

@@ -2,100 +2,79 @@ package org.ohmage.lifestreams;
 
 import org.joda.time.Days;
 import org.joda.time.Duration;
+import org.joda.time.Hours;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.spouts.MovesSpout;
 import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
 import org.ohmage.lifestreams.tasks.DataRateLimiter;
 import org.ohmage.lifestreams.tasks.GeoDiameterTask;
-import org.ohmage.lifestreams.tasks.mobility.HMMMobilityRectifier;
-import org.ohmage.lifestreams.tasks.mobility.MobilityActivitySummarizer;
-import org.ohmage.lifestreams.tasks.mobility.PlaceDetection;
-import org.ohmage.lifestreams.tasks.mobility.TimeLeaveReturnHome;
-import org.ohmage.lifestreams.tasks.moves.FilterDuplicatedSegment;
-import org.ohmage.lifestreams.tasks.moves.MovesActivitySummarizer;
-import org.ohmage.lifestreams.tasks.moves.TrackPointExtractor;
+import org.ohmage.lifestreams.tasks.mobility.*;
+import org.ohmage.lifestreams.tasks.moves.*;
 import org.ohmage.models.OhmageStream;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
-import co.nutrino.api.moves.impl.service.MovesSecurityManager;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
- * This topology can process Mobility and Moves data and generate daily
+ * This topology processes Mobility and Moves data and generate daily
  * summaries including: daily activity summaries, daily geodiameter, and time
  * leave/return home.
  * 
  * @author changun
  * 
  */
-@Component
-public class MobilityMovesTopology {
-	// ** Input Streams **//
-	@Autowired
-	OhmageStream mobilityStream;
-	@Autowired
-	OhmageStream movesSegmentStream;
-	@Autowired
-	OhmageStream movesCredentialStream;
+class MobilityMovesTopology {
 
-	// ** Output streams **//
+	// ** Mobility Output streams **//
 	@Autowired
-	OhmageStream activitySummaryStream;
+	@Qualifier("activitySummaryStream")
+    private
+    OhmageStream activitySummaryStream;
 	@Autowired
-	OhmageStream geodiameterStream;
+	@Qualifier("geodiameterStream")
+    private
+    OhmageStream geodiameterStream;
 	@Autowired
-	OhmageStream leaveArriveHomeStream;
+	@Qualifier("leaveReturnHomeStream")
+    private
+    OhmageStream leaveReturnHomeStream;
+    @Autowired
+    @Qualifier("dataCoverageStream")
+    private
+    OhmageStream dataCoverageStream;
 
-	@Autowired
-	MovesSecurityManager movesSecurityManger;
+    // ** Moves Output streams **//
+    @Autowired
+    @Qualifier("activitySummaryStreamForMoves")
+    private
+    OhmageStream activitySummaryStreamForMoves;
+    @Autowired
+    @Qualifier("geodiameterStreamForMoves")
+    private
+    OhmageStream geodiameterStreamForMoves;
+    @Autowired
+    @Qualifier("leaveReturnHomeStreamForMoves")
+    private
+    OhmageStream leaveReturnHomeStreamForMoves;
+    @Autowired
+    @Qualifier("dataCoverageStreamForMoves")
+    private
+    OhmageStream dataCoverageStreamForMoves;
 
 	// ** Spouts ** //
 	@Autowired
-	OhmageStreamSpout<MobilityData> mobilitySpout;
+    private
+    OhmageStreamSpout<MobilityData> mobilitySpout;
 	@Autowired
-	MovesSpout movesSpout;
-
-	// ** Mobility components ** //
+    private
+    MovesSpout movesSpout;
 	@Autowired
-	TimeLeaveReturnHome timeLeaveReturnHome;
-	@Autowired
-	GeoDiameterTask geoDiameterTask;
-	@Autowired
-	HMMMobilityRectifier HMMMobilityRectifier;
-	@Autowired
-	MobilityActivitySummarizer mobilityActivitySummarizer;
-	@Autowired
-	PlaceDetection placeDetection;
-	// ** Moves components ** //
-	@Autowired
-	FilterDuplicatedSegment filterDuplicatedSegment;
-	@Autowired
-	TrackPointExtractor trackPointExtractor;
-	@Autowired
-	org.ohmage.lifestreams.tasks.moves.MovesTimeLeaveReturnHome movesTimeLEaveReturnHome;
-	@Autowired
-	MovesActivitySummarizer movesActivitySummarizer;
-
+    private
+    LifestreamsTopologyBuilder builder;
 	// ** Configuration ** //
-	@Value("${topology.name}")
-	String topologyName;
-
-	@Value("${parallelism.per.mobility.task}")
-	int parallelismPerTask;
-
-	@Value("${mobility.spout.number}")
-	int mobility_spout_number;
-
-	@Value("${enable.mobility.topology}")
-	boolean enableMobility;
-
-	@Value("${enable.moves.topology}")
-	boolean enableMoves;
-
-	@Autowired
-	LifestreamsTopologyBuilder builder;
-
+	private final String topologyName;
+	private final int parallelismPerTask;
+	private final int mobility_spout_number;
+	
 	public void run() {
 		/** setup the topology **/
 
@@ -103,68 +82,73 @@ public class MobilityMovesTopology {
 		 * Topology part 1. create a spout that gets mobility data and the tasks
 		 * that consume the data
 		 **/
-		if (enableMobility) {
+
 			builder.setSpout("MobilityDataStream", mobilitySpout,
 					mobility_spout_number);
 			builder.setTask("ThrottledMobilityDataStream", new DataRateLimiter(Duration.standardSeconds(30)), "MobilityDataStream")
 					.setParallelismHint(parallelismPerTask);
-
-			builder.setTask("PlaceDetection", placeDetection, "ThrottledMobilityDataStream")
+            builder.setTask("MobilityHourlyDataCoverage", new MobilityCoverage(Hours.ONE), "ThrottledMobilityDataStream")
+                    .setTargetStream(dataCoverageStream)
+                    .setParallelismHint(parallelismPerTask);
+			builder.setTask("PlaceDetection", new PlaceDetection(), "ThrottledMobilityDataStream")
 					.setParallelismHint(parallelismPerTask);
 
-			builder.setTask("MobilityTimeLeaveReturnHome", timeLeaveReturnHome, "PlaceDetection")
+			builder.setTask("MobilityTimeLeaveReturnHome", new TimeLeaveReturnHome(), "PlaceDetection")
 			.setParallelismHint(parallelismPerTask)
-			.setTargetStream(leaveArriveHomeStream);
+			.setTargetStream(leaveReturnHomeStream);
 			
 			// compute daily geodiameter from Mobility data
-			builder.setTask("GeoDistanceBolt", geoDiameterTask,	"ThrottledMobilityDataStream")
+			builder.setTask("GeoDistanceBolt", new GeoDiameterTask(),	"ThrottledMobilityDataStream")
 					.setTargetStream(geodiameterStream)
 					.setParallelismHint(parallelismPerTask)
 					.setTimeWindowSize(Days.ONE);
 
 			// HMM model to correct shor-term errors in Mobility
-			builder.setTask("HMMMobilityStateRectifier", HMMMobilityRectifier, "ThrottledMobilityDataStream")
+			builder.setTask("HMMMobilityStateRectifier", new HMMMobilityRectifier(), "ThrottledMobilityDataStream")
 					.setParallelismHint(parallelismPerTask);
 			// based on the corrected Mobility data, compute daily activity
 			// summary
 			builder.setTask("MobilityActivitySummarier",
-					mobilityActivitySummarizer, "HMMMobilityStateRectifier")
+					new MobilityActivitySummarizer(), "HMMMobilityStateRectifier")
 					.setParallelismHint(parallelismPerTask)
 					.setTargetStream(activitySummaryStream)
 					.setTimeWindowSize(Days.ONE);
-		}
+		
 
 		/**
 		 * Topology part 2. create a spout that gets Moves data and the tasks
 		 * that consume the data
 		 **/
-		if (enableMoves) {
+
 			builder.setSpout("RawMovesDataStream", movesSpout, 1);
 
 			// segments from the ohmage or the local Moves fetcher may contain
 			// duplication. Filter them out.
-			builder.setTask("MovesDataStream", filterDuplicatedSegment,	"RawMovesDataStream")
-					.setTargetStream(movesSegmentStream);
+			builder.setTask("MovesDataStream", new FilterDuplicatedSegment(),	"RawMovesDataStream");
+
+            //compute hourly coverage rate
+            builder.setTask("MovesHourlyDataCoverage", new MovesDataCoverage(Hours.ONE), "MovesDataStream")
+                .setTargetStream(dataCoverageStreamForMoves);
 
 			// extract track points from moves segments
-			builder.setTask("MovesTrackPointExtractor", trackPointExtractor,
+			builder.setTask("MovesTrackPointExtractor", new TrackPointExtractor(),
 					"MovesDataStream");
 
 			// compute geo diameter based on the track points
-			builder.setTask("MovesGeoDiameter", geoDiameterTask,
+			builder.setTask("MovesGeoDiameter", new GeoDiameterTask(),
 					"MovesTrackPointExtractor")
-					.setTargetStream(geodiameterStream)
+					.setTargetStream(geodiameterStreamForMoves)
 					.setTimeWindowSize(Days.ONE);
 
 			// generate daily activity summary
-			builder.setTask("MovesActivitySummarier", movesActivitySummarizer,
-					"MovesDataStream").setTargetStream(activitySummaryStream)
+			builder.setTask("MovesActivitySummarier", new MovesActivitySummarizer(),
+					"MovesDataStream").setTargetStream(activitySummaryStreamForMoves)
 					.setTimeWindowSize(Days.ONE);
 
-			builder.setTask("TimeLeaveReturnHome", movesTimeLEaveReturnHome,
-					"MovesDataStream").setTargetStream(leaveArriveHomeStream)
+			builder.setTask("TimeLeaveReturnHome", new MovesTimeLeaveReturnHome(),
+					"MovesDataStream").setTargetStream(leaveReturnHomeStreamForMoves)
 					.setTimeWindowSize(Days.ONE);
-		}
+		
 		builder.submitToLocalCluster(topologyName);
 
 		// sleep forever until interrupted
@@ -176,4 +160,9 @@ public class MobilityMovesTopology {
 			}
 		}
 	}
+	 public MobilityMovesTopology(String topologyName, int mobilitySpoutNum, int mobilityTaskParallelism){
+		 this.topologyName = topologyName;
+		 this.mobility_spout_number = mobilitySpoutNum;
+		 this.parallelismPerTask = mobilityTaskParallelism;
+	 }
 }

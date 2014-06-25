@@ -1,15 +1,14 @@
 package org.ohmage.lifestreams.tuples;
 
-import org.ohmage.models.OhmageUser;
-
 import backtype.storm.tuple.Tuple;
+import org.ohmage.models.OhmageUser;
 
 public class StreamStatusTuple extends BaseTuple {
 	public enum StreamStatus{
 		HEAD,
 		MIDDLE,
-		END;
-	}
+		END
+    }
 	public StreamStatus getStatus() {
 		return status;
 	}

@@ -1,14 +1,13 @@
 package org.ohmage.lifestreams.tasks;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.javadocmd.simplelatlng.util.LengthUnit;
 import org.ohmage.lifestreams.models.GeoLocation;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.data.GeoDiameterData;
 import org.springframework.stereotype.Component;
 
-import com.javadocmd.simplelatlng.util.LengthUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author changun This task compute the geodiameter from a set of records (with
@@ -22,9 +21,9 @@ public class GeoDiameterTask extends SimpleTimeWindowTask {
 
 	private static final int POINTS_BUFFER_SIZE = 10;
 
-	List<StreamRecord> pointBuffer = new ArrayList<StreamRecord>(
+	private List<StreamRecord> pointBuffer = new ArrayList<StreamRecord>(
 			POINTS_BUFFER_SIZE);
-	List<StreamRecord> currentConvexHull = new ArrayList<StreamRecord>();
+	private List<StreamRecord> currentConvexHull = new ArrayList<StreamRecord>();
 
 	private void updateCovexHull() {
 		if (pointBuffer.size() == 0) {

@@ -1,18 +1,17 @@
 package org.ohmage.lifestreams.tuples;
 
-import org.ohmage.models.OhmageUser;
-
 import backtype.storm.generated.GlobalStreamId;
 import backtype.storm.tuple.Fields;
 import backtype.storm.tuple.Tuple;
 import backtype.storm.tuple.Values;
+import org.ohmage.models.OhmageUser;
 
 abstract public class BaseTuple {
 
 	
 
-	protected final OhmageUser user;
-	protected Tuple tuple;
+	private final OhmageUser user;
+	private Tuple tuple;
 	
 	public static Fields getFields() {
 		return new Fields( "class", "user", "1", "2");
@@ -25,7 +24,7 @@ abstract public class BaseTuple {
 	public Tuple getTuple() {
 		return tuple;
 	}
-	public BaseTuple(Tuple t) {
+	BaseTuple(Tuple t) {
 		this.tuple = t;
 		this.user = (OhmageUser) t.getValue(1);
 		this.setField1(t.getValue(2));
@@ -39,7 +38,7 @@ abstract public class BaseTuple {
 			throw new RuntimeException(e);
 		}
 	}
-	public BaseTuple(OhmageUser user) {
+	BaseTuple(OhmageUser user) {
 		this.user = user;
 	}
 	public GlobalStreamId getSource() {

@@ -1,10 +1,9 @@
 package org.ohmage.lifestreams.spouts;
 
-import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
+import backtype.storm.spout.SpoutOutputCollector;
+import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.OutputFieldsDeclarer;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.models.StreamRecord.StreamRecordFactory;
@@ -14,11 +13,10 @@ import org.ohmage.models.OhmageUser;
 import org.ohmage.sdk.OhmageStreamClient;
 import org.ohmage.sdk.OhmageStreamIterator;
 
-import backtype.storm.spout.SpoutOutputCollector;
-import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.OutputFieldsDeclarer;
-
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.io.IOException;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author changun 
@@ -29,22 +27,20 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 	// stream to query
-	OhmageStream stream;
+    private OhmageStream stream;
 	// data point factory
 	private StreamRecordFactory factory;
 	// the columns to be queried
 	private String columnList; 
 	// the Type of the emitted records
-	private Class dataPointClass;
 	private Class<T> c;
-	private int rateLimit = -1;
 	@Override
 	public void open(Map conf, TopologyContext context,
 			SpoutOutputCollector collector) {
 		
 		super.open(conf, context, collector);
 		// create data point factory
-		this.factory =  StreamRecordFactory.createStreamRecordFactory(c);
+		this.factory =  new StreamRecordFactory();
 	
 	}
 
@@ -55,37 +51,25 @@ public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 	}
 	
 
+
 	/**
-	 * @param stream
-	 *            the ohmage stream to be queried
-	 *            a list of ohmage users we will get the data from
-	 * @param startDate
+	 * @param since
 	 *            the start date of the query
-	 * @param dataPointClass
+	 * @param c
 	 *            the class of the returned data point. This class must follow
 	 *            the schema of the "data" field of the ohmage stream, or it can
 	 *            be the Jackason "ObjectNode".
+     * @param stream
+     *            the ohmage stream to be queried
+     *            a list of ohmage users we will get the data from
+     * @param columnList
+     *            the columns to be returned. set it null means return every column
 	 */
-	public OhmageStreamSpout(Class<T> c, OhmageStream stream,  String columnList) {
-		this(c, stream,  columnList, -1);
-	}
-	/**
-	 * @param stream
-	 *            the ohmage stream to be queried
-	 *            a list of ohmage users we will get the data from
-	 * @param startDate
-	 *            the start date of the query
-	 * @param dataPointClass
-	 *            the class of the returned data point. This class must follow
-	 *            the schema of the "data" field of the ohmage stream, or it can
-	 *            be the Jackason "ObjectNode".
-	 */
-	public OhmageStreamSpout(Class<T> c, OhmageStream stream,  String columnList, int rateLimit) {
-		super(10, TimeUnit.MINUTES);
+	public OhmageStreamSpout(DateTime since, Class<T> c, OhmageStream stream,  String columnList) {
+		super(since, 10, TimeUnit.MINUTES);
 		this.c = c;
 		this.stream = stream;
 		this.columnList = columnList;
-		this.rateLimit = rateLimit;
 	}
 
 
@@ -106,7 +90,7 @@ public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 			// move the iterator pointer to the location right before the record whose timestamp >= since
 			final PeekingIterator<ObjectNode> peekableIter = new PeekingIterator<ObjectNode>(iter);
 			while(iter.hasNext()){
-				StreamRecord<T> rec = factory.createRecord(peekableIter.peek(), user);
+				StreamRecord<T> rec = factory.createRecord(peekableIter.peek(), user, c);
 				if(rec.getTimestamp().compareTo(since) >= 0){
 					break;
 				}else{
@@ -124,8 +108,8 @@ public class OhmageStreamSpout<T> extends BaseLifestreamsSpout<T> {
 				public StreamRecord<T> next() {
 					ObjectNode json = peekableIter.next();
 					try {
-						StreamRecord rec = factory.createRecord(json, user);
-						return rec;
+						return factory.createRecord(json, user, c);
+
 					} catch (Exception e){
 						logger.error("convert ohmage record error", e);
 						throw new RuntimeException(e);

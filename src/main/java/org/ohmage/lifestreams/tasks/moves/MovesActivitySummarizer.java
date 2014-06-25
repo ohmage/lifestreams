@@ -1,7 +1,8 @@
 package org.ohmage.lifestreams.tasks.moves;
 
-import java.util.ArrayList;
-
+import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
+import co.nutrino.api.moves.impl.dto.activity.MovesActivityEnum;
+import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 import org.joda.time.Interval;
 import org.ohmage.lifestreams.models.MobilityState;
 import org.ohmage.lifestreams.models.StreamRecord;
@@ -11,9 +12,7 @@ import org.ohmage.lifestreams.tasks.SimpleTimeWindowTask;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 import org.springframework.stereotype.Component;
 
-import co.nutrino.api.moves.impl.dto.activity.MovesActivity;
-import co.nutrino.api.moves.impl.dto.activity.MovesActivityEnum;
-import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
+import java.util.ArrayList;
 
 /**
  * @author changun This task generates a activity summary (see
@@ -23,7 +22,7 @@ import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
  */
 @Component
 public class MovesActivitySummarizer extends SimpleTimeWindowTask<MovesSegment> {
-	ArrayList<MovesSegment> segments = new ArrayList<MovesSegment>();
+	private ArrayList<MovesSegment> segments = new ArrayList<MovesSegment>();
 
 	@Override
 	public void executeDataPoint(StreamRecord<MovesSegment> dp,	TimeWindow window) {
@@ -59,7 +58,7 @@ public class MovesActivitySummarizer extends SimpleTimeWindowTask<MovesSegment> 
 						totalActiveTime += activity.getDuration();
 						// create activity instance
 						activityEpisodes.add(ActivityEpisode
-								.forMovesActivity(activity));
+								.createFromMovesActivity(activity));
 					} else {
 						if (state.equals(MobilityState.DRIVE)) {
 							// accumulate transport time

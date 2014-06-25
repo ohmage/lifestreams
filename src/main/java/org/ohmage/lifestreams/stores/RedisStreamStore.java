@@ -1,92 +1,133 @@
 package org.ohmage.lifestreams.stores;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.joda.time.Interval;
+import com.esotericsoftware.kryo.Kryo;
+import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.models.StreamRecord.StreamRecordFactory;
+import org.ohmage.lifestreams.utils.KryoSerializer;
 import org.ohmage.models.OhmageStream;
 import org.ohmage.models.OhmageUser;
+import org.ohmage.sdk.OhmageStreamIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.exceptions.JedisException;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
-@Component
-public class RedisStreamStore implements StreamStore {
-	private ObjectMapper mapper = new ObjectMapper();
-	private Logger logger = LoggerFactory.getLogger(RedisStreamStore.class);
-	@Value("${redis.host}")
-	String host;
 
+public class RedisStreamStore implements IStreamStore {
+
+	private static final Logger logger = LoggerFactory.getLogger(RedisStreamStore.class);
+	private static final String PREFIX = "lifestreams.stream.";
+    private String host = "localhost";
+    private JedisPoolConfig config = new JedisPoolConfig();
+    private int DBIndex = 0;
 	transient private JedisPool pool;
-	public JedisPool getPool(){
+	JedisPool getPool(){
 		if(pool == null){
-			pool = new JedisPool(new JedisPoolConfig(), host);
+			pool = new JedisPool(config, host);
 		}
 		return pool;
 	}
-	// store a record to the Redis server. The records of the same pair of stream + user will be 
-	// stored in a hash table, with the keys as the string representation of the data (i.e. output of data.getString().)
-	// In most cases, where the  data object is a subclass of the LifestreamsData, see lifestreams.models.data.LifestreamsData
-	// for the format of this representation.
+    String getKeyForStream(OhmageStream stream, OhmageUser user){
+        return PREFIX + StringUtils.join(
+                Arrays.asList(user.getUsername(),
+                              stream.getObserverId(), stream.getObserverVer(),
+                              stream.getStreamId(),   stream.getStreamVer()), '/');
+    }
+	// store a record to the Redis server.
 	@Override
 	public void upload(OhmageStream stream, StreamRecord rec) {
-		Jedis jedis = getPool().getResource();
-		jedis.select(0);
-		String key = rec.getData().toString() + rec.getTimestamp();
-		String value;
-		try {
-			value = mapper.writeValueAsString(rec.toObserverDataPoint());
-			jedis.hset(rec.getUser().toString() + stream.toString(), key, value);
-		} catch (JsonProcessingException e) {
-			throw new RuntimeException("upload error");
-		}finally{
-			getPool().returnResource(jedis);
-		}
+        String key = getKeyForStream(stream, rec.getUser());
+        Jedis jedis = getPool().getResource();
+        jedis.select(DBIndex);
+        try {
+            // use time stamp as score
+            double score = rec.getTimestamp().getMillis();
+            // remove the record with the same timestamp
+            jedis.zremrangeByScore(key, score, score);
+            byte[] bytes = KryoSerializer.getBytes(rec, KryoSerializer.getInstance());
+            // use record timestamp as score
+            jedis.zadd(key.getBytes(), score, bytes);
+        } catch (JedisException e) {
+            getPool().returnBrokenResource(jedis);
+            jedis = null;
+            logger.error("getRedisBatchResult::error::JedisException::e=" + e.toString());
+            throw e;
+        } catch (UnknownError e) {
+            logger.error("getRedisBatchResult::error::UnknownError::e=" + e.toString());
+        } finally {
+            if (jedis != null) {
+                getPool().returnResource(jedis);
+            }
+        }
 	}
-	// query all the processed data for a given user and stream
-	@Override
-	public <T> List<StreamRecord<T>> queryAll(OhmageStream stream, OhmageUser user, Class<T> dataType) {
-		StreamRecordFactory<T> recFactory = StreamRecordFactory.createStreamRecordFactory(dataType);
-		Jedis jedis = getPool().getResource();
-		jedis.select(0);
-		List<String> stringStream = jedis.hvals(user.toString() + stream.toString());
-		List<StreamRecord<T>> records = new ArrayList<StreamRecord<T>>();
+    @Override
+    public List<StreamRecord> query(OhmageStream stream,
+                                           OhmageUser user,
+                                           DateTime start, DateTime end,
+                                           OhmageStreamIterator.SortOrder order,
+                                           int maxRows) {
+        Kryo kryo = KryoSerializer.getInstance();
+        String key = getKeyForStream(stream, user);
+        Jedis jedis = getPool().getResource();
+        jedis.select(DBIndex);
+        double startScore = start != null ? start.getMillis() : Double.NEGATIVE_INFINITY;
+        double endScore = end != null ? end.getMillis() : Double.POSITIVE_INFINITY;
+        Set<byte[]> storedRecs = null;
+        try {
+            if(order == OhmageStreamIterator.SortOrder.Chronological) {
+                if (maxRows > 0) {
+                    storedRecs = jedis.zrangeByScore(key.getBytes(), startScore, endScore, 0, maxRows);
+                } else{
+                    storedRecs = jedis.zrangeByScore(key.getBytes(), startScore, endScore);
+                }
+            }else{
+                if (maxRows > 0) {
+                    storedRecs = jedis.zrevrangeByScore(key.getBytes(), startScore, endScore, 0, maxRows);
+                } else{
+                    storedRecs = jedis.zrevrangeByScore(key.getBytes(), startScore, endScore);
+                }
+            }
+        } catch (JedisException e) {
+            getPool().returnBrokenResource(jedis);
+            jedis = null;
+            logger.error("getRedisBatchResult::error::JedisException::e=" + e.toString());
+            throw e;
+        } catch (UnknownError e) {
+            logger.error("getRedisBatchResult::error::UnknownError::e=" + e.toString());
+        } finally {
+            if (jedis != null) {
+                getPool().returnResource(jedis);
+            }
+        }
 
-		for(String string:stringStream){
-			try {
-				records.add(recFactory.createRecord((ObjectNode) mapper.readTree(string), user));
-			} catch (Exception e) {
-				logger.error("Node string: {}", string);
-				throw new RuntimeException(e);
-			}
-		}
-		getPool().returnResource(jedis);
-		return records;
+        if(storedRecs != null) {
+            List<StreamRecord> ret = new ArrayList<StreamRecord>(storedRecs.size());
+            for (byte[] stored : storedRecs) {
+                StreamRecord rec = KryoSerializer.toObject(stored, StreamRecord.class, kryo);
+                ret.add(rec);
+            }
+            return ret;
+        }
+        return null;
+    }
+    public RedisStreamStore(String host, JedisPoolConfig config, int DBIndex){
+        this.host = host;
+        this.config = config;
+        this.DBIndex = DBIndex;
+    }
+	public RedisStreamStore(String host){
+		this(host, new JedisPoolConfig(), 0);
 	}
-	@Override
-	public <T> List<StreamRecord<T>> queryByTimeInterval(OhmageStream stream,
-			OhmageUser user, Interval interval, Class<T> dataType) {
-		throw new UnsupportedOperationException();
+	public RedisStreamStore(){
+		this("localhost");
 	}
-	@Override
-	public <T> StreamRecord<T> queryTheLatest(OhmageStream stream,
-			OhmageUser user, Class<T> dataType) {
-		throw new UnsupportedOperationException();
-	}
-	@Override
-	public <T> StreamRecord<T> queryTheEarliest(OhmageStream stream,
-			OhmageUser user, Class<T> dataType) {
-		throw new UnsupportedOperationException();
-	}
+
 }

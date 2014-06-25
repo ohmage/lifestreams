@@ -1,6 +1,6 @@
 package org.ohmage.lifestreams.models.data;
 
-public class WiFi{
+class WiFi{
 	final private Long bssid;
 	public WiFi(String bssid){
 		// convert BSSID to Long to save space

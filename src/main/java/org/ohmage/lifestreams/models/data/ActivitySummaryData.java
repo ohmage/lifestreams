@@ -1,69 +1,96 @@
 package org.ohmage.lifestreams.models.data;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.ohmage.lifestreams.bolts.IGenerator;
 import org.ohmage.lifestreams.tasks.TimeWindow;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ActivitySummaryData extends TimeWindowData {
 
-	public double getTotalTime() {
-		return totalTime;
-	}
+    public double getTotalTimeInSeconds() {
+        return totalTime;
+    }
 
-	public ActivitySummaryData setTotalTimeInSeconds(double totalTime) {
-		this.totalTime = totalTime;
-		return this;
-	}
+    public ActivitySummaryData setTotalTimeInSeconds(double totalTime) {
+        this.totalTime = totalTime;
+        return this;
+    }
 
-	public double getTotalActiveTimeInSeconds() {
-		return totalActiveTime;
-	}
+    public double getTotalActiveTimeInSeconds() {
+        return totalActiveTime;
+    }
 
-	public ActivitySummaryData setTotalActiveTimeInSeconds(double totalActiveTime) {
-		this.totalActiveTime = totalActiveTime;
-		return this;
-	}
+    public ActivitySummaryData setTotalActiveTimeInSeconds(double totalActiveTime) {
+        this.totalActiveTime = totalActiveTime;
+        return this;
+    }
 
-	public double getTotalSedentaryTimeInSeconds() {
-		return totalSedentaryTime;
-	}
+    public double getTotalActiveDistanceInMiles() {
+        double totalMiles = 0.0;
+        for (ActivityEpisode epi : this.getActivityEpisodes()) {
+            totalMiles += epi.getDistanceInMiles();
+        }
+        return totalMiles;
+    }
 
-	public ActivitySummaryData setTotalSedentaryTimeInSeconds(double totalSedentaryTime) {
-		this.totalSedentaryTime = totalSedentaryTime;
-		return this;
-	}
+    public int getTotalSteps() {
+        int totalSteps = -1;
+        for (ActivityEpisode epi : this.getActivityEpisodes()) {
+            if (epi.getSteps() != -1) {
+                totalSteps = totalSteps == -1 ? epi.getSteps() : totalSteps + epi.getSteps();
+            }
+        }
+        return totalSteps;
+    }
 
-	public double getTotalTransportationTimeInSeconds() {
-		return totalTransportationTime;
-	}
+    public double getTotalSedentaryTimeInSeconds() {
+        return totalSedentaryTime;
+    }
 
-	public ActivitySummaryData setTotalTransportationTimeInSeconds(
-			double totalTransportationTime) {
-		this.totalTransportationTime = totalTransportationTime;
-		return this;
-	}
+    public ActivitySummaryData setTotalSedentaryTimeInSeconds(double totalSedentaryTime) {
+        this.totalSedentaryTime = totalSedentaryTime;
+        return this;
+    }
 
-	public List<ActivityEpisode> getActivityEpisodes() {
-		return activityEpisodes;
-	}
+    public double getTotalTransportationTimeInSeconds() {
+        return totalTransportationTime;
+    }
 
-	public ActivitySummaryData setActivityEpisodes(
-			List<ActivityEpisode> activeInstances) {
-		this.activityEpisodes = activeInstances;
-		return this;
-	}
+    public ActivitySummaryData setTotalTransportationTimeInSeconds(
+            double totalTransportationTime) {
+        this.totalTransportationTime = totalTransportationTime;
+        return this;
+    }
 
-	double totalTime;
-	double totalActiveTime;
-	double totalSedentaryTime;
-	double totalTransportationTime;
+    public List<ActivityEpisode> getActivityEpisodes() {
+        return activityEpisodes;
+    }
 
-	List<ActivityEpisode> activityEpisodes = new ArrayList<ActivityEpisode>();
+    public ActivitySummaryData setActivityEpisodes(
+            List<ActivityEpisode> activeInstances) {
+        this.activityEpisodes = activeInstances;
+        return this;
+    }
+    public double getMaxActiveSpeedInMPH(){
+        double maxSpeed = -1;
+        for(ActivityEpisode epi: getActivityEpisodes()){
+            // only include active episodes more than 5 mins
+            if(epi.getDurationInSeconds() > 5 * 60){
+                maxSpeed = Math.max(epi.getDistanceInMiles() / (epi.getDurationInSeconds() / 3600.0), maxSpeed);
+            }
+        }
+        return  maxSpeed;
+    }
+    private double totalTime;
+    private double totalActiveTime;
+    private double totalSedentaryTime;
+    private double totalTransportationTime;
 
-	public ActivitySummaryData(TimeWindow window, IGenerator generator) {
-		super(window, generator);
-	}
+    private List<ActivityEpisode> activityEpisodes = new ArrayList<ActivityEpisode>();
+
+    public ActivitySummaryData(TimeWindow window, IGenerator generator) {
+        super(window, generator);
+    }
 
 }

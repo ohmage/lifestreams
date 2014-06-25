@@ -1,10 +1,9 @@
 package org.ohmage.lifestreams.tuples;
 
+import backtype.storm.tuple.Tuple;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.models.OhmageUser;
-
-import backtype.storm.tuple.Tuple;
 
 public class SpoutRecordTuple extends RecordTuple{
 	public static class RecordTupleMsgId implements Comparable{
@@ -37,7 +36,8 @@ public class SpoutRecordTuple extends RecordTuple{
 		}
 
 	}
-	long batchId, serialId;
+	private long batchId;
+    private long serialId;
 	public SpoutRecordTuple(Tuple t) {
 		super(t);
 	}

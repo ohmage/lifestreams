@@ -1,13 +1,12 @@
 package org.ohmage.lifestreams.tasks.moves;
 
+import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.tasks.SimpleTask;
 import org.springframework.stereotype.Component;
-
-import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 @Component
 public class FilterDuplicatedSegment extends SimpleTask<MovesSegment>{
-	MovesSegment lastSegment;
+	private MovesSegment lastSegment;
 	@Override
 	public void executeDataPoint(StreamRecord<MovesSegment> record) {
 		if(lastSegment != null){
@@ -17,8 +16,8 @@ public class FilterDuplicatedSegment extends SimpleTask<MovesSegment>{
 				this.createRecord()
 					.setData(lastSegment)
 					.setTimestamp(lastSegment.getEndTime())
-					.emit();;
-			}
+					.emit();
+            }
 		}
 		lastSegment = record.getData();
 		checkpoint(record.getTimestamp());

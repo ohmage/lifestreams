@@ -1,12 +1,11 @@
 package org.ohmage.lifestreams.tuples;
 
+import backtype.storm.tuple.Tuple;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
-
-import backtype.storm.tuple.Tuple;
 @SuppressWarnings("rawtypes")
 public class RecordTuple extends BaseTuple {
-	protected StreamRecord rec;
+	private StreamRecord rec;
 
 	public RecordTuple(Tuple t){
 		super(t);
