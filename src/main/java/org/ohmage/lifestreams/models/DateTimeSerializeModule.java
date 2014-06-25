@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdScalarDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.fasterxml.jackson.datatype.joda.deser.DateTimeDeserializer;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.ReadableDateTime;
@@ -52,7 +53,7 @@ public class DateTimeSerializeModule extends SimpleModule{
         {
             return (JsonDeserializer<T>) new DateTimeDeserializer(cls);
         }
-
+        public DateTimeDeserializer(){super(DateTime.class);};
         @SuppressWarnings("deprecation")
         @Override
         public ReadableDateTime deserialize(JsonParser jp, DeserializationContext ctxt)
@@ -76,6 +77,8 @@ public class DateTimeSerializeModule extends SimpleModule{
     public DateTimeSerializeModule(){
         super("DateTimeWithTimezone");
         addDeserializer(DateTime.class, DateTimeDeserializer.forType(DateTime.class));
+        addDeserializer(ReadableDateTime.class, DateTimeDeserializer.forType(ReadableDateTime.class));
+        addDeserializer(ReadableInstant.class, DateTimeDeserializer.forType(ReadableInstant.class));
         addSerializer(new DateTimeSerializer());
     }
 

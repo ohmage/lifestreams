@@ -2,6 +2,8 @@ package org.ohmage.lifestreams.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
@@ -17,7 +19,7 @@ import java.util.TimeZone;
 
 public class StreamRecord<T>{
     static ObjectMapper mapper = new ObjectMapper();
-    {
+    static {
         // register custom datetime serializer/deserelizer
         // which will use the timezone specified in the DateTime object / or json string as default
         mapper.registerModule(new DateTimeSerializeModule());
@@ -131,12 +133,11 @@ public class StreamRecord<T>{
 		}
 		public <T> StreamRecord<T> createRecord(ObjectNode node, OhmageUser user, Class<T> dataClass)
 				throws IOException {
-			StreamRecord dataPoint = mapper.convertValue(node, new StreamRecord<Object>().getClass());
-            StreamRecord<T> ret = new StreamRecord<T>();
-            ret.setUser(dataPoint.getUser());
-            ret.setMetadata(dataPoint.getMetadata());
-			ret.setData(mapper.convertValue(dataPoint.getData(), dataClass));
-			return ret;
+            JavaType type = mapper.getTypeFactory().constructParametricType
+                    (StreamRecord.class, dataClass);
+			StreamRecord<T> dataPoint = mapper.convertValue(node, type);
+            dataPoint.setUser(user);
+			return dataPoint;
 		}
 	}
 
