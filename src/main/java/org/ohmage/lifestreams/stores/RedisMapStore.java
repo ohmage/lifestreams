@@ -17,15 +17,15 @@ public class RedisMapStore implements IMapStore, Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = -4830683070362165286L;
-	final private String host;
-	final private JedisPoolConfig config;
-	
-	transient private JedisPool pool;
-	JedisPool getPool(){
-		if(pool == null){
-			pool = new JedisPool(config, host);
-		}
-		return pool;
+	static private String host = "localhost";
+	static private JedisPoolConfig config;
+
+    private static class Holder {
+        static final JedisPool pool = new JedisPool(config, host);;
+    }
+
+    JedisPool getPool(){
+        return Holder.pool;
 	}
 	
 	private static final Logger logger = LoggerFactory.getLogger(RedisMapStore.class);
@@ -37,8 +37,8 @@ public class RedisMapStore implements IMapStore, Serializable {
 	}
 	
 	private RedisMapStore(String host, JedisPoolConfig config){
-		this.config = config;
-		this.host = host;
+        RedisMapStore.config = config;
+        RedisMapStore.host = host;
 	}
 	
 	
