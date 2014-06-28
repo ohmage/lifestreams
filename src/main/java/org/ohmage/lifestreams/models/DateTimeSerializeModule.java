@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.deser.std.StdScalarDeserializer;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
+import com.fasterxml.jackson.datatype.joda.deser.DateTimeDeserializer;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.ReadableDateTime;
@@ -18,6 +19,8 @@ import java.io.IOException;
 import java.util.TimeZone;
 
 /**
+ * This a Jackson DateTime serialization module that uses the TimeZone specified in the DateTime object / JSON String
+ * by default.
  * Created by changun on 6/25/14.
  */
 public class DateTimeSerializeModule extends SimpleModule{
@@ -50,7 +53,7 @@ public class DateTimeSerializeModule extends SimpleModule{
         {
             return (JsonDeserializer<T>) new DateTimeDeserializer(cls);
         }
-
+        public DateTimeDeserializer(){super(DateTime.class);};
         @SuppressWarnings("deprecation")
         @Override
         public ReadableDateTime deserialize(JsonParser jp, DeserializationContext ctxt)
@@ -74,7 +77,9 @@ public class DateTimeSerializeModule extends SimpleModule{
     public DateTimeSerializeModule(){
         super("DateTimeWithTimezone");
         addDeserializer(DateTime.class, DateTimeDeserializer.forType(DateTime.class));
-        addSerializer(new DateTimeSerializer()); // assuming serializer declares correct class to bind to
+        addDeserializer(ReadableDateTime.class, DateTimeDeserializer.forType(ReadableDateTime.class));
+        addDeserializer(ReadableInstant.class, DateTimeDeserializer.forType(ReadableInstant.class));
+        addSerializer(new DateTimeSerializer());
     }
 
 

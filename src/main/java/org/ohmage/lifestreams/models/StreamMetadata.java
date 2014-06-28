@@ -12,29 +12,18 @@ import org.joda.time.DateTime;
 
 import java.io.IOException;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class StreamMetadata {
 
 	private DateTime _timestamp;
 	private GeoLocation _location;
-	
-	@JsonSerialize(using = DateTimeTextSerializer.class)
+
 	public DateTime getTimestamp() {
 		return _timestamp;
 	}
+    public void setTimestamp(DateTime t) {
+        _timestamp = t;
+    }
 	
-	
-	// serialize timestamp field as string instead of Calendar object
-	private static class DateTimeTextSerializer extends
-			JsonSerializer<DateTime> {
-
-		@Override
-		public void serialize(DateTime value, JsonGenerator jgen,
-				SerializerProvider provider) throws IOException {
-			jgen.writeString(value.toString());
-			
-		}
-	}
 
 	
 	@JsonInclude(Include.NON_NULL)
@@ -43,9 +32,7 @@ public class StreamMetadata {
 		return _location;
 	}
 
-	public void setTimestamp(DateTime t) {
-		_timestamp = t;
-	}
+
 
 	@JsonDeserialize(using = GeoLocation.GeoLocationDeserializer.class)
 	public void setLocation(GeoLocation l) {

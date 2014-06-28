@@ -17,26 +17,38 @@ public class MovesDataCoverage extends SimpleTask<MovesSegment> {
     TimeWindow curWindow;
     Double curCoverage;
     BaseSingleFieldPeriod coveragePeriod;
+    MovesSegment segment;
+    MovesSegment lastSegment;
     public MovesDataCoverage(BaseSingleFieldPeriod coveragePeriod){
         this.coveragePeriod = coveragePeriod;
     }
 
     void outputCoverage(){
-        DataCoverage data = new DataCoverage(
-                curWindow.getTimeWindowBeginTime(),
-                curWindow.getTimeWindowEndTime(),
-                curCoverage);
-        this.createRecord()
-                .setTimestamp(curWindow.getTimeWindowBeginTime())
-                .setData(data)
-                .emit();
-        checkpoint();
+        try {
+            DataCoverage data = new DataCoverage(
+                    curWindow.getTimeWindowBeginTime(),
+                    curWindow.getTimeWindowEndTime(),
+                    curCoverage);
+            this.createRecord()
+                    .setTimestamp(curWindow.getTimeWindowBeginTime())
+                    .setData(data)
+                    .emit();
+        }catch(Exception e){
+            getLogger().error("{} last: {}-{} cur: {}-{}",
+                    getUser(),
+                    lastSegment.getStartTime(), lastSegment.getEndTime(),
+                    segment.getStartTime(), segment.getEndTime());
+            throw new RuntimeException(e);
+
+        }
+
+
     }
     @Override
     public void executeDataPoint(StreamRecord<MovesSegment> record) {
         DateTime start = record.getData().getStartTime();
         DateTime end = record.getData().getEndTime();
-
+        segment = record.getData();
         if (curWindow == null) {
             curWindow = new TimeWindow(coveragePeriod, start);
             curCoverage = 0.0;
@@ -58,10 +70,15 @@ public class MovesDataCoverage extends SimpleTask<MovesSegment> {
             // before moving to next time window, output the current window coverage
             if(curCoverage > 0.0) {
                 outputCoverage();
+                curCoverage = 0.0;
+                curWindow = null;
+
             }
             // then moves to next timeWindow
             curWindow = new TimeWindow(coveragePeriod, start);
             curCoverage = 0.0;
         }
+        lastSegment = segment;
+        checkpoint();
     }
 }

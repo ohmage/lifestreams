@@ -37,8 +37,8 @@ public class ActivityInstanceCounter extends SimpleTimeWindowTask<MobilityData> 
 	@Override
 	public void finishWindow(TimeWindow window) {
 		// create data point for active instances count and emit the record
-		ActivityInstanceCountData data = new ActivityInstanceCountData(window,
-				this);
+		ActivityInstanceCountData data = new ActivityInstanceCountData(
+                                                window,	this, activityInstanceCount);
 		this.createRecord()
 				.setTimestamp(window.getTimeWindowBeginTime()) // use begin time of the time window as the timestamp
 				.setData(data)

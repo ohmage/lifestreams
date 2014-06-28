@@ -9,21 +9,15 @@ import java.io.Serializable;
 
 public interface IProvider extends Serializable{
 
-	public abstract String getApiName();
+	public String getName();
 
-	public abstract String getScope();
+	public OAuthClientRequest getAuthRequest(String callback,
+			String state, String[] scope) throws OAuthSystemException;
 
-	public abstract String getName();
-
-	public abstract OAuthClientRequest getAuthRequest(String callback,
-			String state) throws OAuthSystemException;
-
-	public abstract OAuthToken getAccessToken(String code, String callback)
+	public OAuthToken getAccessToken(String code, String callback)
 			throws OAuthSystemException, OAuthProblemException;
 
-	public abstract Object getMetaInfo(OAuthToken token);
-
-	public abstract OAuthToken refreshToken(OAuthToken token)
+	public OAuthToken refreshToken(OAuthToken token)
 			throws OAuthSystemException, OAuthProblemException;
 
 }

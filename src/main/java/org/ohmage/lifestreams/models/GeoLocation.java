@@ -22,6 +22,14 @@ public class GeoLocation {
 	// name of provider (WiFi, GPS, etc)
 	private final String provider;
 
+    /**
+     *
+     * GeoLocation constructor with accuracy
+     * @param timestamp when the location acquired
+     * @param coordinates LatLng
+     * @param accuracy accuracy radius (in meters)
+     * @param provider where this geolocation come from
+     */
 	public GeoLocation(DateTime timestamp, LatLng coordinates, double accuracy,
 			String provider) {
 		super();
@@ -31,6 +39,20 @@ public class GeoLocation {
 		this.provider = provider;
 	}
 
+    /**
+     * GeoLocation constructor for the cases that accuracy is not applicable
+     * @param timestamp when the location acquired
+     * @param coordinates LatLng
+     * @param provider where this geolocation come from
+     */
+    public GeoLocation(DateTime timestamp, LatLng coordinates,
+                       String provider) {
+        super();
+        this.timestamp = timestamp;
+        this.coordinates = coordinates;
+        this.accuracy = -1;
+        this.provider = provider;
+    }
 	public DateTime getTimestamp() {
 		return timestamp;
 	}
