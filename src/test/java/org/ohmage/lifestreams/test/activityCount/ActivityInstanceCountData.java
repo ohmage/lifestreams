@@ -36,8 +36,10 @@ class ActivityInstanceCountData extends TimeWindowData{
 	public void setActivityInstanceCount(int activityInstanceCount) {
 		this.activityInstanceCount = activityInstanceCount;
 	}
-	public ActivityInstanceCountData(TimeWindow window, IGenerator generator) {
-		super(window, generator);
+	public ActivityInstanceCountData(TimeWindow window, IGenerator generator, int activityInstanceCount) {
+        super(window, generator);
+        this.activityInstanceCount = activityInstanceCount;
+
 	}
 	
 	

@@ -16,19 +16,14 @@ public class TimeWindowTest {
 	@Test
 	public void testWindowEndTime(){
 		TimeWindow window = new TimeWindow(Days.ONE, new DateTime("2012-1-1T00:00:00"));
+        // end of the timewindow should be the last instant of that window
 		Assert.assertEquals(new DateTime("2012-1-2T00:00:00").minus(1), window.getTimeWindowEndTime());
+        // check withinWindow method
 		Assert.assertFalse(window.withinWindow(new DateTime("2012-1-2T00:00:00")));
 		Assert.assertTrue(window.withinWindow(new DateTime("2012-1-2T00:00:00").minus(1)));
 		
 	}
-	@Test
-	public void testSerializer(){
-		Output out = new Output(100000);
-		
-		KryoSerializer.getInstance().writeObject(out, new GeoDiameterTask());
-		KryoSerializer.getInstance().readObject(new Input(out.getBuffer()), GeoDiameterTask.class);
-		
-	}
+
 }
 
 

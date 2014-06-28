@@ -88,7 +88,6 @@ public class ReliabilityTest {
 			count ++;
 			
 		}
-
 		@Override
 		public void finishWindow(TimeWindow window) {
 			Assert.assertEquals((window.getTimeWindowEndTime().getMillis() - window.getTimeWindowBeginTime().getMillis() + 1) / 2000, count);
