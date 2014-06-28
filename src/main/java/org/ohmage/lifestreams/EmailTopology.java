@@ -1,7 +1,7 @@
 package org.ohmage.lifestreams;
 
 import org.joda.time.DateTime;
-import org.ohmage.lifestreams.oauth.client.providers.GoogleProfileProvider;
+import org.ohmage.lifestreams.oauth.client.providers.GoogleOAuth;
 import org.ohmage.lifestreams.oauth.client.providers.IProvider;
 import org.ohmage.lifestreams.spouts.GmailSpout;
 import org.ohmage.lifestreams.tasks.MailCleaner;
@@ -14,10 +14,9 @@ import org.springframework.stereotype.Component;
 @Component
 class EmailTopology {
 
-    private IProvider gmailProvider = new GoogleProfileProvider("gmail", "",
+    private IProvider gmailProvider = new GoogleOAuth(
             "48636836762-9p082qvhat6ojtgnhn4najkmkuolaieu.apps.googleusercontent.com",
-            "_flzl2k8JySJKnXsHxkQjqFv",
-            "https://mail.google.com/ https://www.googleapis.com/auth/userinfo.email");
+            "_flzl2k8JySJKnXsHxkQjqFv");
 
     private OhmageStream accessTokenStream = new OhmageStream("org.ohmage.oauth", "token", "201405312", "201405312");
 
