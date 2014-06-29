@@ -1,9 +1,9 @@
 package org.ohmage.lifestreams.oauth;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.*;
 import org.apache.oltu.oauth2.common.token.BasicOAuthToken;
 import org.apache.oltu.oauth2.common.token.OAuthToken;
-import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.models.Ohmage30User;
 
 import java.net.UnknownHostException;
@@ -18,7 +18,7 @@ import java.util.Set;
  */
 public class MongoTokenRepository implements TokenRepository<Ohmage30User> {
     static private String host = "localhost";
-
+    static  private ObjectMapper mapper = new ObjectMapper();
     private String getScopeKey(Scope scope) {
         // replace dots with underlines so that it works well with mongodb
         return (scope.getProvider() + ":" + scope.getScopeName()).replace(".", "_");
@@ -40,7 +40,7 @@ public class MongoTokenRepository implements TokenRepository<Ohmage30User> {
         DBCursor result = coll.find(query);
         Set<Ohmage30User> users = new HashSet<Ohmage30User>();
         for (DBObject obj : result) {
-            users.add(StreamRecord.getObjectMapper().convertValue(obj.get("entity"), Ohmage30User.class));
+            users.add(mapper.convertValue(obj.get("entity"), Ohmage30User.class));
         }
         return users;
     }
@@ -55,7 +55,7 @@ public class MongoTokenRepository implements TokenRepository<Ohmage30User> {
         DBObject result = coll.findOne(query);
         if (result != null) {
             Object obj = ((Map<Object, Object>) result.get("tokens")).get(getScopeKey(scope));
-            return StreamRecord.getObjectMapper().convertValue(obj, BasicOAuthToken.class);
+            return mapper.convertValue(obj, BasicOAuthToken.class);
         }
         return null;
     }
@@ -69,10 +69,10 @@ public class MongoTokenRepository implements TokenRepository<Ohmage30User> {
         if (obj == null) {
             obj = new BasicDBObject();
             obj.put("_id", entity.getId());
-            obj.put("entity", StreamRecord.getObjectMapper().convertValue(entity, BasicDBObject.class));
+            obj.put("entity", mapper.convertValue(entity, BasicDBObject.class));
             obj.put("tokens", new HashMap<String, Object>());
         }
-        BasicDBObject tokenObj = StreamRecord.getObjectMapper().convertValue
+        BasicDBObject tokenObj = mapper.convertValue
                 (token, BasicDBObject.class);
         ((Map<String, Object>) obj.get("tokens")).put(getScopeKey(scope), tokenObj);
         coll.save(obj);
