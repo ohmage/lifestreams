@@ -20,33 +20,43 @@ package org.ohmage.lifestreams.spouts;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+
 /**
  * Decorates an iterator to support one-element lookahead while iterating.
- * <p>
+ * <p/>
  * The decorator supports the removal operation, but an {@link IllegalStateException}
  * will be thrown if {@link #remove()} is called directly after a call to
  * {@link #peek()} or {@link #element()}.
  *
- * @since 4.0
  * @version $Id$
+ * @since 4.0
  */
 public class PeekingIterator<E> implements Iterator<E> {
-    /** The iterator being decorated. */
+    /**
+     * The iterator being decorated.
+     */
     private final Iterator<? extends E> iterator;
-    /** Indicates that the decorated iterator is exhausted. */
+    /**
+     * Indicates that the decorated iterator is exhausted.
+     */
     private boolean exhausted = false;
-    /** Indicates if the lookahead slot is filled. */
+    /**
+     * Indicates if the lookahead slot is filled.
+     */
     private boolean slotFilled = false;
-    /** The current slot for lookahead. */
+    /**
+     * The current slot for lookahead.
+     */
     private E slot;
     //-----------------------------------------------------------------------
+
     /**
      * Decorates the specified iterator to support one-element lookahead.
-     * <p>
+     * <p/>
      * If the iterator is already a {@link PeekingIterator} it is returned directly.
      *
-     * @param <E>  the element type
-     * @param iterator  the iterator to decorate
+     * @param <E>      the element type
+     * @param iterator the iterator to decorate
      * @return a new peeking iterator
      * @throws IllegalArgumentException if the iterator is null
      */
@@ -62,14 +72,16 @@ public class PeekingIterator<E> implements Iterator<E> {
         return new PeekingIterator<E>(iterator);
     }
     //-----------------------------------------------------------------------
+
     /**
      * Constructor.
      *
-     * @param iterator  the iterator to decorate
+     * @param iterator the iterator to decorate
      */
     public PeekingIterator(final Iterator<? extends E> iterator) {
         this.iterator = iterator;
     }
+
     private void fill() {
         if (exhausted || slotFilled) {
             return;
@@ -83,6 +95,7 @@ public class PeekingIterator<E> implements Iterator<E> {
             slotFilled = false;
         }
     }
+
     //-----------------------------------------------------------------------
     public boolean hasNext() {
         if (exhausted) {
@@ -90,13 +103,14 @@ public class PeekingIterator<E> implements Iterator<E> {
         }
         return slotFilled ? true : iterator.hasNext();
     }
+
     /**
      * Returns the next element in iteration without advancing the underlying iterator.
      * If the iterator is already exhausted, null will be returned.
-     * <p>
+     * <p/>
      * Note: this method does not throw a {@link NoSuchElementException} if the iterator
      * is already exhausted. If you want such a behavior, use {@link #element()} instead.
-     * <p>
+     * <p/>
      * The rationale behind this is to follow the {@link java.util.Queue} interface
      * which uses the same terminology.
      *
@@ -106,6 +120,7 @@ public class PeekingIterator<E> implements Iterator<E> {
         fill();
         return exhausted ? null : slot;
     }
+
     /**
      * Returns the next element in iteration without advancing the underlying iterator.
      * If the iterator is already exhausted, null will be returned.
@@ -120,6 +135,7 @@ public class PeekingIterator<E> implements Iterator<E> {
         }
         return slot;
     }
+
     public E next() {
         if (!hasNext()) {
             throw new NoSuchElementException();
@@ -130,11 +146,12 @@ public class PeekingIterator<E> implements Iterator<E> {
         slotFilled = false;
         return x;
     }
+
     /**
      * {@inheritDoc}
      *
      * @throws IllegalStateException if {@link #peek()} or {@link #element()} has been called
-     *   prior to the call to {@link #remove()}
+     *                               prior to the call to {@link #remove()}
      */
     public void remove() {
         if (slotFilled) {

@@ -5,13 +5,12 @@ import backtype.storm.tuple.TupleImpl;
 import org.apache.commons.lang3.SerializationUtils;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
-import org.ohmage.lifestreams.spouts.BaseLifestreamsSpout;
 import org.ohmage.lifestreams.stores.PersistentMapFactory;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tasks.TwoLayeredCacheMap;
 import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
 import org.ohmage.lifestreams.tuples.RecordTuple;
-import org.ohmage.models.OhmageUser;
+import org.ohmage.models.IUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +45,7 @@ import java.util.*;
  * <p/>
  * <li>
  * To prevent the output cache to grow infinitely, we depends on the
- * GlobalCheckpoint mechanism provided by {@link BaseLifestreamsSpout}. When a
+ * GlobalCheckpoint mechanism provided by {@link org.ohmage.lifestreams.spouts.Ohmage20Spout}. When a
  * input tuple and its dependency tree (i.e. the tuples that were derived from
  * it) have been fully acked, the spout will emit a GlobalCheckpoint message to
  * its immediate tasks to let them know that they can remove their output cached
@@ -62,7 +61,7 @@ import java.util.*;
 public class UserTaskState {
     private Task task;
     private DateTime checkpoint = null;
-    private OhmageUser user;
+    private IUser user;
 
     transient private LifestreamsBolt bolt;
     transient private LinkedList<Tuple> unackedTuples;
@@ -195,11 +194,11 @@ public class UserTaskState {
     }
 
     private String logPrefix() {
-        return bolt.getComponentId() + "{" + user.getUsername() + "}:";
+        return bolt.getComponentId() + "{" + user.getId() + "}:";
     }
 
     private void makeSnapshot() {
-        bolt.getPersistentStateMap().put(user.getUsername(), this);
+        bolt.getPersistentStateMap().put(user.getId(), this);
     }
 
     /**
@@ -284,10 +283,10 @@ public class UserTaskState {
 
 
     public String toString() {
-        return "" + bolt.getComponentId() + "." + user.getUsername();
+        return "" + bolt.getComponentId() + "." + user.getId();
     }
 
-    OhmageUser getUser() {
+    IUser getUser() {
         return user;
     }
 
@@ -301,10 +300,10 @@ public class UserTaskState {
      * @return A user state instance that is either newly created or recovered from the persistent map store.
      */
     public static UserTaskState createOrRecoverUserState(
-            LifestreamsBolt bolt, OhmageUser user, Task templateTask,
+            LifestreamsBolt bolt, IUser user, Task templateTask,
             PersistentMapFactory mapFactory) {
         UserTaskState state;
-        UserTaskState recoveredState = bolt.getPersistentStateMap().get(user.getUsername());
+        UserTaskState recoveredState = bolt.getPersistentStateMap().get(user.getId());
         // try to recover the user state snapshot from the persistent store
         if (recoveredState != null) {
             fillInTransientFields(recoveredState, mapFactory, bolt);

@@ -5,9 +5,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.utils.KryoSerializer;
-import org.ohmage.models.OhmageStream;
-import org.ohmage.models.OhmageUser;
-import org.ohmage.sdk.OhmageStreamIterator;
+import org.ohmage.models.IStream;
+import org.ohmage.models.IUser;
+import org.ohmage.sdk.Ohmage20StreamIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
@@ -23,27 +23,30 @@ import java.util.Set;
 
 public class RedisStreamStore implements IStreamStore {
 
-	private static final Logger logger = LoggerFactory.getLogger(RedisStreamStore.class);
-	private static final String PREFIX = "lifestreams.stream.";
+    private static final Logger logger = LoggerFactory.getLogger(RedisStreamStore.class);
+    private static final String PREFIX = "lifestreams.stream.";
     private String host = "localhost";
     private JedisPoolConfig config = new JedisPoolConfig();
     private int DBIndex = 0;
-	transient private JedisPool pool;
-	JedisPool getPool(){
-		if(pool == null){
-			pool = new JedisPool(config, host);
-		}
-		return pool;
-	}
-    String getKeyForStream(OhmageStream stream, OhmageUser user){
-        return PREFIX + StringUtils.join(
-                Arrays.asList(user.getUsername(),
-                              stream.getObserverId(), stream.getObserverVer(),
-                              stream.getStreamId(),   stream.getStreamVer()), '/');
+    transient private JedisPool pool;
+
+    JedisPool getPool() {
+        if (pool == null) {
+            pool = new JedisPool(config, host);
+        }
+        return pool;
     }
-	// store a record to the Redis server.
-	@Override
-	public void upload(OhmageStream stream, StreamRecord rec) {
+
+    String getKeyForStream(IStream stream, IUser user) {
+        return PREFIX + StringUtils.join(
+                Arrays.asList(user.getId(),
+                        stream.getId(),
+                        stream.getVersion()), '/');
+    }
+
+    // store a record to the Redis server.
+    @Override
+    public void upload(IStream stream, StreamRecord rec) {
         String key = getKeyForStream(stream, rec.getUser());
         Jedis jedis = getPool().getResource();
         jedis.select(DBIndex);
@@ -67,13 +70,14 @@ public class RedisStreamStore implements IStreamStore {
                 getPool().returnResource(jedis);
             }
         }
-	}
+    }
+
     @Override
-    public List<StreamRecord> query(OhmageStream stream,
-                                           OhmageUser user,
-                                           DateTime start, DateTime end,
-                                           OhmageStreamIterator.SortOrder order,
-                                           int maxRows) {
+    public List<StreamRecord> query(IStream stream,
+                                    IUser user,
+                                    DateTime start, DateTime end,
+                                    Ohmage20StreamIterator.SortOrder order,
+                                    int maxRows) {
         Kryo kryo = KryoSerializer.getInstance();
         String key = getKeyForStream(stream, user);
         Jedis jedis = getPool().getResource();
@@ -82,16 +86,16 @@ public class RedisStreamStore implements IStreamStore {
         double endScore = end != null ? end.getMillis() : Double.POSITIVE_INFINITY;
         Set<byte[]> storedRecs = null;
         try {
-            if(order == OhmageStreamIterator.SortOrder.Chronological) {
+            if (order == Ohmage20StreamIterator.SortOrder.Chronological) {
                 if (maxRows > 0) {
                     storedRecs = jedis.zrangeByScore(key.getBytes(), startScore, endScore, 0, maxRows);
-                } else{
+                } else {
                     storedRecs = jedis.zrangeByScore(key.getBytes(), startScore, endScore);
                 }
-            }else{
+            } else {
                 if (maxRows > 0) {
                     storedRecs = jedis.zrevrangeByScore(key.getBytes(), startScore, endScore, 0, maxRows);
-                } else{
+                } else {
                     storedRecs = jedis.zrevrangeByScore(key.getBytes(), startScore, endScore);
                 }
             }
@@ -108,7 +112,7 @@ public class RedisStreamStore implements IStreamStore {
             }
         }
 
-        if(storedRecs != null) {
+        if (storedRecs != null) {
             List<StreamRecord> ret = new ArrayList<StreamRecord>(storedRecs.size());
             for (byte[] stored : storedRecs) {
                 StreamRecord rec = KryoSerializer.toObject(stored, StreamRecord.class, kryo);
@@ -118,16 +122,19 @@ public class RedisStreamStore implements IStreamStore {
         }
         return null;
     }
-    public RedisStreamStore(String host, JedisPoolConfig config, int DBIndex){
+
+    public RedisStreamStore(String host, JedisPoolConfig config, int DBIndex) {
         this.host = host;
         this.config = config;
         this.DBIndex = DBIndex;
     }
-	public RedisStreamStore(String host){
-		this(host, new JedisPoolConfig(), 0);
-	}
-	public RedisStreamStore(){
-		this("localhost");
-	}
+
+    public RedisStreamStore(String host) {
+        this(host, new JedisPoolConfig(), 0);
+    }
+
+    public RedisStreamStore() {
+        this("localhost");
+    }
 
 }

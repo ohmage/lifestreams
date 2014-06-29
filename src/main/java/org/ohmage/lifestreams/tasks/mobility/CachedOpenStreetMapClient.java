@@ -16,29 +16,30 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 class CachedOpenStreetMapClient {
-	private JsonNominatimClient nominatimClient;
-	private Map<LatLng, Address> addressCache;
-	@RetryOnFailure(attempts = 5, delay = 1, unit = TimeUnit.MINUTES)
-	public Address getAddress(double lat, double lng) throws IOException {
-		LatLng query = new LatLng(lat, lng);
-		for (LatLng entry : addressCache.keySet()) {
-			if (LatLngTool.distance(entry, query, LengthUnit.METER) < 30) {
-				return addressCache.get(entry);
-			}
-		}
+    private JsonNominatimClient nominatimClient;
+    private Map<LatLng, Address> addressCache;
 
-		// cannot find the place in the cache. Sleep a while and query the
-		// OpenStreetMap.
-		LoggerFactory.getLogger(this.getClass()).trace("Query {}", query);
-		Address newAddress = nominatimClient.getAddress(lng, lat);
-		addressCache.put(query, newAddress);
-		return newAddress;
-	}
+    @RetryOnFailure(attempts = 5, delay = 1, unit = TimeUnit.MINUTES)
+    public Address getAddress(double lat, double lng) throws IOException {
+        LatLng query = new LatLng(lat, lng);
+        for (LatLng entry : addressCache.keySet()) {
+            if (LatLngTool.distance(entry, query, LengthUnit.METER) < 30) {
+                return addressCache.get(entry);
+            }
+        }
 
-	CachedOpenStreetMapClient(String email, PersistentMapFactory factory){
-		
-		final HttpClient httpClient = new DefaultHttpClient();
-		nominatimClient = new JsonNominatimClient(httpClient, email);
-		addressCache = factory.getSystemWideMap(CachedOpenStreetMapClient.class.getName(), LatLng.class, Address.class);
-	}
+        // cannot find the place in the cache. Sleep a while and query the
+        // OpenStreetMap.
+        LoggerFactory.getLogger(this.getClass()).trace("Query {}", query);
+        Address newAddress = nominatimClient.getAddress(lng, lat);
+        addressCache.put(query, newAddress);
+        return newAddress;
+    }
+
+    CachedOpenStreetMapClient(String email, PersistentMapFactory factory) {
+
+        final HttpClient httpClient = new DefaultHttpClient();
+        nominatimClient = new JsonNominatimClient(httpClient, email);
+        addressCache = factory.getSystemWideMap(CachedOpenStreetMapClient.class.getName(), LatLng.class, Address.class);
+    }
 }

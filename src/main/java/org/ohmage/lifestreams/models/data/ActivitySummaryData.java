@@ -72,16 +72,18 @@ public class ActivitySummaryData extends TimeWindowData {
         this.activityEpisodes = activeInstances;
         return this;
     }
-    public double getMaxActiveSpeedInMPH(){
+
+    public double getMaxActiveSpeedInMPH() {
         double maxSpeed = -1;
-        for(ActivityEpisode epi: getActivityEpisodes()){
+        for (ActivityEpisode epi : getActivityEpisodes()) {
             // only include active episodes more than 5 mins
-            if(epi.getDurationInSeconds() > 5 * 60){
+            if (epi.getDurationInSeconds() > 5 * 60) {
                 maxSpeed = Math.max(epi.getDistanceInMiles() / (epi.getDurationInSeconds() / 3600.0), maxSpeed);
             }
         }
-        return  maxSpeed;
+        return maxSpeed;
     }
+
     private double totalTime;
     private double totalActiveTime;
     private double totalSedentaryTime;

@@ -6,41 +6,41 @@ import org.ohmage.lifestreams.tasks.TimeWindow;
 
 public class GeoDiameterData extends TimeWindowData {
 
-	private double diameter;
-	private GeoLocation earlierPointOnDiameter;
-	private GeoLocation laterPointOnDiameter;
+    private double diameter;
+    private GeoLocation earlierPointOnDiameter;
+    private GeoLocation laterPointOnDiameter;
 
-	public double getGeoDiameterInMiles() {
-		return diameter;
-	}
+    public double getGeoDiameterInMiles() {
+        return diameter;
+    }
 
-	public GeoDiameterData setDiameter(double diameter) {
-		this.diameter = diameter;
-		return this;
-	}
+    public GeoDiameterData setDiameter(double diameter) {
+        this.diameter = diameter;
+        return this;
+    }
 
-	public GeoLocation getEarlierPointOnDiameter() {
-		return earlierPointOnDiameter;
-	}
+    public GeoLocation getEarlierPointOnDiameter() {
+        return earlierPointOnDiameter;
+    }
 
-	public GeoDiameterData setEarlierPointOnDiameter(
-			GeoLocation earlierPointOnDiameter) {
-		this.earlierPointOnDiameter = earlierPointOnDiameter;
-		return this;
-	}
+    public GeoDiameterData setEarlierPointOnDiameter(
+            GeoLocation earlierPointOnDiameter) {
+        this.earlierPointOnDiameter = earlierPointOnDiameter;
+        return this;
+    }
 
-	public GeoLocation getLaterPointOnDiameter() {
-		return laterPointOnDiameter;
-	}
+    public GeoLocation getLaterPointOnDiameter() {
+        return laterPointOnDiameter;
+    }
 
-	public GeoDiameterData setLaterPointOnDiameter(
-			GeoLocation laterPointOnDiameter) {
-		this.laterPointOnDiameter = laterPointOnDiameter;
-		return this;
-	}
+    public GeoDiameterData setLaterPointOnDiameter(
+            GeoLocation laterPointOnDiameter) {
+        this.laterPointOnDiameter = laterPointOnDiameter;
+        return this;
+    }
 
-	public GeoDiameterData(TimeWindow window, IGenerator generator) {
-		super(window, generator);
-	}
+    public GeoDiameterData(TimeWindow window, IGenerator generator) {
+        super(window, generator);
+    }
 
 }

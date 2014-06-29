@@ -18,84 +18,86 @@ import java.util.List;
  */
 public abstract class TimeWindowTask extends Task {
 
-	transient private TimeWindow curTimeWindow;
-	transient private PendingBuffer pendingBuf;
-	private BaseSingleFieldPeriod timeWindowSize;
+    transient private TimeWindow curTimeWindow;
+    transient private PendingBuffer pendingBuf;
+    private BaseSingleFieldPeriod timeWindowSize;
 
-	public TimeWindowTask(BaseSingleFieldPeriod timeWindowSize) {
-		this.timeWindowSize = timeWindowSize;
-	}
+    public TimeWindowTask(BaseSingleFieldPeriod timeWindowSize) {
+        this.timeWindowSize = timeWindowSize;
+    }
 
-	public TimeWindowTask() {
-		this(Days.ONE);
-	}
+    public TimeWindowTask() {
+        this(Days.ONE);
+    }
 
-	public void setTimeWindowSize(BaseSingleFieldPeriod timeWindowSize) {
-		this.timeWindowSize = timeWindowSize;
-	}
+    public void setTimeWindowSize(BaseSingleFieldPeriod timeWindowSize) {
+        this.timeWindowSize = timeWindowSize;
+    }
 
-	@Override
+    @Override
     protected void init() {
-		super.init();
-		pendingBuf = new PendingBuffer();
-	}
+        super.init();
+        pendingBuf = new PendingBuffer();
+    }
 
-	@Override
+    @Override
     protected void recover() {
-		super.recover();
-		pendingBuf = new PendingBuffer();
-	}
-	@Override
-	protected void checkpoint(){
-		throw new UnsupportedOperationException("You  must commit a checkpoint with timestamp.");
-	}
-	@Override
+        super.recover();
+        pendingBuf = new PendingBuffer();
+    }
+
+    @Override
+    protected void checkpoint() {
+        throw new UnsupportedOperationException("You  must commit a checkpoint with timestamp.");
+    }
+
+    @Override
     protected void executeDataPoint(RecordTuple tuple) {
-		StreamRecord rec = tuple.getStreamRecord();
-		// init the cur timewindow if it has not been initialized
-		if (curTimeWindow == null) {
-			curTimeWindow = new TimeWindow(timeWindowSize, rec.getTimestamp());
-		}
+        StreamRecord rec = tuple.getStreamRecord();
+        // init the cur timewindow if it has not been initialized
+        if (curTimeWindow == null) {
+            curTimeWindow = new TimeWindow(timeWindowSize, rec.getTimestamp());
+        }
 
-		// check if the received record fall into the current time window
-		if (curTimeWindow.withinWindow(rec.getTimestamp())) {
-			// if so, update the time window statistics
-			curTimeWindow.update(rec.getTimestamp());
-			// and process the record
-			executeDataPoint(tuple, curTimeWindow);
+        // check if the received record fall into the current time window
+        if (curTimeWindow.withinWindow(rec.getTimestamp())) {
+            // if so, update the time window statistics
+            curTimeWindow.update(rec.getTimestamp());
+            // and process the record
+            executeDataPoint(tuple, curTimeWindow);
 
-		} else {
-			// if not so, store that record to the pending buffer
-			pendingBuf.put(tuple);
-			if (pendingBuf.getPendingStreams().size() == getState().getBolt()
-					.getSourceIds().size()) {
-				// when the number of unique pending stream == the number of
-				// source streams
-				// it means that every input stream has at least one data point
-				// pending.
-				// Then, we assume we have received all the data for the current
-				// time window
+        } else {
+            // if not so, store that record to the pending buffer
+            pendingBuf.put(tuple);
+            if (pendingBuf.getPendingStreams().size() == getState().getBolt()
+                    .getSourceIds().size()) {
+                // when the number of unique pending stream == the number of
+                // source streams
+                // it means that every input stream has at least one data point
+                // pending.
+                // Then, we assume we have received all the data for the current
+                // time window
 
-				// finalize the computation for the current time window
-				finishWindow(curTimeWindow);
-				// clear the time window, so we can move on to the next one
-				curTimeWindow = null;
-				// take all the points out from the pending buffer (they are
-				// sorted by time)
-				List<RecordTuple> pendings = new ArrayList<RecordTuple>(
-						pendingBuf.getBuffer());
-				pendingBuf.clearBuffer();
-				// replay all the pending record
-				for (RecordTuple pendingTuple : pendings) {
-					executeDataPoint(pendingTuple);
-				}
-			}
+                // finalize the computation for the current time window
+                finishWindow(curTimeWindow);
+                // clear the time window, so we can move on to the next one
+                curTimeWindow = null;
+                // take all the points out from the pending buffer (they are
+                // sorted by time)
+                List<RecordTuple> pendings = new ArrayList<RecordTuple>(
+                        pendingBuf.getBuffer());
+                pendingBuf.clearBuffer();
+                // replay all the pending record
+                for (RecordTuple pendingTuple : pendings) {
+                    executeDataPoint(pendingTuple);
+                }
+            }
 
-		}
-	}
+        }
+    }
 
-	protected abstract void executeDataPoint(RecordTuple input, TimeWindow window);
+    protected abstract void executeDataPoint(RecordTuple input, TimeWindow window);
 
-	public abstract void finishWindow(TimeWindow window);
+    public abstract void finishWindow(TimeWindow window);
 
 }

@@ -19,11 +19,12 @@ public class MovesDataCoverage extends SimpleTask<MovesSegment> {
     BaseSingleFieldPeriod coveragePeriod;
     MovesSegment segment;
     MovesSegment lastSegment;
-    public MovesDataCoverage(BaseSingleFieldPeriod coveragePeriod){
+
+    public MovesDataCoverage(BaseSingleFieldPeriod coveragePeriod) {
         this.coveragePeriod = coveragePeriod;
     }
 
-    void outputCoverage(){
+    void outputCoverage() {
         try {
             DataCoverage data = new DataCoverage(
                     curWindow.getTimeWindowBeginTime(),
@@ -33,7 +34,7 @@ public class MovesDataCoverage extends SimpleTask<MovesSegment> {
                     .setTimestamp(curWindow.getTimeWindowBeginTime())
                     .setData(data)
                     .emit();
-        }catch(Exception e){
+        } catch (Exception e) {
             getLogger().error("{} last: {}-{} cur: {}-{}",
                     getUser(),
                     lastSegment.getStartTime(), lastSegment.getEndTime(),
@@ -44,6 +45,7 @@ public class MovesDataCoverage extends SimpleTask<MovesSegment> {
 
 
     }
+
     @Override
     public void executeDataPoint(StreamRecord<MovesSegment> record) {
         DateTime start = record.getData().getStartTime();
@@ -54,21 +56,21 @@ public class MovesDataCoverage extends SimpleTask<MovesSegment> {
             curCoverage = 0.0;
         }
 
-        while(start.isBefore(end)) {
+        while (start.isBefore(end)) {
             Interval overlap = curWindow.getTimeInterval().overlap(new Interval(start, end));
-            if(overlap != null){
-                double cover = overlap.toDurationMillis() / (double)curWindow.getTimeWindowSizeInMillis();
+            if (overlap != null) {
+                double cover = overlap.toDurationMillis() / (double) curWindow.getTimeWindowSizeInMillis();
                 curCoverage += cover;
 
                 boolean intervalIsCoveredByCurWindow = curWindow.getTimeWindowEndTime().isAfter(end);
-                if(intervalIsCoveredByCurWindow){
+                if (intervalIsCoveredByCurWindow) {
                     break;
-                }else{
+                } else {
                     start = overlap.getEnd().plus(1);
                 }
             }
             // before moving to next time window, output the current window coverage
-            if(curCoverage > 0.0) {
+            if (curCoverage > 0.0) {
                 outputCoverage();
                 curCoverage = 0.0;
                 curWindow = null;

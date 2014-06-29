@@ -14,10 +14,12 @@ public class Scope {
     public void setProvider(String provider) {
         this.provider = provider;
     }
-    public String getScopeName(){
+
+    public String getScopeName() {
         return scopeName;
     }
-    public void setScopeName(String scope){
+
+    public void setScopeName(String scope) {
         this.scopeName = scope;
     }
 

@@ -2,17 +2,20 @@ package org.ohmage.lifestreams;
 
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.data.MobilityData;
-import org.ohmage.lifestreams.spouts.MovesSpout;
-import org.ohmage.lifestreams.spouts.OhmageStreamSpout;
-import org.ohmage.lifestreams.stores.*;
-import org.ohmage.models.OhmageStream;
-import org.ohmage.models.OhmageUser;
+import org.ohmage.lifestreams.spouts.Ohmage20MovesSpout;
+import org.ohmage.lifestreams.spouts.Ohmage20StreamSpout;
+import org.ohmage.lifestreams.stores.IMapStore;
+import org.ohmage.lifestreams.stores.IStreamStore;
+import org.ohmage.lifestreams.stores.MongoStreamStore;
+import org.ohmage.lifestreams.stores.RedisMapStore;
+import org.ohmage.models.IStream;
+import org.ohmage.models.Ohmage20Stream;
+import org.ohmage.models.Ohmage20User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
-import redis.clients.jedis.JedisPoolConfig;
 
 @Configuration
 @PropertySource("/lifestreams.properties")
@@ -32,8 +35,8 @@ public class AppConfig {
     }
 
     @Bean
-    OhmageUser requester() {
-        return new OhmageUser(env.getProperty("ohmage.server"),
+    Ohmage20User requester() {
+        return new Ohmage20User(env.getProperty("ohmage.server"),
                 env.getProperty("lifestreams.username"),
                 env.getProperty("lifestreams.password"));
     }
@@ -44,74 +47,75 @@ public class AppConfig {
     }
 
     @Bean
-    OhmageStream movesCredentialStream() {
-        return new OhmageStream("org.ohmage.Moves", "oauth", "20140213",
+    Ohmage20Stream movesCredentialStream() {
+        return new Ohmage20Stream("org.ohmage.Moves", "oauth", "20140213",
                 "20140213");
     }
 
     @Bean
-    OhmageStream mobilityStream() {
-        return new OhmageStream("edu.ucla.cens.Mobility", "extended",
+    Ohmage20Stream mobilityStream() {
+        return new Ohmage20Stream("edu.ucla.cens.Mobility", "extended",
                 "2012061300", "2012050700");
     }
 
     @Bean
-    OhmageStream activitySummaryStream() {
-        return new OhmageStream(MOBILITY_OBSERVER_ID, "summaries",
+    IStream activitySummaryStream() {
+        return new Ohmage20Stream(MOBILITY_OBSERVER_ID, "summaries",
                 LIFESTREAMS_OBSERVER_VER, "1");
     }
 
     @Bean
-    OhmageStream geodiameterStream() {
-        return new OhmageStream(MOBILITY_OBSERVER_ID, "geodiameter",
+    IStream geodiameterStream() {
+        return new Ohmage20Stream(MOBILITY_OBSERVER_ID, "geodiameter",
                 LIFESTREAMS_OBSERVER_VER, "1");
     }
 
     @Bean
-    OhmageStream leaveReturnHomeStream() {
-        return new OhmageStream(MOBILITY_OBSERVER_ID,
-                "leave_return_home_time", LIFESTREAMS_OBSERVER_VER, "1");
-    }
-    @Bean
-    OhmageStream dataCoverageStream() {
-        return new OhmageStream(MOBILITY_OBSERVER_ID,
-                "coverage", LIFESTREAMS_OBSERVER_VER, "1");
-    }
-
-    @Bean
-    OhmageStream activitySummaryStreamForMoves() {
-        return new OhmageStream(MOVES_OBSERVER_ID, "summaries",
-                LIFESTREAMS_OBSERVER_VER, "1");
-    }
-
-    @Bean
-    OhmageStream geodiameterStreamForMoves() {
-        return new OhmageStream(MOVES_OBSERVER_ID, "geodiameter",
-                LIFESTREAMS_OBSERVER_VER, "1");
-    }
-
-    @Bean
-    OhmageStream leaveReturnHomeStreamForMoves() {
-        return new OhmageStream(MOVES_OBSERVER_ID,
+    IStream leaveReturnHomeStream() {
+        return new Ohmage20Stream(MOBILITY_OBSERVER_ID,
                 "leave_return_home_time", LIFESTREAMS_OBSERVER_VER, "1");
     }
 
     @Bean
-    OhmageStream dataCoverageStreamForMoves() {
-        return new OhmageStream(MOVES_OBSERVER_ID,
+    IStream dataCoverageStream() {
+        return new Ohmage20Stream(MOBILITY_OBSERVER_ID,
                 "coverage", LIFESTREAMS_OBSERVER_VER, "1");
     }
 
     @Bean
-    MovesSpout movesSpout() {
-        return new MovesSpout(since(), movesCredentialStream(),
+    IStream activitySummaryStreamForMoves() {
+        return new Ohmage20Stream(MOVES_OBSERVER_ID, "summaries",
+                LIFESTREAMS_OBSERVER_VER, "1");
+    }
+
+    @Bean
+    IStream geodiameterStreamForMoves() {
+        return new Ohmage20Stream(MOVES_OBSERVER_ID, "geodiameter",
+                LIFESTREAMS_OBSERVER_VER, "1");
+    }
+
+    @Bean
+    IStream leaveReturnHomeStreamForMoves() {
+        return new Ohmage20Stream(MOVES_OBSERVER_ID,
+                "leave_return_home_time", LIFESTREAMS_OBSERVER_VER, "1");
+    }
+
+    @Bean
+    IStream dataCoverageStreamForMoves() {
+        return new Ohmage20Stream(MOVES_OBSERVER_ID,
+                "coverage", LIFESTREAMS_OBSERVER_VER, "1");
+    }
+
+    @Bean
+    Ohmage20MovesSpout movesSpout() {
+        return new Ohmage20MovesSpout(since(), movesCredentialStream(),
                 env.getProperty("com.moves.api.key"),
                 env.getProperty("com.moves.api.secret"));
     }
 
     @Bean
-    OhmageStreamSpout<MobilityData> mobilitySpout() {
-        return new OhmageStreamSpout<MobilityData>(since(), MobilityData.class,
+    Ohmage20StreamSpout<MobilityData> mobilitySpout() {
+        return new Ohmage20StreamSpout<MobilityData>(since(), MobilityData.class,
                 mobilityStream(), "mode");
     }
 
@@ -130,7 +134,7 @@ public class AppConfig {
 
     @Bean
     public IStreamStore streamStore() {
-       return new MongoStreamStore(env.getProperty("mongo.host"));
+        return new MongoStreamStore(env.getProperty("mongo.host"));
         /*
         return new RedisStreamStore(env.getProperty("redis.host"), new JedisPoolConfig(),
                 Integer.parseInt(env.getProperty("redis.stream.store.DBIndex")));*/

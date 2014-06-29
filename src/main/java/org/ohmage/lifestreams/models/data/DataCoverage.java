@@ -9,6 +9,7 @@ public class DataCoverage {
     DateTime begin, end;
 
     Double coverage;
+
     public DateTime getBegin() {
         return begin;
     }
@@ -32,14 +33,18 @@ public class DataCoverage {
     public void setCoverage(Double coverage) {
         this.coverage = coverage;
     }
-    public DataCoverage(){};
+
+    public DataCoverage() {
+    }
+
+    ;
 
     public DataCoverage(DateTime begin, DateTime end, Double coverage) {
         this.begin = begin;
         this.end = end;
-        if(coverage > 1.1){
-            throw  new RuntimeException("coverage cannot be over 1.0 too much, given coverage=" + coverage);
-        }else if(coverage > 1.0){
+        if (coverage > 1.1) {
+            throw new RuntimeException("coverage cannot be over 1.0 too much, given coverage=" + coverage);
+        } else if (coverage > 1.0) {
             coverage = 1.0;
         }
         this.coverage = coverage;

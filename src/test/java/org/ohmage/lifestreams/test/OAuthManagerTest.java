@@ -1,16 +1,14 @@
 package org.ohmage.lifestreams.test;
 
-import org.junit.Assert;
 import org.apache.oltu.oauth2.common.token.BasicOAuthToken;
-import org.apache.oltu.oauth2.common.token.OAuthToken;
+import org.junit.Assert;
 import org.junit.Test;
-import org.ohmage.lifestreams.models.Ohmage30User;
 import org.ohmage.lifestreams.oauth.MongoTokenRepository;
 import org.ohmage.lifestreams.oauth.Scope;
 import org.ohmage.lifestreams.oauth.TokenManager;
-import org.ohmage.lifestreams.oauth.TokenRepository;
 import org.ohmage.lifestreams.oauth.client.providers.GoogleOAuth;
 import org.ohmage.lifestreams.oauth.client.providers.IProvider;
+import org.ohmage.models.Ohmage30User;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,13 +27,15 @@ public class OAuthManagerTest {
     Scope scope = new Scope(provider.getName(), "TESTSCOPE1");
     Scope scope2 = new Scope(provider.getName(), "TESTSCOPE2");
     Set<Scope> scopeSet;
+
     {
-        scopeSet=new HashSet<Scope>();
+        scopeSet = new HashSet<Scope>();
         scopeSet.add(scope);
         scopeSet.add(scope2);
     }
+
     @Test
-    public void testInsertGetAndRemoveToken(){
+    public void testInsertGetAndRemoveToken() {
         Map<String, IProvider> providerMap = new HashMap<String, IProvider>();
         providerMap.put(provider.getName(), provider);
         TokenManager mng = new TokenManager(repo, providerMap);

@@ -120,7 +120,8 @@ public class ActivityEpisode {
     public void setSteps(int steps) {
         this.steps = steps;
     }
-    public String toString(){
+
+    public String toString() {
         try {
             ObjectMapper mapper = new ObjectMapper();
             mapper.registerModule(new JodaModule());
@@ -129,7 +130,7 @@ public class ActivityEpisode {
                     false);
             mapper.setTimeZone(this.getEndTime().getZone().toTimeZone());
             return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(this);
-        }catch (IOException e){
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }

@@ -12,35 +12,37 @@ import org.ohmage.lifestreams.tasks.TimeWindow;
  *         href="http://wiki.
  *         fasterxml.com/JacksonInFiveMinutes#Full_Data_Binding_.28
  *         POJO.29_Example">Jackson Data Binding</a>
- * 
- *         Ohmage Stream Schema for this object is as follows 
- *         <schema> 
+ *         <p/>
+ *         Ohmage Stream Schema for this object is as follows
+ *         <schema>
  *         {
- *         	"type": "object", 
- *          "doc": "geodiameter", 
- *          "fields": [ 
- *          	{ "name": "activityInstanceCount", 
- *          	  "doc":"The number of activity instances in a day",
- *         		  "type": "boolean"
- *         		} 
- *         	 ] 
+ *         "type": "object",
+ *         "doc": "geodiameter",
+ *         "fields": [
+ *         { "name": "activityInstanceCount",
+ *         "doc":"The number of activity instances in a day",
+ *         "type": "boolean"
+ *         }
+ *         ]
  *         }
  *         </schema>
  */
-class ActivityInstanceCountData extends TimeWindowData{
-	private int activityInstanceCount;
+class ActivityInstanceCountData extends TimeWindowData {
+    private int activityInstanceCount;
 
-	public int getActivityInstanceCount() {
-		return activityInstanceCount;
-	}
-	public void setActivityInstanceCount(int activityInstanceCount) {
-		this.activityInstanceCount = activityInstanceCount;
-	}
-	public ActivityInstanceCountData(TimeWindow window, IGenerator generator, int activityInstanceCount) {
+    public int getActivityInstanceCount() {
+        return activityInstanceCount;
+    }
+
+    public void setActivityInstanceCount(int activityInstanceCount) {
+        this.activityInstanceCount = activityInstanceCount;
+    }
+
+    public ActivityInstanceCountData(TimeWindow window, IGenerator generator, int activityInstanceCount) {
         super(window, generator);
         this.activityInstanceCount = activityInstanceCount;
 
-	}
-	
-	
+    }
+
+
 }

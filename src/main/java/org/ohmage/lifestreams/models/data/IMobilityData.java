@@ -7,5 +7,5 @@ import org.ohmage.lifestreams.models.MobilityState;
  *         Mobility data point
  */
 public interface IMobilityData {
-	MobilityState getMode();
+    MobilityState getMode();
 }
