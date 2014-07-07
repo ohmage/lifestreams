@@ -10,7 +10,11 @@ class Application {
 
         AnnotationConfigApplicationContext ctx = new AnnotationConfigApplicationContext();
         ctx.getEnvironment().getPropertySources().addFirst(new SimpleCommandLinePropertySource(args));
-        ctx.register(AppConfig.class);
+        if(ctx.getEnvironment().getProperty("ohmage.version").equals("2.0")) {
+            ctx.register(Ohmage20AppConfig.class);
+        }else{
+            ctx.register(Ohmage30AppConfig.class);
+        }
         ctx.refresh();
         ctx.getBean(MobilityMovesTopology.class).run();
     }

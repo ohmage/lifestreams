@@ -29,7 +29,7 @@ public class Ohmage20StreamSpout<T> extends Ohmage20Spout<T> {
     // stream to query
     private Ohmage20Stream stream;
     // data point factory
-    private StreamRecordFactory factory;
+    private static final StreamRecordFactory factory = new StreamRecordFactory();
     // the columns to be queried
     private String columnList;
     // the Type of the emitted records
@@ -40,9 +40,6 @@ public class Ohmage20StreamSpout<T> extends Ohmage20Spout<T> {
                      SpoutOutputCollector collector) {
 
         super.open(conf, context, collector);
-        // create data point factory
-        this.factory = new StreamRecordFactory();
-
     }
 
     @Override
@@ -62,9 +59,10 @@ public class Ohmage20StreamSpout<T> extends Ohmage20Spout<T> {
      *                   a list of ohmage users we will get the data from
      * @param columnList the columns to be returned. set it null means return every column
      */
-    public Ohmage20StreamSpout(Ohmage20User requester, DateTime since, Class<T> c, Ohmage20Stream stream,
+    public Ohmage20StreamSpout(Ohmage20User requester, String requestees, DateTime since, Class<T> c,
+                               Ohmage20Stream stream,
                                String columnList) {
-        super(requester, since, 10, TimeUnit.MINUTES);
+        super(requester, requestees, since, 10, TimeUnit.MINUTES);
         this.c = c;
         this.stream = stream;
         this.columnList = columnList;

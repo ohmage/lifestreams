@@ -1,49 +1,30 @@
 package org.ohmage.lifestreams;
 
-import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.spouts.Ohmage20MovesSpout;
 import org.ohmage.lifestreams.spouts.Ohmage20StreamSpout;
-import org.ohmage.lifestreams.stores.IMapStore;
-import org.ohmage.lifestreams.stores.IStreamStore;
-import org.ohmage.lifestreams.stores.MongoStreamStore;
-import org.ohmage.lifestreams.stores.RedisMapStore;
 import org.ohmage.models.IStream;
 import org.ohmage.models.Ohmage20Stream;
 import org.ohmage.models.Ohmage20User;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.core.env.Environment;
 
-@Configuration
-@PropertySource("/lifestreams.properties")
-public class AppConfig {
+
+public class Ohmage20AppConfig extends BaseAppConfig {
 
     private static final String LIFESTREAMS_OBSERVER_VER = "1";
     private static final String MOBILITY_OBSERVER_ID = "org.ohmage.lifestreams.mobility";
     private static final String MOVES_OBSERVER_ID = "org.ohmage.lifestreams.moves";
 
-    @Autowired
-    private
-    Environment env;
-
-    @Bean
-    DateTime since() {
-        return new DateTime(env.getProperty("since"));
-    }
-
     @Bean
     Ohmage20User requester() {
         return new Ohmage20User(env.getProperty("ohmage.server"),
-                env.getProperty("lifestreams.username"),
-                env.getProperty("lifestreams.password"));
+                env.getProperty("lifestreams.requester.username"),
+                env.getProperty("lifestreams.requester.password"));
     }
 
     @Bean
     String requestees() {
-        return env.getProperty("ohmage.requestees");
+        return env.getProperty("lifestreams.requestees");
     }
 
     @Bean
@@ -108,53 +89,17 @@ public class AppConfig {
 
     @Bean
     Ohmage20MovesSpout movesSpout() {
-        return new Ohmage20MovesSpout(since(), movesCredentialStream(),
+        return new Ohmage20MovesSpout(requester(), requestees(), since(), movesCredentialStream(),
                 env.getProperty("com.moves.api.key"),
                 env.getProperty("com.moves.api.secret"));
     }
 
     @Bean
     Ohmage20StreamSpout<MobilityData> mobilitySpout() {
-        return new Ohmage20StreamSpout<MobilityData>(since(), MobilityData.class,
+        return new Ohmage20StreamSpout<MobilityData>(requester(), requestees(), since(), MobilityData.class,
                 mobilityStream(), "mode");
     }
 
-    @Bean
-    MobilityMovesTopology mobilityMovesTopology() {
-        return new MobilityMovesTopology(env.getProperty("topology.name"),
-                Integer.parseInt(env.getProperty("mobility.spout.number")),
-                Integer.parseInt(env
-                        .getProperty("parallelism.per.mobility.task")));
-    }
 
-    @Bean
-    public IMapStore mapStore() {
-        return new RedisMapStore(env.getProperty("redis.host"));
-    }
 
-    @Bean
-    public IStreamStore streamStore() {
-        return new MongoStreamStore(env.getProperty("mongo.host"));
-        /*
-        return new RedisStreamStore(env.getProperty("redis.host"), new JedisPoolConfig(),
-                Integer.parseInt(env.getProperty("redis.stream.store.DBIndex")));*/
-    }
-
-    @Bean
-    LifestreamsTopologyBuilder builder() {
-        return new LifestreamsTopologyBuilder()
-                .setRequester(requester())
-                .setRequestees(requestees())
-                .setColdStart(
-                        Boolean.parseBoolean(env.getProperty("lifestreams.cold.start")))
-                .setDryRun(
-                        Boolean.parseBoolean(env.getProperty("lifestreams.dryrun")))
-                .setMaxSpoutPending(
-                        Integer.parseInt(env.getProperty("topology.max.spout.pending")))
-                .setMsgTimeout(
-                        Integer.parseInt(env.getProperty("topology.message.timeout.secs")))
-                .setMapStore(mapStore())
-                .setStreamStore(streamStore());
-
-    }
 }

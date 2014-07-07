@@ -23,18 +23,16 @@ class EmailTopology {
     @Autowired
     private
     Ohmage20User requester;
-    @Value("${ohmage.requestees}")
+    @Value("${lifestreams.requestees}")
     private
     String requestees;
 
     public void run() {
         LifestreamsTopologyBuilder builder = new LifestreamsTopologyBuilder();
-        builder
-                .setRequester(requester)
-                .setRequestees(requestees)
-                .setColdStart(true);
+        builder.setColdStart(true);
 
-        Ohmage20GmailSpout spout = new Ohmage20GmailSpout(gmailProvider, accessTokenStream, new DateTime().minusMonths(1));
+        Ohmage20GmailSpout spout = new Ohmage20GmailSpout(requester, gmailProvider, accessTokenStream,
+                new DateTime().minusMonths(1));
         builder.setSpout("GmailSpout", spout);
         builder.setTask("StripEmail", new MailCleaner(), "GmailSpout");
         builder.submitToLocalCluster("EmailTest");

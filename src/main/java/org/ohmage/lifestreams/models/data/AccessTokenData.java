@@ -63,7 +63,7 @@ public class AccessTokenData {
     public AccessTokenData(IUser user, IProvider provider, OAuthToken token, Object metaInfo) {
         this.username = user.getId();
         this.provider = provider.getName();
-        this.scope = provider.getScope();
+      //  this.scope = provider.getScope();
         if (token instanceof BasicOAuthToken) {
             this.token = (BasicOAuthToken) token;
         } else {

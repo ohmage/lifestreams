@@ -6,6 +6,7 @@ import org.apache.oltu.oauth2.common.token.BasicOAuthToken;
 import org.apache.oltu.oauth2.common.token.OAuthToken;
 import org.ohmage.models.Ohmage30User;
 
+import java.io.Serializable;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,7 +17,7 @@ import java.util.Set;
  * A mongodb-based implementation of Token repository
  * Created by changun on 6/27/14.
  */
-public class MongoTokenRepository implements TokenRepository<Ohmage30User> {
+public class MongoTokenRepository implements TokenRepository<Ohmage30User>, Serializable {
     static private String host = "localhost";
     static  private ObjectMapper mapper = new ObjectMapper();
     private String getScopeKey(Scope scope) {
@@ -30,6 +31,7 @@ public class MongoTokenRepository implements TokenRepository<Ohmage30User> {
 
     @Override
     public Set<Ohmage30User> getEntitiesWithScopes(Set<Scope> scopes) {
+
         DBCollection coll = this.getCollection();
         DBObject query = new BasicDBObject();
 
@@ -103,6 +105,10 @@ public class MongoTokenRepository implements TokenRepository<Ohmage30User> {
             }
         }
 
+    }
+
+    public MongoTokenRepository(String host) {
+        MongoTokenRepository.host =host;
     }
 
     public MongoClient getClient() {

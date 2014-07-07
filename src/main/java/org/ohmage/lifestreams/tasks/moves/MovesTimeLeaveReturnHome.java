@@ -1,9 +1,12 @@
 package org.ohmage.lifestreams.tasks.moves;
 
+import co.nutrino.api.moves.impl.dto.activity.TrackPoint;
 import co.nutrino.api.moves.impl.dto.storyline.MovesPlace;
 import co.nutrino.api.moves.impl.dto.storyline.MovesPlaceTypeEnum;
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
 import com.javadocmd.simplelatlng.LatLng;
+import com.javadocmd.simplelatlng.LatLngTool;
+import com.javadocmd.simplelatlng.util.LengthUnit;
 import org.joda.time.DateTime;
 import org.joda.time.Days;
 import org.joda.time.Duration;
@@ -21,8 +24,31 @@ import java.util.LinkedList;
 public class MovesTimeLeaveReturnHome extends SimpleTimeWindowTask<MovesSegment> {
 
 
+
     private LinkedList<MovesSegment> segments = new LinkedList<MovesSegment>();
     private static final float minimunCoverageRate = (float) 0.5;
+
+    private boolean sameLocation(MovesPlace p1, MovesPlace p2){
+
+
+        boolean closeLoc = false;
+        if(p1.getLocation() != null && p2.getLocation() != null){
+
+            double distance = LatLngTool.distance(
+                    new LatLng(p1.getLocation().getLat(), p1.getLocation().getLon()),
+                    new LatLng(p2.getLocation().getLat(), p2.getLocation().getLon()),
+                    LengthUnit.METER);
+            if(distance < 100){
+                closeLoc = true;
+            }
+        }
+        if(closeLoc || p1.getId() == p2.getId()) {
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
 
     @Override
     public void executeDataPoint(StreamRecord<MovesSegment> record, TimeWindow window) {
@@ -39,7 +65,7 @@ public class MovesTimeLeaveReturnHome extends SimpleTimeWindowTask<MovesSegment>
         float coverageRate = ((float) coverageInMilliSeconds) / (window.getTimeWindowSizeInSecond() * 1000);
         if (coverageRate > minimunCoverageRate) {
             // check if Moves recognize home location, and track the first/last place Id
-            long homePlaceId = -1;
+            MovesPlace homePlace = null;
             LinkedList<MovesSegment> placeSegments = new LinkedList<MovesSegment>();
             for (MovesSegment segment : segments) {
                 if (segment.getPlace() != null) {
@@ -49,31 +75,32 @@ public class MovesTimeLeaveReturnHome extends SimpleTimeWindowTask<MovesSegment>
             // use the home place id recognized by Moves
             for (MovesSegment segment : placeSegments) {
                 if (segment.getPlace().getType().equals(MovesPlaceTypeEnum.Home)) {
-                    homePlaceId = segment.getPlace().getId();
+                    homePlace = segment.getPlace();
+                    break;
                 }
             }
             // if no home place is recognized, use firstPlace=lastPlace=homePlace assumption
-            if (homePlaceId == -1) {
+            if (homePlace == null) {
                 // if Moves does not recognize home location, check if first place == last place
-                long firstPlaceId = placeSegments.getFirst().getPlace().getId();
-                long lastPlaceId = placeSegments.getLast().getPlace().getId();
-                if (firstPlaceId == lastPlaceId) {
+                MovesPlace first = placeSegments.getFirst().getPlace();
+                MovesPlace last = placeSegments.getLast().getPlace();
+                if (sameLocation(first, last)) {
                     // if so, set that place as home place
-                    homePlaceId = firstPlaceId;
+                    homePlace = first;
                 }
             }
-            if (homePlaceId != -1) {
-                GeoLocation homeLocation = null;
+            if (homePlace != null) {
+                GeoLocation homeLocation = new GeoLocation(window.getTimeWindowBeginTime(),
+                                                    new LatLng(homePlace.getLocation().getLat(),
+                                                               homePlace.getLocation().getLon()),
+                                                    "HomeDetection");
+
                 for (MovesSegment segment : placeSegments) {
-                    if (segment.getPlace().getId() == homePlaceId) {
+                    if (sameLocation(segment.getPlace(), homePlace)) {
                         segment.getPlace().setType(MovesPlaceTypeEnum.Home);
-                        if (homeLocation == null) {
-                            double lat = segment.getPlace().getLocation().getLat();
-                            double lng = segment.getPlace().getLocation().getLon();
-                            homeLocation = new GeoLocation(segment.getStartTime(), new LatLng(lat, lng), -1, "Moves");
-                        }
                     }
                 }
+                // get the time leave home, and remove any segments before that.
                 DateTime timeLeaveHome = null, timeReturnHome = null;
                 boolean everLeaveHome = false;
                 while (!segments.isEmpty()) {
@@ -90,6 +117,7 @@ public class MovesTimeLeaveReturnHome extends SimpleTimeWindowTask<MovesSegment>
                     }
 
                 }
+                // get the time return home, and remove any segments after that.
                 while (!segments.isEmpty()) {
                     MovesSegment segment = segments.getLast();
                     MovesPlace curPlace = segment.getPlace();
@@ -106,9 +134,13 @@ public class MovesTimeLeaveReturnHome extends SimpleTimeWindowTask<MovesSegment>
 
                 }
                 int timeAtHomeInSecs = 0;
-                if (everLeaveHome && timeLeaveHome != null && timeReturnHome != null) {
-                    timeAtHomeInSecs += new Duration(window.getTimeWindowBeginTime(), timeLeaveHome).getStandardSeconds();
-                    timeAtHomeInSecs += new Duration(timeReturnHome, window.getTimeWindowEndTime()).getStandardSeconds();
+                if (everLeaveHome) {
+                   if (timeLeaveHome != null) {
+                       timeAtHomeInSecs += new Duration(window.getTimeWindowBeginTime(), timeLeaveHome).getStandardSeconds();
+                    }
+                    if(timeReturnHome != null) {
+                        timeAtHomeInSecs += new Duration(timeReturnHome, window.getTimeWindowEndTime()).getStandardSeconds();
+                    }
                     for (MovesSegment segment : segments) {
                         MovesPlace curPlace = segment.getPlace();
                         if (curPlace != null && curPlace.getType().equals(MovesPlaceTypeEnum.Home)) {

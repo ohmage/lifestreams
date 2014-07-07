@@ -22,7 +22,6 @@ public class RedisMapStore implements IMapStore, Serializable {
 
     private static class Holder {
         static final JedisPool pool = new JedisPool(config, host);
-        ;
     }
 
     JedisPool getPool() {

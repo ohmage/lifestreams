@@ -34,9 +34,10 @@ import org.ohmage.models.IUser;
 import org.ohmage.models.Ohmage20Stream;
 import org.ohmage.models.Ohmage20User;
 import org.ohmage.models.Ohmage20User.OhmageAuthenticationError;
+import org.ohmage.models.SortOrder;
 import org.ohmage.sdk.Ohmage20StreamClient;
 import org.ohmage.sdk.Ohmage20StreamIterator;
-import org.ohmage.sdk.Ohmage20StreamIterator.SortOrder;
+
 
 import java.io.IOException;
 import java.util.*;
@@ -280,10 +281,11 @@ public class Ohmage20MovesSpout extends Ohmage20Spout<MovesSegment> {
 
     private MovesSecurityManager movesSecurityManger;
 
-    public Ohmage20MovesSpout(Ohmage20User requester, DateTime since, Ohmage20Stream movesCredentialsStream,
+    public Ohmage20MovesSpout(Ohmage20User requester, String requestees, DateTime since,
+                              Ohmage20Stream movesCredentialsStream,
                               String movesApiKey,
                               String movesApiSecret) {
-        super(requester, since, 2, TimeUnit.HOURS);
+        super(requester, requestees, since, 2, TimeUnit.HOURS);
         this.movesSecurityManger = new MovesSecurityManager(movesApiKey, movesApiSecret, "location activity");
         this.movesCredentialsStream = movesCredentialsStream;
     }

@@ -6,8 +6,10 @@ import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.models.IStream;
 import org.ohmage.models.IUser;
+import org.ohmage.models.SortOrder;
 import org.ohmage.sdk.Ohmage20StreamIterator;
 
+import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,7 +22,7 @@ import java.util.List;
 public class MongoStreamStore implements IStreamStore {
     transient private MongoClient _client;
     private String host = "localhost";
-
+    StreamRecord.StreamRecordFactory dataPointFactory = new StreamRecord.StreamRecordFactory();
     public MongoClient getClient() {
         if (_client == null) {
             try {
@@ -45,14 +47,15 @@ public class MongoStreamStore implements IStreamStore {
     }
 
     @Override
-    public List<StreamRecord> query(IStream stream, IUser user, DateTime start, DateTime end, Ohmage20StreamIterator.SortOrder order, int maxRows) {
+    public <T>List<StreamRecord<T>> query(IStream stream, IUser user, DateTime start, DateTime end,
+                                     SortOrder order, int maxRows, Class<T> c) {
         DB db = getClient().getDB("stream");
         if (!db.collectionExists(user.getId() + ":" + stream.toString())) {
             return Collections.emptyList();
         }
         DBCollection coll = db.getCollection(user.getId() + ":" + stream.toString());
         BasicDBObject query = new BasicDBObject();
-        BasicDBObject sort = new BasicDBObject("_id", order == Ohmage20StreamIterator.SortOrder.Chronological ? 1 : -1);
+        BasicDBObject sort = new BasicDBObject("_id", order == SortOrder.Chronological ? 1 : -1);
         BasicDBObjectBuilder builder = BasicDBObjectBuilder.start();
         if (start != null) {
             builder.add("$gte", start.getMillis());
@@ -64,9 +67,13 @@ public class MongoStreamStore implements IStreamStore {
             query.put("_id", builder.get());
 
         DBCursor cur = coll.find(query).sort(sort);
-        ArrayList<StreamRecord> ret = new ArrayList<StreamRecord>(cur.size());
-        for (DBObject aCur : cur) {
-            ret.add(StreamRecord.getObjectMapper().convertValue(aCur, new StreamRecord<ObjectNode>().getClass()));
+        ArrayList<StreamRecord<T>> ret = new ArrayList<StreamRecord<T>>(cur.size());
+        try {
+            for (DBObject aCur : cur) {
+                    ret.add(dataPointFactory.createRecord(aCur, user, c));
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create record", e);
         }
         return ret;
     }

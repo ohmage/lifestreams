@@ -4,6 +4,7 @@ import backtype.storm.Config;
 import backtype.storm.serialization.SerializationFactory;
 import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.TopologyContext;
+import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.topology.base.BaseRichSpout;
 import com.esotericsoftware.kryo.Kryo;
 import org.joda.time.DateTime;
@@ -11,10 +12,7 @@ import org.ohmage.lifestreams.LifestreamsConfig;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.stores.IMapStore;
 import org.ohmage.lifestreams.stores.PersistentMapFactory;
-import org.ohmage.lifestreams.tuples.BaseTuple;
-import org.ohmage.lifestreams.tuples.GlobalCheckpointTuple;
-import org.ohmage.lifestreams.tuples.SpoutRecordTuple;
-import org.ohmage.lifestreams.tuples.StreamStatusTuple;
+import org.ohmage.lifestreams.tuples.*;
 import org.ohmage.models.IUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -232,6 +230,11 @@ public abstract class BaseLifestreamsSpout<T> extends BaseRichSpout {
 
     }
 
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+        declarer.declare(RecordTuple.getFields());
+
+    }
     protected BaseLifestreamsSpout(DateTime since, int retryDelay, TimeUnit retryDelayTimeUnit) {
         this.retryDelayTimeUnit = retryDelayTimeUnit;
         this.retryDelay = retryDelay;

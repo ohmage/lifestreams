@@ -14,6 +14,10 @@ public interface IProvider extends Serializable {
     public OAuthClientRequest getAuthRequest(String callback,
                                              String state, String[] scope) throws OAuthSystemException;
 
+    public OAuthClientRequest getMobileAuthRequest(String callback,
+                                             String state, String[] scope) throws OAuthSystemException;
+
+
     public OAuthToken getAccessToken(String code, String callback)
             throws OAuthSystemException, OAuthProblemException;
 

@@ -50,10 +50,6 @@ public class LifestreamsTopologyBuilder {
     private boolean coldStart = false;
     private int maxSpoutPending = 100000;
     private int msgTimeout = 10 * 60;
-    // the requester used to query ohmage stream data
-    private Ohmage20User requester;
-    // a comma-separated list of user names
-    private String requestees;
 
 
     /**
@@ -158,39 +154,6 @@ public class LifestreamsTopologyBuilder {
         return this;
     }
 
-    /**
-     * The requester ohmage user.
-     *
-     * @return the requester
-     */
-    public IUser getRequester() {
-        return requester;
-    }
-
-    /**
-     * Set the ohmage data requester. The requester should have access to the
-     * data of every requestee. If requestee is not set, the topology will query
-     * all the user's data that are accessible to the requester.
-     *
-     * @param requester the requester to set
-     */
-    public LifestreamsTopologyBuilder setRequester(Ohmage20User requester) {
-        this.requester = requester;
-        return this;
-    }
-
-    /**
-     * A comma-separated list of the requestees ohmage user name. If requestees
-     * is not set, all the users whose data are accessible by the requester will
-     * be processed.
-     *
-     * @param requestees the requestees to set
-     */
-    public LifestreamsTopologyBuilder setRequestees(String requestees) {
-        this.requestees = requestees;
-        return this;
-    }
-
     public class BoltConfig {
         final String id;
         final String source;
@@ -284,22 +247,6 @@ public class LifestreamsTopologyBuilder {
         return builder.createTopology();
     }
 
-    private String getRequestees() {
-        if (requestees == null || requestees.length() == 0) {
-            logger.info(
-                    "Requestee list is not defined. Try to query"
-                            + "all the users whose data is accessible to the requester {}",
-                    requester);
-
-            // if the requestees are not given, use all the users that are
-            // accessible to the requester
-            Set<String> requesteeSet = new HashSet<String>(requester.getAccessibleUsers());
-
-            this.requestees = StringUtils.join(requesteeSet, ",");
-        }
-        return this.requestees;
-    }
-
     /**
      * Get configuration defined in application properties, which can be
      * overrided by console arguments
@@ -309,10 +256,6 @@ public class LifestreamsTopologyBuilder {
     Config getConfiguration() {
         Config conf = new Config();
         conf.setDebug(false);
-        // ohmage data requester
-        LifestreamsConfig.serializeAndPutObject(conf, LifestreamsConfig.LIFESTREAMS_REQUESTER, requester);
-        // a list of users whose data we are going to process
-        conf.put(LifestreamsConfig.LIFESTREAMS_REQUESTEES, this.getRequestees());
         // serialize the persistent map store instance to be used in the topology
         LifestreamsConfig.serializeAndPutObject(conf, LifestreamsConfig.MAP_STORE_INSTANCE, this.getMapStore());
         // serialize the persistent stream store instance to be used in the topology

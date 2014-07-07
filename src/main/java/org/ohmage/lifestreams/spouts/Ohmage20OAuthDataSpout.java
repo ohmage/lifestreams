@@ -12,9 +12,10 @@ import org.ohmage.models.IUser;
 import org.ohmage.models.Ohmage20Stream;
 import org.ohmage.models.Ohmage20User;
 import org.ohmage.models.Ohmage20User.OhmageAuthenticationError;
+import org.ohmage.models.SortOrder;
 import org.ohmage.sdk.Ohmage20StreamClient;
 import org.ohmage.sdk.Ohmage20StreamIterator;
-import org.ohmage.sdk.Ohmage20StreamIterator.SortOrder;
+
 
 import java.io.IOException;
 import java.util.Iterator;

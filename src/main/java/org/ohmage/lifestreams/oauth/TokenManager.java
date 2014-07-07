@@ -8,13 +8,14 @@ import org.ohmage.models.Ohmage30User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
 /**
  * Created by changun on 6/27/14.
  */
-public class TokenManager {
+public class TokenManager implements Serializable{
     final private static Logger logger = LoggerFactory.getLogger(TokenManager.class);
     TokenRepository<Ohmage30User> repo;
     Map<String, IProvider> providers;

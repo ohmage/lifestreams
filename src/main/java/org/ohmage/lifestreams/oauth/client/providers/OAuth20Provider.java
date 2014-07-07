@@ -12,12 +12,15 @@ import org.apache.oltu.oauth2.common.token.BasicOAuthToken;
 import org.apache.oltu.oauth2.common.token.OAuthToken;
 
 
-public abstract class OAuth20Provider implements IProvider {
+public class OAuth20Provider implements IProvider {
 
 
     final private String apiKey;
     final private String apiSecret;
     final private String authEndpoint;
+
+
+    final private String mobileAuthEndpoint;
     final private String accessTokenEndpoint;
     final private String name;
 
@@ -31,6 +34,10 @@ public abstract class OAuth20Provider implements IProvider {
 
     String getAuthEndpoint() {
         return authEndpoint;
+    }
+
+    String getMobileAuthEndpoint() {
+        return mobileAuthEndpoint;
     }
 
     String getAccessTokenEndpoint() {
@@ -50,11 +57,27 @@ public abstract class OAuth20Provider implements IProvider {
                 .setClientId(getApiKey())
                 .setRedirectURI(callback)
                 .setState(state)
-                .setScope(StringUtils.join(scopes, ','))
+                .setScope(StringUtils.join(scopes, ' '))
                 .setResponseType("code")
                 .buildQueryMessage();
     }
-
+    @Override
+    public OAuthClientRequest getMobileAuthRequest(String callback, String state,
+                                             String[] scopes) throws OAuthSystemException {
+        if(getMobileAuthEndpoint() != null) {
+            return OAuthClientRequest
+                    .authorizationLocation(getMobileAuthEndpoint())
+                    .setClientId(getApiKey())
+                    .setRedirectURI(callback)
+                    .setState(state)
+                    .setScope(StringUtils.join(scopes, ' '))
+                    .setResponseType("code")
+                    .buildQueryMessage();
+        }
+        else{
+            return null;
+        }
+    }
     @Override
     public OAuthToken getAccessToken(String code, String callback) throws OAuthSystemException, OAuthProblemException {
         OAuthClientRequest request = OAuthClientRequest
@@ -91,14 +114,19 @@ public abstract class OAuth20Provider implements IProvider {
 
     }
 
-    OAuth20Provider(String name, String authEndpoint, String accessTokenEndpoint,
+    public OAuth20Provider(String name, String authEndpoint, String accessTokenEndpoint,
                     String apiKey, String apiSecret) {
+
+        this(name,authEndpoint,null,accessTokenEndpoint,apiKey,apiSecret);
+    }
+    public OAuth20Provider(String name, String authEndpoint, String mobileAuthEndpoint, String accessTokenEndpoint,
+                           String apiKey, String apiSecret) {
         this.name = name;
+        this.mobileAuthEndpoint = mobileAuthEndpoint;
         this.authEndpoint = authEndpoint;
         this.accessTokenEndpoint = accessTokenEndpoint;
         this.apiKey = apiKey;
         this.apiSecret = apiSecret;
     }
-
 
 }

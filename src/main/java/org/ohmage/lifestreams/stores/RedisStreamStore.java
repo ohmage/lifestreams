@@ -7,6 +7,7 @@ import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.utils.KryoSerializer;
 import org.ohmage.models.IStream;
 import org.ohmage.models.IUser;
+import org.ohmage.models.SortOrder;
 import org.ohmage.sdk.Ohmage20StreamIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,11 +74,11 @@ public class RedisStreamStore implements IStreamStore {
     }
 
     @Override
-    public List<StreamRecord> query(IStream stream,
+    public <T> List<StreamRecord<T>> query(IStream stream,
                                     IUser user,
                                     DateTime start, DateTime end,
-                                    Ohmage20StreamIterator.SortOrder order,
-                                    int maxRows) {
+                                    SortOrder order,
+                                    int maxRows, Class<T> c) {
         Kryo kryo = KryoSerializer.getInstance();
         String key = getKeyForStream(stream, user);
         Jedis jedis = getPool().getResource();
@@ -86,7 +87,7 @@ public class RedisStreamStore implements IStreamStore {
         double endScore = end != null ? end.getMillis() : Double.POSITIVE_INFINITY;
         Set<byte[]> storedRecs = null;
         try {
-            if (order == Ohmage20StreamIterator.SortOrder.Chronological) {
+            if (order == SortOrder.Chronological) {
                 if (maxRows > 0) {
                     storedRecs = jedis.zrangeByScore(key.getBytes(), startScore, endScore, 0, maxRows);
                 } else {
@@ -113,7 +114,7 @@ public class RedisStreamStore implements IStreamStore {
         }
 
         if (storedRecs != null) {
-            List<StreamRecord> ret = new ArrayList<StreamRecord>(storedRecs.size());
+            List<StreamRecord<T>> ret = new ArrayList<StreamRecord<T>>(storedRecs.size());
             for (byte[] stored : storedRecs) {
                 StreamRecord rec = KryoSerializer.toObject(stored, StreamRecord.class, kryo);
                 ret.add(rec);

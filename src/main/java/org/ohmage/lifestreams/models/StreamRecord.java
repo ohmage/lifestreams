@@ -2,6 +2,7 @@ package org.ohmage.lifestreams.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -10,6 +11,7 @@ import org.ohmage.models.IUser;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Iterator;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 
@@ -132,13 +134,42 @@ public class StreamRecord<T> {
         public StreamRecordFactory() {
         }
 
-        public <T> StreamRecord<T> createRecord(ObjectNode node, org.ohmage.models.IUser user, Class<T> dataClass)
+        public <T> StreamRecord<T> createRecord(Object node, org.ohmage.models.IUser user, Class<T> dataClass)
                 throws IOException {
             JavaType type = mapper.getTypeFactory().constructParametricType
                     (StreamRecord.class, dataClass);
+            //** a hack that renames "meta_data" to "metadata" for ohmage3.0
+            if(node instanceof ObjectNode){
+                if(((ObjectNode) node).has("meta_data")){
+                    ((ObjectNode) node).put("metadata", ((ObjectNode) node).get("meta_data"));
+                }
+            }
             StreamRecord<T> dataPoint = mapper.convertValue(node, type);
             dataPoint.setUser(user);
             return dataPoint;
+        }
+        public <T>Iterator<StreamRecord<T>> createIterator(final Iterator<ObjectNode> iter, final IUser user,
+                                                           final Class<T> dataClass){
+            return new Iterator<StreamRecord<T>>() {
+                @Override
+                public boolean hasNext() {
+                    return iter.hasNext();
+                }
+
+                @Override
+                public StreamRecord<T> next() {
+                    try {
+                        return createRecord(iter.next(), user, dataClass);
+                    }catch(IOException e){
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException();
+                }
+            };
         }
     }
 

@@ -1,9 +1,11 @@
 package org.ohmage.lifestreams.oauth;
 
+import java.io.Serializable;
+
 /**
  * Created by changun on 6/27/14.
  */
-public class Scope {
+public class Scope implements Serializable {
     private String provider;
     private String scopeName;
 
@@ -35,7 +37,7 @@ public class Scope {
         this.provider = provider;
         this.scopeName = scopeName;
     }
-
+    public Scope(){}
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
