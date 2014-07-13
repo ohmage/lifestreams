@@ -7,23 +7,18 @@ import backtype.storm.topology.IRichSpout;
 import backtype.storm.topology.SpoutDeclarer;
 import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
-import org.apache.commons.lang3.StringUtils;
 import org.joda.time.base.BaseSingleFieldPeriod;
 import org.ohmage.lifestreams.bolts.LifestreamsBolt;
 import org.ohmage.lifestreams.stores.*;
 import org.ohmage.lifestreams.tasks.Task;
 import org.ohmage.lifestreams.tasks.TimeWindowTask;
 import org.ohmage.lifestreams.utils.KryoSerializer;
-import org.ohmage.models.IUser;
 import org.ohmage.models.Ohmage20Stream;
-import org.ohmage.models.Ohmage20User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Lifestreams topology builder provide helper class for defining a Lifestreams

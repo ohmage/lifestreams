@@ -1,8 +1,6 @@
 package org.ohmage.lifestreams.spouts;
 
-import backtype.storm.topology.OutputFieldsDeclarer;
 import org.joda.time.DateTime;
-import org.ohmage.lifestreams.tuples.RecordTuple;
 import org.ohmage.models.IUser;
 import org.ohmage.models.Ohmage20User;
 

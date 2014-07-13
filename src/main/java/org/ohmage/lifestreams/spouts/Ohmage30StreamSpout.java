@@ -1,20 +1,14 @@
 package org.ohmage.lifestreams.spouts;
 
-import com.google.common.collect.Lists;
-import org.apache.commons.collections4.SetUtils;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.oauth.Scope;
-import org.ohmage.lifestreams.oauth.TokenManager;
 import org.ohmage.lifestreams.stores.OhmageStreamStore;
 import org.ohmage.models.IUser;
-import org.ohmage.models.Ohmage30Server;
 import org.ohmage.models.Ohmage30Stream;
 import org.ohmage.models.SortOrder;
-import org.ohmage.sdk.Ohmage20StreamIterator;
 
 import java.util.Iterator;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**

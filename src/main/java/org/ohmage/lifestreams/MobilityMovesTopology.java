@@ -6,8 +6,6 @@ import org.joda.time.Duration;
 import org.joda.time.Hours;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.spouts.BaseLifestreamsSpout;
-import org.ohmage.lifestreams.spouts.Ohmage20MovesSpout;
-import org.ohmage.lifestreams.spouts.Ohmage20StreamSpout;
 import org.ohmage.lifestreams.tasks.DataRateLimiter;
 import org.ohmage.lifestreams.tasks.GeoDiameterTask;
 import org.ohmage.lifestreams.tasks.mobility.*;

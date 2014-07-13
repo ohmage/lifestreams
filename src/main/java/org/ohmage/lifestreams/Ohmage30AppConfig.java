@@ -1,10 +1,8 @@
 package org.ohmage.lifestreams;
 
 import co.nutrino.api.moves.impl.dto.storyline.MovesSegment;
-import org.apache.oltu.oauth2.common.token.BasicOAuthToken;
 import org.ohmage.lifestreams.models.data.MobilityData;
 import org.ohmage.lifestreams.oauth.MongoTokenRepository;
-import org.ohmage.lifestreams.oauth.Scope;
 import org.ohmage.lifestreams.oauth.TokenManager;
 import org.ohmage.lifestreams.oauth.TokenRepository;
 import org.ohmage.lifestreams.oauth.client.providers.GoogleOAuth;
@@ -15,13 +13,10 @@ import org.ohmage.lifestreams.spouts.BaseLifestreamsSpout;
 import org.ohmage.lifestreams.spouts.Ohmage30StreamSpout;
 import org.ohmage.lifestreams.stores.IStreamStore;
 import org.ohmage.lifestreams.stores.OhmageStreamStore;
-import org.ohmage.models.IStream;
 import org.ohmage.models.Ohmage30Server;
 import org.ohmage.models.Ohmage30Stream;
 import org.ohmage.models.Ohmage30User;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 import java.util.ArrayList;
 import java.util.HashMap;

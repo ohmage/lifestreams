@@ -22,7 +22,7 @@ public class OAuthManagerTest {
     Ohmage30User testUser = new Ohmage30User("THISISATESTUSER");
 
     IProvider provider = new GoogleOAuth("", "");
-    MongoTokenRepository repo = new MongoTokenRepository();
+    MongoTokenRepository repo = new MongoTokenRepository("localhost");
     BasicOAuthToken token = new BasicOAuthToken("TESTTOKEN");
     Scope scope = new Scope(provider.getName(), "TESTSCOPE1");
     Scope scope2 = new Scope(provider.getName(), "TESTSCOPE2");

@@ -1,21 +1,13 @@
 package org.ohmage.lifestreams.stores;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.kevinsawicki.http.HttpRequest;
-import org.apache.oltu.oauth2.common.token.OAuthToken;
 import org.joda.time.DateTime;
-import org.mortbay.jetty.HttpException;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.lifestreams.oauth.Scope;
 import org.ohmage.lifestreams.oauth.TokenManager;
 import org.ohmage.models.*;
-import org.ohmage.sdk.OhmageHttpRequestException;
-
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.*;
+import java.util.Iterator;
 
 public class OhmageStreamStore implements IStreamStore {
 

@@ -1,13 +1,11 @@
 package org.ohmage.lifestreams.stores;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mongodb.*;
 import org.joda.time.DateTime;
 import org.ohmage.lifestreams.models.StreamRecord;
 import org.ohmage.models.IStream;
 import org.ohmage.models.IUser;
 import org.ohmage.models.SortOrder;
-import org.ohmage.sdk.Ohmage20StreamIterator;
 
 import java.io.IOException;
 import java.net.UnknownHostException;

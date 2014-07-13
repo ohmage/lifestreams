@@ -8,7 +8,6 @@ import org.ohmage.lifestreams.utils.KryoSerializer;
 import org.ohmage.models.IStream;
 import org.ohmage.models.IUser;
 import org.ohmage.models.SortOrder;
-import org.ohmage.sdk.Ohmage20StreamIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;

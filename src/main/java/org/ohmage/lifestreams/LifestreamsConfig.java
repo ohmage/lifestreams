@@ -4,7 +4,6 @@ import backtype.storm.Config;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import org.apache.commons.codec.binary.Base64;
-import org.ohmage.lifestreams.oauth.TokenManager;
 import org.ohmage.lifestreams.utils.KryoSerializer;
 
 import java.util.Map;
