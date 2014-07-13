@@ -86,7 +86,11 @@ public class Ohmage20AppConfig extends BaseAppConfig {
         return new Ohmage20Stream(MOVES_OBSERVER_ID,
                 "coverage", LIFESTREAMS_OBSERVER_VER, "1");
     }
-
+    @Bean
+    IStream movesSegmentStream() {
+        return new Ohmage20Stream(MOVES_OBSERVER_ID,
+                "moves_segment", LIFESTREAMS_OBSERVER_VER, "1");
+    }
     @Bean
     Ohmage20MovesSpout movesSpout() {
         return new Ohmage20MovesSpout(requester(), requestees(), since(), movesCredentialStream(),

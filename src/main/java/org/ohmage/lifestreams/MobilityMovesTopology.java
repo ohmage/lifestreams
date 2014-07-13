@@ -58,6 +58,10 @@ class MobilityMovesTopology {
     @Qualifier("dataCoverageStreamForMoves")
     private
     Ohmage20Stream dataCoverageStreamForMoves;
+    @Autowired(required=false)
+    @Qualifier("movesSegmentStream")
+    private
+    Ohmage20Stream movesSegmentStream;
 
     // ** Spouts ** //
     @Autowired
@@ -126,7 +130,8 @@ class MobilityMovesTopology {
 
             // segments from the ohmage or the local Moves fetcher may contain
             // duplication. Filter them out.
-            builder.setTask("MovesDataStream", new FilterDuplicatedSegment(), "RawMovesDataStream");
+            builder.setTask("MovesDataStream", new FilterDuplicatedSegment(), "RawMovesDataStream")
+                    .setTargetStream(movesSegmentStream);
 
             //compute hourly coverage rate
             builder.setTask("MovesHourlyDataCoverage", new MovesDataCoverage(Hours.ONE), "MovesDataStream")
