@@ -26,7 +26,7 @@ public class FilterDuplicatedSegment extends SimpleTask<MovesSegment> {
             }
             // check if the last segment overlap with the segments that has been emmited
             if(emittedUtil != null && lastSegment.getStartTime().isBefore(emittedUtil)){
-                lastSegment.setEndTime(emittedUtil);
+                lastSegment.setStartTime(emittedUtil);
             }
             // emit the the last segment if it still exclusively covers some time interval after shortening
 

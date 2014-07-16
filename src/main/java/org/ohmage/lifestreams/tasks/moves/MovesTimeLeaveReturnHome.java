@@ -62,7 +62,15 @@ public class MovesTimeLeaveReturnHome extends SimpleTimeWindowTask<MovesSegment>
             coverageInMilliSeconds += new Interval(segment.getStartTime(), segment.getEndTime()).toDurationMillis();
         }
         float coverageRate = ((float) coverageInMilliSeconds) / (window.getTimeWindowSizeInSecond() * 1000);
-        if (coverageRate > minimunCoverageRate) {
+        boolean containPlaceSegment = false;
+        for(MovesSegment segment : segments){
+            if(segment.getPlace()!=null){
+                containPlaceSegment = true;
+                break;
+            }
+        }
+
+        if (containPlaceSegment && coverageRate > minimunCoverageRate) {
             // check if Moves recognize home location, and track the first/last place Id
             MovesPlace homePlace = null;
             LinkedList<MovesSegment> placeSegments = new LinkedList<MovesSegment>();
